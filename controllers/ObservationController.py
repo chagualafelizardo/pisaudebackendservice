@@ -1,5 +1,6 @@
 from flask import jsonify, request
 from datetime import datetime
+from models import db, Observation
 
 class ObservationController:
     @staticmethod
@@ -29,12 +30,12 @@ class ObservationController:
                 'valorultimacv': obs.valorultimacv,
                 'linhaterapeutica': obs.linhaterapeutica,
                 'regime': obs.regime,
-                'state_id': obs.state_id,
-                'textmessage_id': obs.textmessage_id,
-                'grupotype_id': obs.grupotype_id,
-                'grupo_id': obs.grupo_id,
-                'location_id': obs.location_id,
-                'user_id': obs.user_id,
+                'stateId': obs.stateId,
+                'textmessageId': obs.textmessageId,
+                'grouptypeId': obs.grouptypeId,
+                'groupId': obs.groupId,
+                'locationId': obs.locationId,
+                'userId': obs.userId,
                 'createAt': obs.createAt.isoformat(),
                 'updateAt': obs.updateAt.isoformat(),
                 'state': {'id': obs.state.id, 'descriton': obs.state.descriton} if obs.state else None,
@@ -75,12 +76,12 @@ class ObservationController:
                     'valorultimacv': observation.valorultimacv,
                     'linhaterapeutica': observation.linhaterapeutica,
                     'regime': observation.regime,
-                    'state_id': observation.state_id,
-                    'textmessage_id': observation.textmessage_id,
-                    'grupotype_id': observation.grupotype_id,
-                    'grupo_id': observation.grupo_id,
-                    'location_id': observation.location_id,
-                    'user_id': observation.user_id,
+                    'stateId': observation.stateId,
+                    'textmessageId': observation.textmessageId,
+                    'grouptypeId': observation.grouptypeId,
+                    'groupId': observation.groupId,
+                    'locationId': observation.locationId,
+                    'userId': observation.userId,
                     'createAt': observation.createAt.isoformat(),
                     'updateAt': observation.updateAt.isoformat(),
                     'state': {'id': observation.state.id, 'descriton': observation.state.descriton} if observation.state else None,
@@ -105,7 +106,7 @@ class ObservationController:
                              'dataconsulta', 'dataproximaconsulta', 'dataalocacao', 'dataenvio',
                              'smssendernumber', 'smssuporternumber', 'dataprimeiracv', 'valorprimeiracv',
                              'dataultimacv', 'valorultimacv', 'linhaterapeutica', 'regime',
-                             'state_id', 'textmessage_id', 'grupotype_id', 'grupo_id', 'location_id', 'user_id']
+                             'stateId', 'textmessageId', 'grouptypeId', 'groupId', 'locationId', 'userId']
             
             missing_fields = [field for field in required_fields if field not in data]
             if missing_fields:
@@ -117,12 +118,12 @@ class ObservationController:
 
             # Verifica se as FKs existem
             related_models = {
-                'state_id': Estado,
-                'textmessage_id': Textmessage,
-                'grupotype_id': Grupotype,
-                'grupo_id': Grupo,
-                'location_id': Location,
-                'user_id': User
+                'stateId': Estado,
+                'textmessageId': Textmessage,
+                'grouptypeId': Grupotype,
+                'groupId': Grupo,
+                'locationId': Location,
+                'userId': User
             }
 
             for field, model in related_models.items():
@@ -152,12 +153,12 @@ class ObservationController:
                 valorultimacv=data['valorultimacv'],
                 linhaterapeutica=data['linhaterapeutica'],
                 regime=data['regime'],
-                state_id=data['state_id'],
-                textmessage_id=data['textmessage_id'],
-                grupotype_id=data['grupotype_id'],
-                grupo_id=data['grupo_id'],
-                location_id=data['location_id'],
-                user_id=data['user_id']
+                stateId=data['stateId'],
+                textmessageId=data['textmessageId'],
+                grouptypeId=data['grouptypeId'],
+                groupId=data['groupId'],
+                locationId=data['locationId'],
+                userId=data['userId']
             )
 
             db.session.add(new_observation)
@@ -207,12 +208,12 @@ class ObservationController:
 
             # Atualiza relacionamentos
             related_models = {
-                'state_id': Estado,
-                'textmessage_id': Textmessage,
-                'grupotype_id': Grupotype,
-                'grupo_id': Grupo,
-                'location_id': Location,
-                'user_id': User
+                'stateId': Estado,
+                'textmessageId': Textmessage,
+                'grouptypeId': Grupotype,
+                'groupId': Grupo,
+                'locationId': Location,
+                'userId': User
             }
 
             for field, model in related_models.items():

@@ -9,7 +9,7 @@ class GrouptypeController:
             grouptypes = Grouptype.query.all()
             return jsonify([{
                 'id': gtp.id,
-                'descriton': gtp.descriton,
+                'description': gtp.description,
                 'createAt': gtp.createAt,
                 'updateAt': gtp.updateAt
             } for gtp in grouptypes]), 200
@@ -23,7 +23,7 @@ class GrouptypeController:
             if grouptype:
                 return jsonify({
                     'id': grouptype.id,
-                    'descriton': grouptype.descriton,
+                    'description': grouptype.description,
                     'createAt': grouptype.createAt,
                     'updateAt': grouptype.updateAt
                 }), 200
@@ -35,14 +35,14 @@ class GrouptypeController:
     def create():
         try:
             data = request.get_json()
-            if not data or 'descriton' not in data:
+            if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
-            if Grouptype.query.filter_by(descriton=data['descriton']).first():
+            if Grouptype.query.filter_by(description=data['description']).first():
                 return jsonify({'message': 'Grouptype already exists'}), 400
 
             novo_grouptype = Grouptype(
-                descriton=data['descriton']
+                description=data['description']
             )
 
             db.session.add(novo_grouptype)
@@ -50,7 +50,7 @@ class GrouptypeController:
 
             return jsonify({
                 'id': novo_grouptype.id,
-                'descriton': novo_grouptype.descriton,
+                'description': novo_grouptype.description,
                 'createAt': novo_grouptype.createAt,
                 'updateAt': novo_grouptype.updateAt
             }), 201
@@ -66,24 +66,24 @@ class GrouptypeController:
                 return jsonify({'message': 'Grouptype not found'}), 404
 
             data = request.get_json()
-            if not data or 'descriton' not in data:
+            if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
             existing = Grouptype.query.filter(
-                Grouptype.descriton == data['descriton'],
+                Grouptype.description == data['description'],
                 Grouptype.id != id
             ).first()
             if existing:
                 return jsonify({'message': 'Grouptype with this description already exists'}), 400
 
-            grouptype.descriton = data['descriton']
+            grouptype.description = data['description']
             grouptype.updateAt = datetime.utcnow()
 
             db.session.commit()
 
             return jsonify({
                 'id': grouptype.id,
-                'descriton': grouptype.descriton,
+                'description': grouptype.description,
                 'createAt': grouptype.createAt,
                 'updateAt': grouptype.updateAt
             }), 200

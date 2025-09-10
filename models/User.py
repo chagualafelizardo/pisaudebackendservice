@@ -13,10 +13,10 @@ class User(db.Model):
     contact = db.Column(db.String(100), nullable=False)
     locationId = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
     
-    # Relacionamentos
+    # Relacionamentos - CORRIGIDO: user_roles (com underscore)
     location = db.relationship('Location', back_populates='users')
     observations = db.relationship('Observation', back_populates='user')
-    userroles = db.relationship('UserRole', back_populates='user', cascade='all, delete-orphan')
+    user_roles = db.relationship('UserRole', back_populates='user', cascade='all, delete-orphan')  # ← CORRIGIDO
     
     createAt = db.Column(db.DateTime, default=db.func.now())
     updateAt = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())

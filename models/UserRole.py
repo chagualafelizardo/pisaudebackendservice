@@ -10,9 +10,9 @@ class UserRole(db.Model):
     createAt = db.Column(db.DateTime, default=db.func.now())
     updateAt = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
     
-    # Relacionamentos
-    user = db.relationship('User', back_populates='user_roles')
-    role = db.relationship('Role', back_populates='user_roles')
+    # Relacionamentos - JÁ ESTÁ CORRETO
+    user = db.relationship('User', back_populates='user_roles')  # ← user_roles (correto)
+    role = db.relationship('Role', back_populates='user_roles')  # ← user_roles (correto)
 
     def __repr__(self):
         return f'<UserRole {self.id}>'

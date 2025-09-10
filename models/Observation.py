@@ -39,12 +39,12 @@ class Observation(db.Model):
     updateAt = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
     # Relacionamentos
-    state = db.relationship('State', backref='observations')
-    textmessage = db.relationship('Textmessage', backref='observations')
-    grouptype = db.relationship('Grouptype', backref='observations')
-    group = db.relationship('Group', backref='observations')
-    location = db.relationship('Location', backref='observations')
-    user = db.relationship('User', backref='observations')
+    state = db.relationship('State', backref='state_observations')  # ✅
+    textmessage = db.relationship('Textmessage', backref='textmessage_observations')  # ✅
+    grouptype = db.relationship('Grouptype', backref='grouptype_observations')  # ✅
+    group = db.relationship('Group', backref='group_observations')  # ✅
+    location = db.relationship('Location', backref='location_observations')  # ✅
+    user = db.relationship('User', backref='user_observations')  # ✅
 
     def __repr__(self):
         return f'<Observation {self.id}>'

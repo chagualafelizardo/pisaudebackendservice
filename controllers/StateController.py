@@ -1,6 +1,7 @@
 from flask import jsonify, request
 from models import db, State
 from datetime import datetime
+from flask_sqlalchemy import SQLAlchemy
 
 class StateController:
     @staticmethod
@@ -9,7 +10,7 @@ class StateController:
             states = State.query.all()
             return jsonify([{
                 'id': state.id,
-                'descriton': state.descriton,
+                'description': state.description,
                 'createAt': state.createAt,
                 'updateAt': state.updateAt
             } for state in states]), 200
@@ -23,7 +24,7 @@ class StateController:
             if state:
                 return jsonify({
                     'id': state.id,
-                    'descriton': state.descriton,
+                    'description': state.description,
                     'createAt': state.createAt,
                     'updateAt': state.updateAt
                 }), 200
@@ -35,15 +36,15 @@ class StateController:
     def create():
         try:
             data = request.get_json()
-            if not data or 'descriton' not in data:
+            if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
             # Verifica se o state já existe
-            if State.query.filter_by(descriton=data['descriton']).first():
+            if State.query.filter_by(description=data['description']).first():
                 return jsonify({'message': 'State already exists'}), 400
 
             novo_state = State(
-                descriton=data['descriton']
+                description=data['description']
             )
 
             db.session.add(novo_state)
@@ -51,7 +52,7 @@ class StateController:
 
             return jsonify({
                 'id': novo_state.id,
-                'descriton': novo_state.descriton,
+                'description': novo_state.description,
                 'createAt': novo_state.createAt,
                 'updateAt': novo_state.updateAt
             }), 201
@@ -67,25 +68,25 @@ class StateController:
                 return jsonify({'message': 'State not found'}), 404
 
             data = request.get_json()
-            if not data or 'descriton' not in data:
+            if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
             # Verifica se a nova descrição já existe em outro registro
             existing = State.query.filter(
-                State.descriton == data['descriton'],
+                State.description == data['description'],
                 State.id != id
             ).first()
             if existing:
                 return jsonify({'message': 'State with this description already exists'}), 400
 
-            state.descriton = data['descriton']
+            state.description = data['description']
             state.updateAt = datetime.utcnow()
 
             db.session.commit()
 
             return jsonify({
                 'id': state.id,
-                'descriton': state.descriton,
+                'description': state.description,
                 'createAt': state.createAt,
                 'updateAt': state.updateAt
             }), 200

@@ -9,7 +9,7 @@ class GroupController:
             groups = Group.query.all()
             return jsonify([{
                 'id': group.id,
-                'descriton': group.descriton,
+                'description': group.description,
                 'createAt': group.createAt,
                 'updateAt': group.updateAt
             } for group in groups]), 200
@@ -23,7 +23,7 @@ class GroupController:
             if group:
                 return jsonify({
                     'id': group.id,
-                    'descriton': group.descriton,
+                    'description': group.description,
                     'createAt': group.createAt,
                     'updateAt': group.updateAt
                 }), 200
@@ -35,14 +35,14 @@ class GroupController:
     def create():
         try:
             data = request.get_json()
-            if not data or 'descriton' not in data:
+            if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
-            if Group.query.filter_by(descriton=data['descriton']).first():
+            if Group.query.filter_by(description=data['description']).first():
                 return jsonify({'message': 'Grupo already exists'}), 400
 
             novo_group = group(
-                descriton=data['descriton']
+                description=data['description']
             )
 
             db.session.add(novo_group)
@@ -50,7 +50,7 @@ class GroupController:
 
             return jsonify({
                 'id': novo_group.id,
-                'descriton': novo_group.descriton,
+                'description': novo_group.description,
                 'createAt': novo_group.createAt,
                 'updateAt': novo_group.updateAt
             }), 201
@@ -66,24 +66,24 @@ class GroupController:
                 return jsonify({'message': 'group not found'}), 404
 
             data = request.get_json()
-            if not data or 'descriton' not in data:
+            if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
             existing = group.query.filter(
-                group.descriton == data['descriton'],
+                group.description == data['description'],
                 group.id != id
             ).first()
             if existing:
                 return jsonify({'message': 'group with this description already exists'}), 400
 
-            group.descriton = data['descriton']
+            group.description = data['description']
             group.updateAt = datetime.utcnow()
 
             db.session.commit()
 
             return jsonify({
                 'id': group.id,
-                'descriton': group.descriton,
+                'description': group.description,
                 'createAt': grupo.createAt,
                 'updateAt': grupo.updateAt
             }), 200

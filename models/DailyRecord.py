@@ -36,7 +36,7 @@ class DailyRecord(db.Model):  # Mude o nome da classe para refletir a tabela
     locationId = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
     portatestagemId = db.Column(db.Integer, db.ForeignKey('portatestagem.id'), nullable=False)
     referenciauserId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    populacaochaveId = db.Column(db.Integer, db.ForeignKey('populacaochave.id'), nullable=False)
+    keypopulationId = db.Column(db.Integer, db.ForeignKey('keypopulation.id'), nullable=False)
     ligacaocontactosId = db.Column(db.Integer, db.ForeignKey('contactlink.id'), nullable=False)
     registocontactoId = db.Column(db.Integer, db.ForeignKey('dailyrecord.id'))  # Removido nullable=False
     userId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

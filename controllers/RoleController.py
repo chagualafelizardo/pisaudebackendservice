@@ -9,7 +9,7 @@ class RoleController:
             roles = Role.query.all()
             return jsonify([{
                 'id': role.id,
-                'descriton': role.descriton,
+                'description': role.description,
                 'createAt': role.createAt,
                 'updateAt': role.updateAt
             } for role in roles]), 200
@@ -23,7 +23,7 @@ class RoleController:
             if role:
                 return jsonify({
                     'id': role.id,
-                    'descriton': role.descriton,
+                    'description': role.description,
                     'createAt': role.createAt,
                     'updateAt': role.updateAt
                 }), 200
@@ -35,20 +35,20 @@ class RoleController:
     def create():
         try:
             data = request.get_json()
-            if not data or 'descriton' not in data:
+            if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
-            if Role.query.filter_by(descriton=data['descriton']).first():
+            if Role.query.filter_by(description=data['description']).first():
                 return jsonify({'message': 'Role already exists'}), 400
 
-            new_role = Role(descriton=data['descriton'])
+            new_role = Role(description=data['description'])
 
             db.session.add(new_role)
             db.session.commit()
 
             return jsonify({
                 'id': new_role.id,
-                'descriton': new_role.descriton,
+                'description': new_role.description,
                 'createAt': new_role.createAt,
                 'updateAt': new_role.updateAt
             }), 201
@@ -64,24 +64,24 @@ class RoleController:
                 return jsonify({'message': 'Role not found'}), 404
 
             data = request.get_json()
-            if not data or 'descriton' not in data:
+            if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
             existing = Role.query.filter(
-                Role.descriton == data['descriton'],
+                Role.description == data['description'],
                 Role.id != id
             ).first()
             if existing:
                 return jsonify({'message': 'Role with this description already exists'}), 400
 
-            role.descriton = data['descriton']
+            role.description = data['description']
             role.updateAt = datetime.utcnow()
 
             db.session.commit()
 
             return jsonify({
                 'id': role.id,
-                'descriton': role.descriton,
+                'description': role.description,
                 'createAt': role.createAt,
                 'updateAt': role.updateAt
             }), 200
