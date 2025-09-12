@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from models import db, Textmessage
+from models import db, Textmessage, Grouptype
 from datetime import datetime
 
 class TextmessageController:
@@ -10,6 +10,8 @@ class TextmessageController:
             return jsonify([{
                 'id': message.id,
                 'messagetext': message.messagetext,
+                'grouptypeId': message.grouptypeId,
+                'grouptype_description': message.grouptype.description if message.grouptype else None,
                 'createAt': message.createAt,
                 'updateAt': message.updateAt
             } for message in messages]), 200
@@ -24,6 +26,8 @@ class TextmessageController:
                 return jsonify({
                     'id': message.id,
                     'messagetext': message.messagetext,
+                    'grouptypeId': message.grouptypeId,
+                    'grouptype_description': message.grouptype.description if message.grouptype else None,
                     'createAt': message.createAt,
                     'updateAt': message.updateAt
                 }), 200
@@ -41,7 +45,17 @@ class TextmessageController:
             if Textmessage.query.filter_by(messagetext=data['messagetext']).first():
                 return jsonify({'message': 'Textmessage already exists'}), 400
 
-            new_message = Textmessage(messagetext=data['messagetext'])
+            # Verificar se o grouptypeId existe (se foi fornecido)
+            grouptype_id = data.get('grouptypeId')
+            if grouptype_id:
+                grouptype = Grouptype.query.get(grouptype_id)
+                if not grouptype:
+                    return jsonify({'message': 'Grouptype not found'}), 404
+
+            new_message = Textmessage(
+                messagetext=data['messagetext'],
+                grouptypeId=grouptype_id  # ← AQUI ESTÁ A CORREÇÃO PRINCIPAL
+            )
 
             db.session.add(new_message)
             db.session.commit()
@@ -49,6 +63,8 @@ class TextmessageController:
             return jsonify({
                 'id': new_message.id,
                 'messagetext': new_message.messagetext,
+                'grouptypeId': new_message.grouptypeId,  # ← Corrigido: new_message em vez de message
+                'grouptype_description': new_message.grouptype.description if new_message.grouptype else None,
                 'createAt': new_message.createAt,
                 'updateAt': new_message.updateAt
             }), 201
@@ -74,6 +90,15 @@ class TextmessageController:
             if existing:
                 return jsonify({'message': 'Textmessage with this text already exists'}), 400
 
+            # Verificar e atualizar o grouptypeId
+            if 'grouptypeId' in data:
+                grouptype_id = data['grouptypeId']
+                if grouptype_id:
+                    grouptype = Grouptype.query.get(grouptype_id)
+                    if not grouptype:
+                        return jsonify({'message': 'Grouptype not found'}), 404
+                message.grouptypeId = grouptype_id
+
             message.messagetext = data['messagetext']
             message.updateAt = datetime.utcnow()
 
@@ -82,6 +107,8 @@ class TextmessageController:
             return jsonify({
                 'id': message.id,
                 'messagetext': message.messagetext,
+                'grouptypeId': message.grouptypeId,
+                'grouptype_description': message.grouptype.description if message.grouptype else None,
                 'createAt': message.createAt,
                 'updateAt': message.updateAt
             }), 200

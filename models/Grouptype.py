@@ -7,6 +7,9 @@ class Grouptype(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     description = db.Column(db.String(100), nullable=False, unique=True)
     
+    # Relacionamento com Textmessage (um-para-muitos)
+    textmessages = db.relationship('Textmessage', back_populates='grouptype')
+    
     # Relacionamento com Observation
     observations = db.relationship('Observation', back_populates='grouptype')
     

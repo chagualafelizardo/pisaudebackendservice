@@ -1,6 +1,6 @@
 from flask import jsonify, request
 from datetime import datetime
-from models import db, Observation
+from models import db, Observation, State, Textmessage, Grouptype, Group, Location, User
 
 class ObservationController:
     @staticmethod
@@ -38,10 +38,10 @@ class ObservationController:
                 'userId': obs.userId,
                 'createAt': obs.createAt.isoformat(),
                 'updateAt': obs.updateAt.isoformat(),
-                'state': {'id': obs.state.id, 'descriton': obs.state.descriton} if obs.state else None,
+                'state': {'id': obs.state.id, 'description': obs.state.description} if obs.state else None,
                 'textmessage': {'id': obs.textmessage.id, 'messagetext': obs.textmessage.messagetext} if obs.textmessage else None,
-                'grupotype': {'id': obs.grupotype.id, 'descriton': obs.grupotype.descriton} if obs.grupotype else None,
-                'grupo': {'id': obs.grupo.id, 'descriton': obs.grupo.descriton} if obs.grupo else None,
+                'grouptype': {'id': obs.grouptype.id, 'description': obs.grouptype.description} if obs.grouptype else None,
+                'group': {'id': obs.group.id, 'description': obs.group.description} if obs.group else None,
                 'location': {'id': obs.location.id, 'name': obs.location.name} if obs.location else None,
                 'user': {'id': obs.user.id, 'fullname': obs.user.fullname} if obs.user else None
             } for obs in observations]), 200
@@ -84,10 +84,10 @@ class ObservationController:
                     'userId': observation.userId,
                     'createAt': observation.createAt.isoformat(),
                     'updateAt': observation.updateAt.isoformat(),
-                    'state': {'id': observation.state.id, 'descriton': observation.state.descriton} if observation.state else None,
+                    'state': {'id': observation.state.id, 'description': observation.state.description} if observation.state else None,
                     'textmessage': {'id': observation.textmessage.id, 'messagetext': observation.textmessage.messagetext} if observation.textmessage else None,
-                    'grupotype': {'id': observation.grupotype.id, 'descriton': observation.grupotype.descriton} if observation.grupotype else None,
-                    'grupo': {'id': observation.grupo.id, 'descriton': observation.grupo.descriton} if observation.grupo else None,
+                    'grouptype': {'id': observation.grouptype.id, 'description': observation.grouptype.description} if observation.grouptype else None,
+                    'group': {'id': observation.group.id, 'description': observation.group.description} if observation.group else None,
                     'location': {'id': observation.location.id, 'name': observation.location.name} if observation.location else None,
                     'user': {'id': observation.user.id, 'fullname': observation.user.fullname} if observation.user else None
                 }), 200
@@ -112,16 +112,12 @@ class ObservationController:
             if missing_fields:
                 return jsonify({'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
 
-            # Verifica se NID já existe
-            if Observation.query.filter_by(nid=data['nid']).first():
-                return jsonify({'message': 'Observation with this NID already exists'}), 400
-
             # Verifica se as FKs existem
             related_models = {
-                'stateId': Estado,
+                'stateId': State,
                 'textmessageId': Textmessage,
-                'grouptypeId': Grupotype,
-                'groupId': Grupo,
+                'grouptypeId': Grouptype,
+                'groupId': Group,
                 'locationId': Location,
                 'userId': User
             }
@@ -208,7 +204,7 @@ class ObservationController:
 
             # Atualiza relacionamentos
             related_models = {
-                'stateId': Estado,
+                'stateId': State,
                 'textmessageId': Textmessage,
                 'grouptypeId': Grupotype,
                 'groupId': Grupo,

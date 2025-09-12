@@ -8,9 +8,47 @@ class ContactLinkController:
     def get_all():
         try:
             contact_links = ContactLink.query.all()
-            result = [link.__dict__ for link in contact_links]
-            for r in result:
-                r.pop('_sa_instance_state', None)
+            result = []
+            for link in contact_links:
+                result.append({
+                    'id': link.id,
+                    'data_sistema': link.data_sistema,
+                    'data_registo': link.data_registo,
+                    'nomeutente': link.nomeutente,
+                    'endereco': link.endereco,
+                    'telefone': link.telefone,
+                    'nestaus': link.nestaus,
+                    'outraus': link.outraus,
+                    'nameustarv': link.nameustarv,
+                    'nid': link.nid,
+                    'dataprimeiraconsultaclinica': link.dataprimeiraconsultaclinica,
+                    'ligacaoconfirmada': link.ligacaoconfirmada,
+                    'parceirosexual': link.parceirosexual,
+                    'parceirosexualquantos': link.parceirosexualquantos,
+                    'filhomenordezanos': link.filhomenordezanos,
+                    'filhomenordezanosquantos': link.filhomenordezanosquantos,
+                    'maepaiCIPeddezanos': link.maepaiCIPeddezanos,
+                    'maepaiCIPeddezanosquantos': link.maepaiCIPeddezanosquantos,
+                    'ocupacao': link.ocupacao,
+                    'obs': link.obs,
+                    'referenciaconselheironome': link.referenciaconselheironome,
+                    'sincronizado': link.sincronizado,
+                    'ultimasincronizacao': link.ultimasincronizacao,
+                    'locationId': link.locationId,
+                    'location': link.location.name if link.location else None,
+                    'portatestagemId': link.portatestagemId,
+                    'portatestagem': link.portatestagem.nome if link.portatestagem else None,
+                    'referenciauserId': link.referenciauserId,
+                    'referenciauser': link.referenciauser.username if link.referenciauser else None,
+                    'userId': link.userId,
+                    'user': link.user.username if link.user else None,
+                    'keypopulationId': link.keypopulationId,
+                    'keypopulation': link.keypopulation.description if link.keypopulation else None,
+                    'ligacaocontactosId': link.ligacaocontactosId,
+                    'registocontactoId': link.registocontactoId,
+                    'createAt': link.createAt,
+                    'updateAt': link.updateAt
+                })
             return jsonify(result), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -20,8 +58,45 @@ class ContactLinkController:
         try:
             link = ContactLink.query.get(id)
             if link:
-                result = link.__dict__
-                result.pop('_sa_instance_state', None)
+                result = {
+                    'id': link.id,
+                    'data_sistema': link.data_sistema,
+                    'data_registo': link.data_registo,
+                    'nomeutente': link.nomeutente,
+                    'endereco': link.endereco,
+                    'telefone': link.telefone,
+                    'nestaus': link.nestaus,
+                    'outraus': link.outraus,
+                    'nameustarv': link.nameustarv,
+                    'nid': link.nid,
+                    'dataprimeiraconsultaclinica': link.dataprimeiraconsultaclinica,
+                    'ligacaoconfirmada': link.ligacaoconfirmada,
+                    'parceirosexual': link.parceirosexual,
+                    'parceirosexualquantos': link.parceirosexualquantos,
+                    'filhomenordezanos': link.filhomenordezanos,
+                    'filhomenordezanosquantos': link.filhomenordezanosquantos,
+                    'maepaiCIPeddezanos': link.maepaiCIPeddezanos,
+                    'maepaiCIPeddezanosquantos': link.maepaiCIPeddezanosquantos,
+                    'ocupacao': link.ocupacao,
+                    'obs': link.obs,
+                    'referenciaconselheironome': link.referenciaconselheironome,
+                    'sincronizado': link.sincronizado,
+                    'ultimasincronizacao': link.ultimasincronizacao,
+                    'locationId': link.locationId,
+                    'location': link.location.name if link.location else None,
+                    'portatestagemId': link.portatestagemId,
+                    'portatestagem': link.portatestagem.nome if link.portatestagem else None,
+                    'referenciauserId': link.referenciauserId,
+                    'referenciauser': link.referenciauser.username if link.referenciauser else None,
+                    'userId': link.userId,
+                    'user': link.user.username if link.user else None,
+                    'keypopulationId': link.keypopulationId,
+                    'keypopulation': link.keypopulation.description if link.keypopulation else None,
+                    'ligacaocontactosId': link.ligacaocontactosId,
+                    'registocontactoId': link.registocontactoId,
+                    'createAt': link.createAt,
+                    'updateAt': link.updateAt
+                }
                 return jsonify(result), 200
             return jsonify({'message': 'ContactLink not found'}), 404
         except Exception as e:
@@ -53,13 +128,14 @@ class ContactLinkController:
                 obs=data['obs'],
                 referenciaconselheironome=data['referenciaconselheironome'],
                 sincronizado=data['sincronizado'],
-                ultimasincronizacao=data['ultimasincronizacao'],
+                ultimasincronizacao=datetime.strptime(data['ultimasincronizacao'], '%Y-%m-%d %H:%M:%S') if data.get('ultimasincronizacao') else None,
                 locationId=data['locationId'],
                 portatestagemId=data['portatestagemId'],
                 referenciauserId=data['referenciauserId'],
-                ligacaocontactosId=data['ligacaocontactosId'],
-                registocontactoId=data['registocontactoId'],
-                userId=data['userId']
+                ligacaocontactosId=data.get('ligacaocontactosId'),
+                registocontactoId=data.get('registocontactoId'),
+                userId=data['userId'],
+                keypopulationId=data['keypopulationId']
             )
             db.session.add(new_link)
             db.session.commit()

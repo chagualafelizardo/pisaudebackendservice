@@ -1,48 +1,57 @@
 from datetime import datetime
-from . import db
+from . import db   # ✅ CORRETO
+from .keyPopulation import KeyPopulation  # ✅ correto: nome da classe com maiúscula
 
-class DailyRecord(db.Model):  # Mude o nome da classe para refletir a tabela
+class DailyRecord(db.Model):
     __tablename__ = 'dailyrecord'
-    
+
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    datasistema = db.Column(db.DateTime, nullable=False)  # Removido unique=True
+    datasistema = db.Column(db.DateTime, nullable=False)
     dataregisto = db.Column(db.DateTime, nullable=False)
     idade = db.Column(db.Integer, nullable=False)
-    idadeunidade = db.Column(db.String(50), nullable=False)  # Adicionado length
-    sexo = db.Column(db.String(1), nullable=False)  # Alterado de Char para String(1)
-    parceirosexual = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    filhomenordezanos = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    maepaiCIPeddezanos = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    confirmacaoautoteste_hiv = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    testagemdetermine1 = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    testagemunigold1 = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    testagemdetermine2 = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    testagemunigold2 = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    resultadofinal = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    historialtestagem_primeira_testado = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    historialtestagem_positivo_no_passado = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    ocupacao = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    referenciaconselheironome = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    cpnopcao = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    casoindiceopcao = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    cpfopcao = db.Column(db.String(100), nullable=False)  # Removido unique=True
+    idadeunidade = db.Column(db.String(50), nullable=False)
+    sexo = db.Column(db.String(1), nullable=False)
+    parceirosexual = db.Column(db.String(100), nullable=False)
+    filhomenordezanos = db.Column(db.String(100), nullable=False)
+    maepaiCIPeddezanos = db.Column(db.String(100), nullable=False)
+    confirmacaoautoteste_hiv = db.Column(db.String(100), nullable=False)
+    testagemdetermine1 = db.Column(db.String(100), nullable=False)
+    testagemunigold1 = db.Column(db.String(100), nullable=False)
+    testagemdetermine2 = db.Column(db.String(100), nullable=False)
+    testagemunigold2 = db.Column(db.String(100), nullable=False)
+    resultadofinal = db.Column(db.String(100), nullable=False)
+    historialtestagem_primeira_testado = db.Column(db.String(100), nullable=False)
+    historialtestagem_positivo_no_passado = db.Column(db.String(100), nullable=False)
+    ocupacao = db.Column(db.String(100), nullable=False)
+    referenciaconselheironome = db.Column(db.String(100), nullable=False)
+    cpnopcao = db.Column(db.String(100), nullable=False)
+    casoindiceopcao = db.Column(db.String(100), nullable=False)
+    cpfopcao = db.Column(db.String(100), nullable=False)
+    latitude = db.Column(db.String(100), nullable=False)
+    longitude = db.Column(db.String(100), nullable=False)
+    sincronizado = db.Column(db.Boolean, nullable=False, default=False)
+    ultima_sincronizacao = db.Column(db.DateTime)
 
-    latitude = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    longitude = db.Column(db.String(100), nullable=False)  # Removido unique=True
-    sincronizado = db.Column(db.Boolean, nullable=False, default=False)  # Alterado para Boolean
-    ultima_sincronizacao = db.Column(db.DateTime)  # Removido unique=True e nullable=False
-
-    # Relacionamentos
+    # Foreign Keys
     locationId = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False)
     portatestagemId = db.Column(db.Integer, db.ForeignKey('portatestagem.id'), nullable=False)
     referenciauserId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     keypopulationId = db.Column(db.Integer, db.ForeignKey('keypopulation.id'), nullable=False)
     ligacaocontactosId = db.Column(db.Integer, db.ForeignKey('contactlink.id'), nullable=False)
-    registocontactoId = db.Column(db.Integer, db.ForeignKey('dailyrecord.id'))  # Removido nullable=False
+    registocontactoId = db.Column(db.Integer, db.ForeignKey('dailyrecord.id'))  # Auto-relacionamento
     userId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
+
+    # Relacionamentos
+    location = db.relationship('Location', backref='dailyrecords')
+    portatestagem = db.relationship('PortaTestagem', backref='dailyrecords')
+    referenciauser = db.relationship('User', foreign_keys=[referenciauserId])
+    keypopulation = db.relationship('KeyPopulation', backref='dailyrecords', foreign_keys=[keypopulationId])
+    ligacaocontactos = db.relationship('ContactLink', backref='dailyrecords', foreign_keys=[ligacaocontactosId])
+    registocontacto = db.relationship('DailyRecord', remote_side=[id], foreign_keys=[registocontactoId])
+    user = db.relationship('User', foreign_keys=[userId])
+
     createAt = db.Column(db.DateTime, default=db.func.now())
     updateAt = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
     def __repr__(self):
-        return f'<DailyRecord {self.id}>'  # Atualizado para refletir o nome da classe
+        return f'<DailyRecord {self.id}>'

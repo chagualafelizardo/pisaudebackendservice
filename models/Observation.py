@@ -5,7 +5,7 @@ class Observation(db.Model):
     __tablename__ = 'observation'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    nid = db.Column(db.String(100), nullable=False, unique=True)
+    nid = db.Column(db.String(100), nullable=False, unique=False)
     fullname = db.Column(db.String(100), nullable=False)
     gender = db.Column(db.String(100), nullable=False)
     age = db.Column(db.String(100), nullable=False)

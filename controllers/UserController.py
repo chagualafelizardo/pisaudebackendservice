@@ -12,10 +12,11 @@ class UserController:
                     'id': user.id,
                     'fullname': user.fullname,
                     'username': user.username,
+                    'gender': user.gender,
                     'email': user.email,
                     'profile': user.profile,
                     'contact': user.contact,
-                    'locationid': user.locationid,
+                    'locationId': user.locationId,  # ← Alterado para locationId
                     'location': user.location.name if user.location else None,
                     'createAt': user.createAt,
                     'updateAt': user.updateAt
@@ -35,10 +36,12 @@ class UserController:
                 'id': user.id,
                 'fullname': user.fullname,
                 'username': user.username,
+                'password': user.password,
+                'gender': user.gender,
                 'email': user.email,
                 'profile': user.profile,
                 'contact': user.contact,
-                'locationid': user.locationid,
+                'locationId': user.locationId,  # ← Alterado para locationId
                 'location': user.location.name if user.location else None,
                 'createAt': user.createAt,
                 'updateAt': user.updateAt
@@ -50,7 +53,7 @@ class UserController:
     def create():
         try:
             data = request.get_json()
-            required_fields = ['fullname', 'username', 'password', 'email', 'profile', 'contact', 'locationid']
+            required_fields = ['fullname', 'username', 'password','gender', 'email', 'profile', 'contact', 'locationId']  # ← locationId com I maiúsculo
             if not all(field in data for field in required_fields):
                 return jsonify({'message': 'Missing required data'}), 400
 
@@ -68,10 +71,11 @@ class UserController:
                 fullname=data['fullname'],
                 username=data['username'],
                 password=data['password'],
+                gender=data['gender'],
                 email=data['email'],
                 profile=data['profile'],
                 contact=data['contact'],
-                locationid=data['locationid']
+                locationId=data['locationId']  # ← Alterado para locationId
             )
 
             db.session.add(new_user)
@@ -79,7 +83,8 @@ class UserController:
 
             return jsonify({
                 'id': new_user.id,
-                'fullname': new_user.fullname
+                'fullname': new_user.fullname,
+                'locationId': new_user.locationId  # ← Adicionado na resposta
             }), 201
         except Exception as e:
             db.session.rollback()
@@ -93,7 +98,7 @@ class UserController:
                 return jsonify({'message': 'User not found'}), 404
 
             data = request.get_json()
-            for field in ['fullname', 'username', 'password', 'email', 'profile', 'contact', 'locationid']:
+            for field in ['fullname', 'username', 'password','gender', 'email', 'profile', 'contact', 'locationId']:  # ← locationId com I maiúsculo
                 if field in data:
                     setattr(user, field, data[field])
             user.updateAt = datetime.utcnow()

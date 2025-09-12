@@ -19,7 +19,7 @@ class GroupController:
     @staticmethod
     def get_by_id(id):
         try:
-            group = group.query.get(id)
+            group = Group.query.get(id)  # Corrigido: Group com G maiúsculo
             if group:
                 return jsonify({
                     'id': group.id,
@@ -41,7 +41,7 @@ class GroupController:
             if Group.query.filter_by(description=data['description']).first():
                 return jsonify({'message': 'Grupo already exists'}), 400
 
-            novo_group = group(
+            novo_group = Group(  # Corrigido: Group com G maiúsculo
                 description=data['description']
             )
 
@@ -69,9 +69,9 @@ class GroupController:
             if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data'}), 400
 
-            existing = group.query.filter(
-                group.description == data['description'],
-                group.id != id
+            existing = Group.query.filter(  # Corrigido: Group com G maiúsculo
+                Group.description == data['description'],
+                Group.id != id
             ).first()
             if existing:
                 return jsonify({'message': 'group with this description already exists'}), 400
@@ -84,8 +84,8 @@ class GroupController:
             return jsonify({
                 'id': group.id,
                 'description': group.description,
-                'createAt': grupo.createAt,
-                'updateAt': grupo.updateAt
+                'createAt': group.createAt,  # Corrigido: group em vez de grupo
+                'updateAt': group.updateAt   # Corrigido: group em vez de grupo
             }), 200
         except Exception as e:
             db.session.rollback()
@@ -94,7 +94,7 @@ class GroupController:
     @staticmethod
     def delete(id):
         try:
-            group = group.query.get(id)
+            group = Group.query.get(id)  # Corrigido: Group com G maiúsculo
             if not group:
                 return jsonify({'message': 'group not found'}), 404
 

@@ -1,14 +1,11 @@
 from datetime import datetime
 from . import db
 
-class keyPopulation(db.Model):
+class KeyPopulation(db.Model):
     __tablename__ = 'keypopulation'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     description = db.Column(db.String(100), nullable=False, unique=True)
-    
-    # Relacionamento com DailyRecord
-    daily_records = db.relationship('DailyRecord', backref='keypopulation')
     
     createAt = db.Column(db.DateTime, default=datetime.utcnow)
     updateAt = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

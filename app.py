@@ -4,15 +4,15 @@ from config import Config
 
 # Importações das rotas (blueprints)
 from routes.ContactLinkRoutes import contactlink_bp
-from routes.ObservationRoutes import observation_bp
 from routes.DailyRecordRoutes import dailyrecord_bp
+from routes.ObservationRoutes import observation_bp
 from routes.LocationRoutes import location_bp
 from routes.RoleRoutes import role_bp
 from routes.GroupRoutes import group_bp
 from routes.GrouptyeRoutes import grouptype_bp
 from routes.StateRoutes import state_bp
 from routes.TextmessageRoute import textmessage_bp
-from routes.UserRoleRoutes import user_role_bp
+from routes.UserRoleRoutes import userrole_bp
 from routes.UserRoutes import user_bp
 from routes.KeyPopulationRoutes import keypopulation_bp
 from routes.PortaTestagemRoutes import portatestagem_bp
@@ -31,7 +31,7 @@ app.register_blueprint(group_bp, url_prefix='/api')
 app.register_blueprint(grouptype_bp, url_prefix='/api')
 app.register_blueprint(state_bp, url_prefix='/api')
 app.register_blueprint(textmessage_bp, url_prefix='/api')
-app.register_blueprint(user_role_bp, url_prefix='/api')
+app.register_blueprint(userrole_bp, url_prefix='/api')
 app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(keypopulation_bp, url_prefix='/api')
 app.register_blueprint(portatestagem_bp, url_prefix='/api')

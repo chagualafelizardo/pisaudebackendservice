@@ -41,6 +41,9 @@
                         <strong>Role:</strong> <a href="/api/role" target="_blank">/api/role</a>
                     </li>
                     <li class="list-group-item">
+                        <strong>UserRole:</strong> <a href="/api/userrole" target="_blank">/api/user role relation</a>
+                    </li>
+                    <li class="list-group-item">
                         <strong>User:</strong> <a href="/api/user" target="_blank">/api/user</a>
                     </li>
                     <li class="list-group-item">
@@ -53,12 +56,12 @@
                         <strong>Porta de Testagem:</strong> <a href="/api/portatestagem" target="_blank">/api/portatestagem</a>
                     </li>
                     <li class="list-group-item">
-                        <strong>Populacao chave:</strong> <a href="/api/portatestagem" target="_blank">/api/portatestagem</a>
+                        <strong>Populacao chave:</strong> <a href="/api/keypopulation" target="_blank">/api/keypopulation</a>
                     </li>
                 </ul>
                 
                 <div class="alert alert-info">
-                    <strong>Banco de Dados:</strong> 
+                    <strong>Connection db status:</strong> 
                     <span id="db-status">Verificando status...</span>
                 </div>
 
@@ -72,7 +75,7 @@
 
     <script>
         // Verifica se a API está respondendo
-        fetch('/api/dailyrecord')
+        fetch('/api/user')
             .then(response => {
                 const dbStatus = document.getElementById('db-status');
                 if (response.ok) {
