@@ -5,10 +5,10 @@ class User(db.Model):
     __tablename__ = 'user'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    fullname = db.Column(db.String(100), nullable=False)
+    fullname = db.Column(db.String(500), nullable=False)
     username = db.Column(db.String(100), nullable=False, unique=True)
-    password = db.Column(db.String(100), nullable=False)
-    gender = db.Column(db.String(100), nullable=False)
+    password = db.Column(db.String(500), nullable=False)
+    gender = db.Column(db.String(1), nullable=False)
     email = db.Column(db.String(100), nullable=False, unique=True)
     profile = db.Column(db.String(100), nullable=False)
     contact = db.Column(db.String(100), nullable=False)

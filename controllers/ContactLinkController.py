@@ -12,8 +12,8 @@ class ContactLinkController:
             for link in contact_links:
                 result.append({
                     'id': link.id,
-                    'data_sistema': link.data_sistema,
-                    'data_registo': link.data_registo,
+                    'datasistema': link.datasistema,
+                    'dataregisto': link.dataregisto,
                     'nomeutente': link.nomeutente,
                     'endereco': link.endereco,
                     'telefone': link.telefone,
@@ -37,14 +37,13 @@ class ContactLinkController:
                     'locationId': link.locationId,
                     'location': link.location.name if link.location else None,
                     'portatestagemId': link.portatestagemId,
-                    'portatestagem': link.portatestagem.nome if link.portatestagem else None,
+                    'portatestagem': link.portatestagem.description if link.portatestagem else None,
                     'referenciauserId': link.referenciauserId,
                     'referenciauser': link.referenciauser.username if link.referenciauser else None,
                     'userId': link.userId,
                     'user': link.user.username if link.user else None,
                     'keypopulationId': link.keypopulationId,
                     'keypopulation': link.keypopulation.description if link.keypopulation else None,
-                    'ligacaocontactosId': link.ligacaocontactosId,
                     'registocontactoId': link.registocontactoId,
                     'createAt': link.createAt,
                     'updateAt': link.updateAt
@@ -60,8 +59,8 @@ class ContactLinkController:
             if link:
                 result = {
                     'id': link.id,
-                    'data_sistema': link.data_sistema,
-                    'data_registo': link.data_registo,
+                    'datasistema': link.datasistema,
+                    'dataregisto': link.dataregisto,
                     'nomeutente': link.nomeutente,
                     'endereco': link.endereco,
                     'telefone': link.telefone,
@@ -85,14 +84,13 @@ class ContactLinkController:
                     'locationId': link.locationId,
                     'location': link.location.name if link.location else None,
                     'portatestagemId': link.portatestagemId,
-                    'portatestagem': link.portatestagem.nome if link.portatestagem else None,
+                    'portatestagem': link.portatestagem.description if link.portatestagem else None,
                     'referenciauserId': link.referenciauserId,
                     'referenciauser': link.referenciauser.username if link.referenciauser else None,
                     'userId': link.userId,
                     'user': link.user.username if link.user else None,
                     'keypopulationId': link.keypopulationId,
                     'keypopulation': link.keypopulation.description if link.keypopulation else None,
-                    'ligacaocontactosId': link.ligacaocontactosId,
                     'registocontactoId': link.registocontactoId,
                     'createAt': link.createAt,
                     'updateAt': link.updateAt
@@ -107,8 +105,8 @@ class ContactLinkController:
         try:
             data = request.get_json()
             new_link = ContactLink(
-                data_sistema=datetime.strptime(data['data_sistema'], '%Y-%m-%d %H:%M:%S'),
-                data_registo=datetime.strptime(data['data_registo'], '%Y-%m-%d %H:%M:%S'),
+                datasistema=datetime.strptime(data['datasistema'], '%Y-%m-%d %H:%M:%S'),
+                dataregisto=datetime.strptime(data['dataregisto'], '%Y-%m-%d %H:%M:%S'),
                 nomeutente=data['nomeutente'],
                 endereco=data['endereco'],
                 telefone=data['telefone'],
@@ -132,7 +130,6 @@ class ContactLinkController:
                 locationId=data['locationId'],
                 portatestagemId=data['portatestagemId'],
                 referenciauserId=data['referenciauserId'],
-                ligacaocontactosId=data.get('ligacaocontactosId'),
                 registocontactoId=data.get('registocontactoId'),
                 userId=data['userId'],
                 keypopulationId=data['keypopulationId']

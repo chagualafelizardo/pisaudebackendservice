@@ -35,15 +35,13 @@ class DailyRecordController:
                 'sincronizado': r.sincronizado,
                 'ultima_sincronizacao': r.ultima_sincronizacao,
                 'locationId': r.locationId,
-                'location': r.location.description if r.location else None,
+                'location': r.location.name if r.location else None,
                 'portatestagemId': r.portatestagemId,
                 'portatestagem': r.portatestagem.description if r.portatestagem else None,
                 'referenciauserId': r.referenciauserId,
                 'referenciauser': r.referenciauser.username if r.referenciauser else None,
                 'keypopulationId': r.keypopulationId,
                 'keypopulation': r.keypopulation.description if r.keypopulation else None,
-                'ligacaocontactosId': r.ligacaocontactosId,
-                'registocontactoId': r.registocontactoId,
                 'userId': r.userId,
                 'user': r.user.username if r.user else None,
                 'createAt': r.createAt,
@@ -92,8 +90,6 @@ class DailyRecordController:
                     'referenciauser': r.referenciauser.username if r.referenciauser else None,
                     'keypopulationId': r.keypopulationId,
                     'keypopulation': r.keypopulation.description if r.keypopulation else None,
-                    'ligacaocontactosId': r.ligacaocontactosId,
-                    'registocontactoId': r.registocontactoId,
                     'userId': r.userId,
                     'user': r.user.username if r.user else None,
                     'createAt': r.createAt,
@@ -110,7 +106,7 @@ class DailyRecordController:
             novo_record = DailyRecord(
                 datasistema=datetime.strptime(data['datasistema'], '%Y-%m-%dT%H:%M:%S'),
                 dataregisto=datetime.strptime(data['dataregisto'], '%Y-%m-%dT%H:%M:%S'),
-                idade=data['idade'],
+                idade=int(data['idade']),
                 idadeunidade=data['idadeunidade'],
                 sexo=data['sexo'],
                 parceirosexual=data['parceirosexual'],
@@ -131,15 +127,13 @@ class DailyRecordController:
                 cpfopcao=data['cpfopcao'],
                 latitude=data['latitude'],
                 longitude=data['longitude'],
-                sincronizado=data['sincronizado'],
+                sincronizado=bool(data['sincronizado']),
                 ultima_sincronizacao=datetime.strptime(data['ultima_sincronizacao'], '%Y-%m-%dT%H:%M:%S') if data.get('ultima_sincronizacao') else None,
-                locationId=data['locationId'],
-                portatestagemId=data['portatestagemId'],
-                referenciauserId=data['referenciauserId'],
-                keypopulationId=data['keypopulationId'],
-                ligacaocontactosId=data['ligacaocontactosId'],
-                registocontactoId=data.get('registocontactoId'),
-                userId=data['userId']
+                locationId=int(data['locationId']),
+                portatestagemId=int(data['portatestagemId']),
+                referenciauserId=int(data['referenciauserId']),
+                keypopulationId=int(data['keypopulationId']),
+                userId=int(data['userId'])
             )
             db.session.add(novo_record)
             db.session.commit()
@@ -157,7 +151,6 @@ class DailyRecordController:
 
             db.session.delete(record)
             db.session.commit()
-
             return jsonify({'message': 'Daily record deleted successfully'}), 200
         except Exception as e:
             db.session.rollback()

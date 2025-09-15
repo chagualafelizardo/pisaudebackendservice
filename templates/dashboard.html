@@ -1,97 +1,11 @@
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Pisaude</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">PI-Saude APi Dashboard Backend</h1>
-        
-        <div class="card">
-            <div class="card-header">
-                Status do Backend
-            </div>
-            <div class="card-body">
-                <h5 class="card-title">API está funcionando!</h5>
-                <p class="card-text">Endpoints disponíveis:</p>
-                
-                <ul class="list-group mb-3">
-                    <li class="list-group-item">
-                        <strong>Daily Records:</strong> <a href="/api/dailyrecord" target="_blank">/api/dailyrecord</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Contact Links:</strong> <a href="/api/contactlink" target="_blank">/api/contactlink</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Group:</strong> <a href="/api/group" target="_blank">/api/group</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Group Type:</strong> <a href="/api/grouptype" target="_blank">/api/grouptype</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Text message:</strong> <a href="/api/textmessage" target="_blank">/api/textmessage</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>State:</strong> <a href="/api/state" target="_blank">/api/state</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Role:</strong> <a href="/api/role" target="_blank">/api/role</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>UserRole:</strong> <a href="/api/userrole" target="_blank">/api/user role relation</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>User:</strong> <a href="/api/user" target="_blank">/api/user</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Location:</strong> <a href="/api/location" target="_blank">/api/location</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Observation:</strong> <a href="/api/observation" target="_blank">/api/observation</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Porta de Testagem:</strong> <a href="/api/portatestagem" target="_blank">/api/portatestagem</a>
-                    </li>
-                    <li class="list-group-item">
-                        <strong>Populacao chave:</strong> <a href="/api/keypopulation" target="_blank">/api/keypopulation</a>
-                    </li>
-                </ul>
-                
-                <div class="alert alert-info">
-                    <strong>Connection db status:</strong> 
-                    <span id="db-status">Verificando status...</span>
-                </div>
+{% extends 'base.html' %}
 
-                <div class="alert alert-info">
-                    <strong>Developed by:</strong> 
-                    <span id="db-status">fchaguala</span>
-                </div>
-            </div>
-        </div>
-    </div>
+{% block title %}Dashboard{% endblock %}
 
-    <script>
-        // Verifica se a API está respondendo
-        fetch('/api/user')
-            .then(response => {
-                const dbStatus = document.getElementById('db-status');
-                if (response.ok) {
-                    dbStatus.textContent = "Conexão estabelecida com sucesso!";
-                    dbStatus.classList.add('alert-success');
-                    dbStatus.classList.remove('alert-danger');
-                } else {
-                    dbStatus.textContent = "Erro ao conectar com o banco de dados";
-                    dbStatus.classList.add('alert-danger');
-                }
-            })
-            .catch(error => {
-                document.getElementById('db-status').textContent = 
-                    "Erro: " + error.message;
-                document.getElementById('db-status').classList.add('alert-danger');
-            });
-    </script>
-</body>
-</html>
+{% block content %}
+
+<h2>Welcome to the Dashboard</h2>
+
+<p>This is your main dashboard page. No other CRUD content is loaded by default.</p>
+
+{% endblock %}

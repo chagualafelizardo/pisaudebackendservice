@@ -1,12 +1,13 @@
-from flask import jsonify, request
-from models import db, keyPopulation
 from datetime import datetime
+from flask import jsonify, request
+from models import db
+from models.keyPopulation import KeyPopulation  # ✅ Importa a classe correta
 
 class KeyPopulationController:
     @staticmethod
     def get_all():
         try:
-            populations = keyPopulation.query.all()
+            populations = KeyPopulation.query.all()
             return jsonify([{
                 'id': pop.id,
                 'description': pop.description,
@@ -19,7 +20,7 @@ class KeyPopulationController:
     @staticmethod
     def get_by_id(id):
         try:
-            population = keyPopulation.query.get(id)
+            population = KeyPopulation.query.get(id)
             if population:
                 return jsonify({
                     'id': population.id,
@@ -38,10 +39,10 @@ class KeyPopulationController:
             if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data (description)'}), 400
 
-            if keyPopulation.query.filter_by(description=data['description']).first():
+            if KeyPopulation.query.filter_by(description=data['description']).first():
                 return jsonify({'message': 'Key population with this description already exists'}), 400
 
-            new_population = keyPopulation(
+            new_population = KeyPopulation(
                 description=data['description']
             )
 
@@ -61,7 +62,7 @@ class KeyPopulationController:
     @staticmethod
     def update(id):
         try:
-            population = keyPopulation.query.get(id)
+            population = KeyPopulation.query.get(id)
             if not population:
                 return jsonify({'message': 'Key population not found'}), 404
 
@@ -69,9 +70,9 @@ class KeyPopulationController:
             if not data or 'description' not in data:
                 return jsonify({'message': 'Missing required data (description)'}), 400
 
-            existing = keyPopulation.query.filter(
-                keyPopulation.description == data['description'],
-                keyPopulation.id != id
+            existing = KeyPopulation.query.filter(
+                KeyPopulation.description == data['description'],
+                KeyPopulation.id != id
             ).first()
             if existing:
                 return jsonify({'message': 'Key population with this description already exists'}), 400
@@ -94,7 +95,7 @@ class KeyPopulationController:
     @staticmethod
     def delete(id):
         try:
-            population = keyPopulation.query.get(id)
+            population = KeyPopulation.query.get(id)
             if not population:
                 return jsonify({'message': 'Key population not found'}), 404
 

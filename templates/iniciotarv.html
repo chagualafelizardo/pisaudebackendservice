@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Observations Import{% endblock %}
+{% block content %}
+<h2>Import Observations - Inicio TARV</h2>
+
+<!-- Upload File -->
+<div class="mb-3">
+    <input type="file" id="fileInput" class="form-control" accept=".xlsx,.xls,.csv">
+    <button id="importBtn" class="btn btn-primary mt-2">Import Data</button>
+</div>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Full Name</th>
+            <th>NID</th>
+            <th>Gender</th>
+            <th>Age</th>
+            <th>Contact</th>
+            <th>Occupation</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="observationsTableBody"></tbody>
+</table>
+
+<!-- SheetJS -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<script>
+const observationsTableBody = document.getElementById('observationsTableBody');
+const fileInput = document.getElementById('fileInput');
+const importBtn = document.getElementById('importBtn');
+
+let observationsData = []; // dados locais
+
+// Campos obrigatórios
+const requiredFields = {
+    nid: ['nid', 'NID'],
+    fullname: ['fullname', 'FullName', 'NomeCompleto'],
+    gender: ['gender', 'Gender', 'sexo'],
+    age: ['age', 'Age', 'idade_actual'],
+    contact: ['contact', 'Contact', 'contacto_paciente'],
+    occupation: ['occupation', 'Occupation', 'Profissao'],
+};
+
+// Popula tabela
+function populateTable(data) {
+    observationsTableBody.innerHTML = '';
+    data.forEach((obs, index) => {
+        observationsTableBody.innerHTML += `<tr>
+            <td>${obs.id || index + 1}</td>
+            <td>${obs.fullname || ''}</td>
+            <td>${obs.nid || ''}</td>
+            <td>${obs.gender || ''}</td>
+            <td>${obs.age || ''}</td>
+            <td>${obs.contact || ''}</td>
+            <td>${obs.occupation || ''}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editObservation(${index})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteObservation(${index})">Delete</button>
+            </td>
+        </tr>`;
+    });
+}
+
+// Carrega todas as observações salvas no backend
+async function loadObservations() {
+    const res = await fetch('/api/observation');
+    const data = await res.json();
+    observationsData = data;
+    populateTable(data);
+}
+
+// Mapear colunas dinamicamente
+function mapRow(row) {
+    let mapped = {};
+    for (let key in requiredFields) {
+        for (let col of requiredFields[key]) {
+            if (row[col] !== undefined) {
+                mapped[key] = row[col];
+                break;
+            }
+        }
+    }
+    return mapped;
+}
+
+// Importar arquivo
+importBtn.addEventListener('click', async () => {
+    const file = fileInput.files[0];
+    if(!file) { alert('Select a file!'); return; }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const firstSheet = workbook.SheetNames[0];
+        const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+
+        // Mapear cada linha
+        const mappedData = sheetData.map(mapRow);
+
+        // Enviar para backend
+        const res = await fetch('/api/observations/import', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(mappedData)
+        });
+
+        if(res.ok){
+            alert('Data imported successfully!');
+            loadObservations();
+        } else {
+            const err = await res.json();
+            console.error('Import error:', err); // Log no console
+            alert('Error during import! Check console for details.');
+        }
+
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+// Editar observação (local)
+function editObservation(index){
+    const obs = observationsData[index];
+    const newName = prompt("Edit Full Name:", obs.fullname || '');
+    if(newName !== null) {
+        observationsData[index].fullname = newName;
+        populateTable(observationsData);
+    }
+}
+
+// Deletar observação (local)
+function deleteObservation(index){
+    if(!confirm("Are you sure?")) return;
+    observationsData.splice(index,1);
+    populateTable(observationsData);
+}
+
+// Inicializa tabela
+window.onload = loadObservations;
+</script>
+{% endblock %}

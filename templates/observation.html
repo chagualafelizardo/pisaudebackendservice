@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block title %}Observations{% endblock %}
+{% block content %}
+<h2>Manage Observations</h2>
+
+<button id="addUserBtn" class="btn btn-primary rounded-circle" title="Add User" data-bs-toggle="modal" data-bs-target="#obsModal" onclick="openObsModal()">+</button>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Full Name</th>
+            <th>NID</th>
+            <th>Gender</th>
+            <th>Age</th>
+            <th>Contact</th>
+            <th>Occupation</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="obsTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="obsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form id="obsForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Add Observation</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="obsId">
+
+          <div class="row">
+            <!-- COLUNA 1 -->
+            <div class="col-md-6">
+              <div class="mb-2"><input type="text" id="nid" class="form-control" placeholder="NID" required></div>
+              <div class="mb-2"><input type="text" id="fullname" class="form-control" placeholder="Full Name" required></div>
+              <div class="mb-2"><select id="gender" class="form-select"><option value="M">M</option><option value="F">F</option></select></div>
+              <div class="mb-2"><input type="text" id="age" class="form-control" placeholder="Age" required></div>
+              <div class="mb-2"><input type="text" id="contact" class="form-control" placeholder="Contact" required></div>
+
+              <div class="mb-2">
+                <select id="occupation" class="form-select" required>
+                    <option value="">Select Occupation</option>
+                    <option value="Militar">Militar</option>
+                    <option value="Civil">Civil</option>
+                </select>
+              </div>
+
+              <div class="mb-2"><input type="datetime-local" id="datainiciotarv" class="form-control" required></div>
+              <div class="mb-2"><input type="datetime-local" id="datalevantamento" class="form-control" required></div>
+              <div class="mb-2"><input type="datetime-local" id="dataproximolevantamento" class="form-control" required></div>
+              <div class="mb-2"><input type="datetime-local" id="dataconsulta" class="form-control" required></div>
+              <div class="mb-2"><input type="datetime-local" id="dataproximaconsulta" class="form-control" required></div>
+              <div class="mb-2"><input type="datetime-local" id="dataalocacao" class="form-control" required></div>
+            </div>
+
+            <!-- COLUNA 2 -->
+            <div class="col-md-6">
+            <div class="mb-2"><input type="datetime-local" id="dataenvio" class="form-control" required></div>
+            <div class="mb-2"><input type="text" id="smssendernumber" class="form-control" placeholder="SMS Sender Number" required></div>
+            <div class="mb-2"><input type="text" id="smssuporternumber" class="form-control" placeholder="SMS Supporter Number" required></div>
+            <div class="mb-2"><input type="datetime-local" id="dataprimeiracv" class="form-control" required></div>
+            <div class="mb-2"><input type="datetime-local" id="dataultimacv" class="form-control" required></div>
+            <div class="mb-2"><input type="number" id="valorprimeiracv" class="form-control" placeholder="Valor 1st CV" required></div>
+            <div class="mb-2"><input type="number" id="valorultimacv" class="form-control" placeholder="Valor Last CV" required></div>
+            <div class="mb-2"><input type="text" id="linhaterapeutica" class="form-control" placeholder="Linha Terapêutica" required></div>
+            <div class="mb-2"><input type="text" id="regime" class="form-control" placeholder="Regime" required></div>
+            
+            <!-- Dropdowns -->
+            <div class="mb-2"><select id="stateSelect" class="form-select"></select></div>
+            <div class="mb-2"><select id="textmessageSelect" class="form-select"></select></div>
+            <div class="mb-2"><select id="grouptypeSelect" class="form-select"></select></div>
+            <div class="mb-2"><select id="groupSelect" class="form-select"></select></div>
+            <div class="mb-2"><select id="locationSelect" class="form-select"></select></div>
+            <div class="mb-2"><select id="userSelect" class="form-select"></select></div>
+            </div>
+          </div> <!-- row -->
+
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<script>
+const apiObs = '/api/observation';
+const apiState = '/api/state';
+const apiTextmessage = '/api/textmessage';
+const apiGrouptype = '/api/grouptype';
+const apiGroup = '/api/group';
+const apiLocation = '/api/location';
+const apiUser = '/api/user';
+
+// Carregar dropdowns
+async function loadDropdown(url, selectId, textField='description') {
+    const res = await fetch(url);
+    const items = await res.json();
+    const select = document.getElementById(selectId);
+    select.innerHTML = '';
+    items.forEach(item => select.innerHTML += `<option value="${item.id}">${item[textField]}</option>`);
+}
+
+// Carregar todos
+async function loadObservations() {
+    const res = await fetch(apiObs);
+    const obs = await res.json();
+    const tbody = document.getElementById('obsTableBody');
+    tbody.innerHTML = '';
+    obs.forEach(o => {
+        tbody.innerHTML += `<tr>
+            <td>${o.id}</td>
+            <td>${o.fullname}</td>
+            <td>${o.nid}</td>
+            <td>${o.gender}</td>
+            <td>${o.age}</td>
+            <td>${o.contact}</td>
+            <td>${o.occupation}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editObs(${o.id})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteObs(${o.id})">Delete</button>
+            </td>
+        </tr>`;
+    });
+}
+
+// Abrir modal
+function openObsModal() {
+    document.getElementById('modalTitle').innerText = 'Add Observation';
+    document.getElementById('obsForm').reset();
+    document.getElementById('obsId').value = '';
+}
+
+// Editar
+async function editObs(id) {
+    const res = await fetch(`${apiObs}/${id}`);
+    const obs = await res.json();
+    document.getElementById('modalTitle').innerText = 'Edit Observation';
+    document.getElementById('obsId').value = obs.id;
+    document.getElementById('nid').value = obs.nid;
+    document.getElementById('fullname').value = obs.fullname;
+    document.getElementById('gender').value = obs.gender;
+    document.getElementById('age').value = obs.age;
+    document.getElementById('contact').value = obs.contact;
+    document.getElementById('occupation').value = obs.occupation;
+    document.getElementById('datainiciotarv').value = obs.datainiciotarv.slice(0,16);
+    document.getElementById('datalevantamento').value = obs.datalevantamento.slice(0,16);
+    document.getElementById('dataproximolevantamento').value = obs.dataproximolevantamento.slice(0,16);
+    document.getElementById('dataconsulta').value = obs.dataconsulta.slice(0,16);
+    document.getElementById('dataproximaconsulta').value = obs.dataproximaconsulta.slice(0,16);
+    document.getElementById('dataalocacao').value = obs.dataalocacao.slice(0,16);
+    document.getElementById('dataenvio').value = obs.dataenvio.slice(0,16);
+    document.getElementById('smssendernumber').value = obs.smssendernumber;
+    document.getElementById('smssuporternumber').value = obs.smssuporternumber;
+    document.getElementById('dataprimeiracv').value = obs.dataprimeiracv.slice(0,16);
+    document.getElementById('dataultimacv').value = obs.dataultimacv.slice(0,16);
+    document.getElementById('valorprimeiracv').value = obs.valorprimeiracv;
+    document.getElementById('valorultimacv').value = obs.valorultimacv;
+    document.getElementById('linhaterapeutica').value = obs.linhaterapeutica;
+    document.getElementById('regime').value = obs.regime;
+    document.getElementById('stateSelect').value = obs.stateId;
+    document.getElementById('textmessageSelect').value = obs.textmessageId;
+    document.getElementById('grouptypeSelect').value = obs.grouptypeId;
+    document.getElementById('groupSelect').value = obs.groupId;
+    document.getElementById('locationSelect').value = obs.locationId;
+    document.getElementById('userSelect').value = obs.userId;
+    new bootstrap.Modal(document.getElementById('obsModal')).show();
+}
+
+// Salvar
+document.getElementById('obsForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('obsId').value;
+    const data = {
+        nid: document.getElementById('nid').value,
+        fullname: document.getElementById('fullname').value,
+        gender: document.getElementById('gender').value,
+        age: document.getElementById('age').value,
+        contact: document.getElementById('contact').value,
+        occupation: document.getElementById('occupation').value,
+        datainiciotarv: document.getElementById('datainiciotarv').value,
+        datalevantamento: document.getElementById('datalevantamento').value,
+        dataproximolevantamento: document.getElementById('dataproximolevantamento').value,
+        dataconsulta: document.getElementById('dataconsulta').value,
+        dataproximaconsulta: document.getElementById('dataproximaconsulta').value,
+        dataalocacao: document.getElementById('dataalocacao').value,
+        dataenvio: document.getElementById('dataenvio').value,
+        smssendernumber: document.getElementById('smssendernumber').value,
+        smssuporternumber: document.getElementById('smssuporternumber').value,
+        dataprimeiracv: document.getElementById('dataprimeiracv').value,
+        dataultimacv: document.getElementById('dataultimacv').value,
+        valorprimeiracv: parseInt(document.getElementById('valorprimeiracv').value),
+        valorultimacv: parseInt(document.getElementById('valorultimacv').value),
+        linhaterapeutica: document.getElementById('linhaterapeutica').value,
+        regime: document.getElementById('regime').value,
+        stateId: parseInt(document.getElementById('stateSelect').value),
+        textmessageId: parseInt(document.getElementById('textmessageSelect').value),
+        grouptypeId: parseInt(document.getElementById('grouptypeSelect').value),
+        groupId: parseInt(document.getElementById('groupSelect').value),
+        locationId: parseInt(document.getElementById('locationSelect').value),
+        userId: parseInt(document.getElementById('userSelect').value)
+    };
+
+    let res;
+    if(id){
+        res = await fetch(`${apiObs}/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+    } else{
+        res = await fetch(apiObs, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+    }
+
+    if(!res.ok){
+        const err = await res.json();
+        alert(err.message);
+        return;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('obsModal')).hide();
+    loadObservations();
+});
+
+// Deletar
+async function deleteObs(id){
+    if(!confirm('Are you sure?')) return;
+    await fetch(`${apiObs}/${id}`, {method:'DELETE'});
+    loadObservations();
+}
+
+// Inicialização
+window.onload = async () => {
+    await loadDropdown(apiState, 'stateSelect');
+    await loadDropdown(apiTextmessage, 'textmessageSelect', 'messagetext');
+    await loadDropdown(apiGrouptype, 'grouptypeSelect');
+    await loadDropdown(apiGroup, 'groupSelect');
+    await loadDropdown(apiLocation, 'locationSelect', 'name');
+    await loadDropdown(apiUser, 'userSelect', 'fullname');
+    loadObservations();
+}
+</script>
+{% endblock %}

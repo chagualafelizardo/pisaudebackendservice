@@ -6,10 +6,10 @@ class Observation(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     nid = db.Column(db.String(100), nullable=False, unique=False)
-    fullname = db.Column(db.String(100), nullable=False)
-    gender = db.Column(db.String(100), nullable=False)
+    fullname = db.Column(db.String(500), nullable=False)
+    gender = db.Column(db.String(1), nullable=False)
     age = db.Column(db.String(100), nullable=False)
-    contact = db.Column(db.String(100), nullable=False)
+    contact = db.Column(db.String(1000), nullable=False)
     occupation = db.Column(db.String(100), nullable=False)
     datainiciotarv = db.Column(db.DateTime, nullable=False)
     datalevantamento = db.Column(db.DateTime, nullable=False)

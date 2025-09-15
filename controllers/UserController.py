@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from models import db, User, Location
 from datetime import datetime
+from werkzeug.security import generate_password_hash
 
 class UserController:
     @staticmethod
@@ -36,7 +37,7 @@ class UserController:
                 'id': user.id,
                 'fullname': user.fullname,
                 'username': user.username,
-                'password': user.password,
+                'password': '',
                 'gender': user.gender,
                 'email': user.email,
                 'profile': user.profile,
@@ -53,29 +54,30 @@ class UserController:
     def create():
         try:
             data = request.get_json()
-            required_fields = ['fullname', 'username', 'password','gender', 'email', 'profile', 'contact', 'locationId']  # ← locationId com I maiúsculo
+            required_fields = ['fullname', 'username', 'password', 'gender', 'email', 'profile', 'contact', 'locationId']
             if not all(field in data for field in required_fields):
                 return jsonify({'message': 'Missing required data'}), 400
 
-            # Verifica se já existe um usuário com os mesmos campos únicos
+            # Verificar duplicatas
             if User.query.filter_by(username=data['username']).first():
                 return jsonify({'message': 'Username already exists'}), 400
-
             if User.query.filter_by(email=data['email']).first():
                 return jsonify({'message': 'Email already exists'}), 400
-
             if User.query.filter_by(contact=data['contact']).first():
                 return jsonify({'message': 'Contact already exists'}), 400
+
+            # Hashear a senha
+            hashed_password = generate_password_hash(data['password'])
 
             new_user = User(
                 fullname=data['fullname'],
                 username=data['username'],
-                password=data['password'],
+                password=hashed_password,
                 gender=data['gender'],
                 email=data['email'],
                 profile=data['profile'],
                 contact=data['contact'],
-                locationId=data['locationId']  # ← Alterado para locationId
+                locationId=int(data['locationId'])  # ← conversão garantida
             )
 
             db.session.add(new_user)
@@ -84,10 +86,10 @@ class UserController:
             return jsonify({
                 'id': new_user.id,
                 'fullname': new_user.fullname,
-                'locationId': new_user.locationId  # ← Adicionado na resposta
+                'locationId': new_user.locationId
             }), 201
         except Exception as e:
-            db.session.rollback()
+            print(f"Erro ao salvar usuário: {e}")
             return jsonify({'error': str(e)}), 500
 
     @staticmethod
@@ -98,18 +100,34 @@ class UserController:
                 return jsonify({'message': 'User not found'}), 404
 
             data = request.get_json()
-            for field in ['fullname', 'username', 'password','gender', 'email', 'profile', 'contact', 'locationId']:  # ← locationId com I maiúsculo
-                if field in data:
-                    setattr(user, field, data[field])
-            user.updateAt = datetime.utcnow()
 
+            if 'fullname' in data:
+                user.fullname = data['fullname']
+            if 'username' in data:
+                user.username = data['username']
+            if 'gender' in data:
+                user.gender = data['gender']
+            if 'email' in data:
+                user.email = data['email']
+            if 'profile' in data:
+                user.profile = data['profile']
+            if 'contact' in data:
+                user.contact = data['contact']
+            if 'locationId' in data:
+                user.locationId = int(data['locationId'])  # ✅ Conversão aqui
+
+            if 'password' in data and data['password'].strip():
+                user.password = generate_password_hash(data['password'])
+
+            user.updateAt = datetime.utcnow()
             db.session.commit()
 
             return jsonify({'message': 'User updated successfully'}), 200
         except Exception as e:
             db.session.rollback()
+            print(f"Erro ao atualizar usuário: {e}")
             return jsonify({'error': str(e)}), 500
-
+        
     @staticmethod
     def delete(id):
         try:
@@ -122,5 +140,5 @@ class UserController:
 
             return jsonify({'message': 'User deleted successfully'}), 200
         except Exception as e:
-            db.session.rollback()
+            print(f"Erro ao salvar usuário: {e}")
             return jsonify({'error': str(e)}), 500

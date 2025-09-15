@@ -1,0 +1,29 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+}
+
+footer {
+    border-top: 1px solid #ddd;
+    margin-top: 50px;
+}
+
+#addUserBtn {
+    position: fixed;
+    bottom: 50px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    font-size: 32px;
+    line-height: 0;
+    text-align: center;
+    padding: 0;
+    z-index: 1050; /* acima de tudo */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-custom {
+    max-width: 900px; /* largura máxima do modal */
+    width: 90%;       /* largura relativa à tela */
+}

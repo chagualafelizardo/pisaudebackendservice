@@ -1,6 +1,6 @@
 from datetime import datetime
-from . import db   # ✅ CORRETO
-from .keyPopulation import KeyPopulation  # ✅ correto: nome da classe com maiúscula
+from . import db
+from .keyPopulation import KeyPopulation
 
 class DailyRecord(db.Model):
     __tablename__ = 'dailyrecord'
@@ -37,8 +37,6 @@ class DailyRecord(db.Model):
     portatestagemId = db.Column(db.Integer, db.ForeignKey('portatestagem.id'), nullable=False)
     referenciauserId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     keypopulationId = db.Column(db.Integer, db.ForeignKey('keypopulation.id'), nullable=False)
-    ligacaocontactosId = db.Column(db.Integer, db.ForeignKey('contactlink.id'), nullable=False)
-    registocontactoId = db.Column(db.Integer, db.ForeignKey('dailyrecord.id'))  # Auto-relacionamento
     userId = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     # Relacionamentos
@@ -46,8 +44,6 @@ class DailyRecord(db.Model):
     portatestagem = db.relationship('PortaTestagem', backref='dailyrecords')
     referenciauser = db.relationship('User', foreign_keys=[referenciauserId])
     keypopulation = db.relationship('KeyPopulation', backref='dailyrecords', foreign_keys=[keypopulationId])
-    ligacaocontactos = db.relationship('ContactLink', backref='dailyrecords', foreign_keys=[ligacaocontactosId])
-    registocontacto = db.relationship('DailyRecord', remote_side=[id], foreign_keys=[registocontactoId])
     user = db.relationship('User', foreign_keys=[userId])
 
     createAt = db.Column(db.DateTime, default=db.func.now())

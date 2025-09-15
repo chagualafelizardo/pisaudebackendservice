@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Roles{% endblock %}
+
+{% block content %}
+<h2>Manage Roles</h2>
+
+<!-- Sua lógica de CRUD aqui -->
+<div id="roles-section">
+    <form id="roleForm" class="mb-4">
+        <input type="hidden" id="roleId">
+        <input type="text" id="roleName" class="form-control mb-2" placeholder="Role Name" required>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
+    </form>
+
+    <table class="table table-bordered">
+        <thead><tr><th>ID</th><th>Name</th><th>Actions</th></tr></thead>
+        <tbody id="rolesTableBody"></tbody>
+    </table>
+</div>
+{% endblock %}
