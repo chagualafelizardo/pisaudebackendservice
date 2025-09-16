@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from models import db, User  # Certifique-se que User tem username e password
+from models import db, User
 from config import Config
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -62,12 +62,14 @@ def api():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
+    if 'userId' not in session:
+        flash('Please login first', 'warning')
         return redirect(url_for('login'))
-    try:
-        return render_template('dashboard.html', username=session['username'])
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
+    
+    username = session.get('username')
+    location_name = session.get('locationName')
+
+    return render_template('dashboard.html', username=username, location_name=location_name)
 
 @app.route('/content/<page>')
 def content(page):
@@ -82,24 +84,24 @@ def content(page):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form['username']
+        password = request.form['password']
 
+        # Aqui você busca o usuário no banco
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
-            session['user_id'] = user.id
+            # Salva informações do usuário na sessão
+            session['userId'] = user.id
             session['username'] = user.username
+            session['locationId'] = user.locationId  # assumindo que User tem location_id
+            session['locationName'] = user.location.name  # se quiser exibir nome da unidade
+
+            flash('Login successful', 'success')
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid username or password', 'danger')
-            return redirect(url_for('login'))
-
+    
     return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
 
 @app.route('/settings')
 def settings():
@@ -107,8 +109,15 @@ def settings():
         return render_template('settings.html')
     except Exception as e:
         return f"Erro ao carregar dashboard: {str(e)}", 500
-    
-# Rotas para upload de Excel
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+# ------- Seccao para importacao dos ficheiros excel -------------
+# Rotas para upload de Excel: Pacientes Inicio ao TARV
 @app.route('/iniciotarv')
 def iniciotarv():
     try:
@@ -116,20 +125,73 @@ def iniciotarv():
     except Exception as e:
         return f"Erro ao carregar dashboard: {str(e)}", 500
     
+# Rotas para upload de Excel: Pacientes Adesao ao TARV
+@app.route('/adesaotarv')
+def adesaotarv():
+    try:
+        return render_template('adesaotarv.html')
+    except Exception as e:
+        return f"Erro ao carregar dashboard: {str(e)}", 500
 
-# ------- Seccao para importacao dos ficheiros excel -------------
+# Rotas para upload de Excel: Pacientes Como Carva Viral
+@app.route('/cargaviral')
+def cargaviral():
+    try:
+        return render_template('cargaviral.html')
+    except Exception as e:
+        return f"Erro ao carregar dashboard: {str(e)}", 500
+
+# Rotas para upload de Excel: Pacientes faltosos
+@app.route('/faltosos')
+def faltosos():
+    try:
+        return render_template('faltosos.html')
+    except Exception as e:
+        return f"Erro ao carregar dashboard: {str(e)}", 500
+
+# Rotas para upload de Excel: Pacientes abandonos
+@app.route('/abandonos')
+def abandonos():
+    try:
+        return render_template('abandonos.html')
+    except Exception as e:
+        return f"Erro ao carregar dashboard: {str(e)}", 500
+        
+# Rotas para upload de Excel: Pacientes Marcados para o Levantamento de ARVs
+@app.route('/marcadoslevantamento')
+def marcadoslevantamento():
+    try:
+        return render_template('marcadoslevantamento.html')
+    except Exception as e:
+        return f"Erro ao carregar dashboard: {str(e)}", 500
+
+# Rotas para upload de Excel: Pacientes outros
+@app.route('/outros')
+def outros():
+    try:
+        return render_template('outros.html')
+    except Exception as e:
+        return f"Erro ao carregar dashboard: {str(e)}", 500
+    
 # Codigo para importar dados vindo do excel ou csv
 @app.route('/api/observations/import', methods=['POST'])
 def import_observations():
     data = request.get_json()
-    logging.info(f"Received data: {data[:3]}... total rows: {len(data)}")
+    if not data:
+        return jsonify({'error': 'Invalid JSON or empty payload'}), 400
+
+    stateId = data.get("stateID")
+    grouptypeId = data.get("groupTypeID")
+    observations = data.get("observations", [])
+
+    logging.info(f"Received observations sample: {observations[:3]}... total rows: {len(observations)}")
+
     imported_count = 0
     errors = []
     BATCH_SIZE = 50
     batch = []
 
-
-    for idx, row in enumerate(data):
+    for idx, row in enumerate(observations):
         try:
             observation = Observation(
                 nid=row.get('nid', ''),
@@ -137,7 +199,7 @@ def import_observations():
                 gender=row.get('gender', ''),
                 age=row.get('age', 0),
                 contact=row.get('contact', '0'),
-                occupation='',
+                occupation=row.get('occupation', ''),  # se estiver vazio, ok
                 datainiciotarv=datetime.now(),
                 datalevantamento=datetime.now(),
                 dataproximolevantamento=datetime.now(),
@@ -153,9 +215,9 @@ def import_observations():
                 valorultimacv=0,
                 linhaterapeutica='',
                 regime='',
-                stateId=1,
+                stateId=stateId,
                 textmessageId=1,
-                grouptypeId=1,
+                grouptypeId=grouptypeId,
                 groupId=1,
                 locationId=1,
                 userId=1
@@ -165,24 +227,29 @@ def import_observations():
 
             if len(batch) >= BATCH_SIZE:
                 db.session.add_all(batch)
-                db.session.flush()  # não commita ainda
+                db.session.flush()
                 batch = []
 
         except Exception as e:
             logging.error(f"Error in row {idx}: {str(e)}")
             errors.append({'row': idx, 'error': str(e)})
 
-    # salvar qualquer sobra
     if batch:
         db.session.add_all(batch)
 
-    # commit final
     try:
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         logging.error(f"Database commit failed: {str(e)}")
         return jsonify({'error': 'Database commit failed', 'details': str(e)}), 500
+
+    return jsonify({
+        'message': 'Import completed successfully',
+        'imported_count': imported_count,
+        'errors': errors
+    }), 200
+
 
 # -------------------------------
 # Context Processor

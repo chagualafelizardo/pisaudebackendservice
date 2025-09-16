@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
-{% block title %}Observations{% endblock %}
+{% block title %}PI-SAUDE/ Observations{% endblock %}
+
 {% block content %}
+{% include 'navbar.html' %}
+
 <h2>Manage Observations</h2>
 
 <button id="addUserBtn" class="btn btn-primary rounded-circle" title="Add User" data-bs-toggle="modal" data-bs-target="#obsModal" onclick="openObsModal()">+</button>
@@ -38,10 +41,14 @@
             <div class="col-md-6">
               <div class="mb-2"><input type="text" id="nid" class="form-control" placeholder="NID" required></div>
               <div class="mb-2"><input type="text" id="fullname" class="form-control" placeholder="Full Name" required></div>
-              <div class="mb-2"><select id="gender" class="form-select"><option value="M">M</option><option value="F">F</option></select></div>
+              <div class="mb-2">
+                <select id="gender" class="form-select">
+                  <option value="M">M</option>
+                  <option value="F">F</option>
+                </select>
+              </div>
               <div class="mb-2"><input type="text" id="age" class="form-control" placeholder="Age" required></div>
               <div class="mb-2"><input type="text" id="contact" class="form-control" placeholder="Contact" required></div>
-
               <div class="mb-2">
                 <select id="occupation" class="form-select" required>
                     <option value="">Select Occupation</option>
@@ -49,7 +56,6 @@
                     <option value="Civil">Civil</option>
                 </select>
               </div>
-
               <div class="mb-2"><input type="datetime-local" id="datainiciotarv" class="form-control" required></div>
               <div class="mb-2"><input type="datetime-local" id="datalevantamento" class="form-control" required></div>
               <div class="mb-2"><input type="datetime-local" id="dataproximolevantamento" class="form-control" required></div>
@@ -60,26 +66,24 @@
 
             <!-- COLUNA 2 -->
             <div class="col-md-6">
-            <div class="mb-2"><input type="datetime-local" id="dataenvio" class="form-control" required></div>
-            <div class="mb-2"><input type="text" id="smssendernumber" class="form-control" placeholder="SMS Sender Number" required></div>
-            <div class="mb-2"><input type="text" id="smssuporternumber" class="form-control" placeholder="SMS Supporter Number" required></div>
-            <div class="mb-2"><input type="datetime-local" id="dataprimeiracv" class="form-control" required></div>
-            <div class="mb-2"><input type="datetime-local" id="dataultimacv" class="form-control" required></div>
-            <div class="mb-2"><input type="number" id="valorprimeiracv" class="form-control" placeholder="Valor 1st CV" required></div>
-            <div class="mb-2"><input type="number" id="valorultimacv" class="form-control" placeholder="Valor Last CV" required></div>
-            <div class="mb-2"><input type="text" id="linhaterapeutica" class="form-control" placeholder="Linha Terapêutica" required></div>
-            <div class="mb-2"><input type="text" id="regime" class="form-control" placeholder="Regime" required></div>
-            
-            <!-- Dropdowns -->
-            <div class="mb-2"><select id="stateSelect" class="form-select"></select></div>
-            <div class="mb-2"><select id="textmessageSelect" class="form-select"></select></div>
-            <div class="mb-2"><select id="grouptypeSelect" class="form-select"></select></div>
-            <div class="mb-2"><select id="groupSelect" class="form-select"></select></div>
-            <div class="mb-2"><select id="locationSelect" class="form-select"></select></div>
-            <div class="mb-2"><select id="userSelect" class="form-select"></select></div>
+              <div class="mb-2"><input type="datetime-local" id="dataenvio" class="form-control" required></div>
+              <div class="mb-2"><input type="text" id="smssendernumber" class="form-control" placeholder="SMS Sender Number" required></div>
+              <div class="mb-2"><input type="text" id="smssuporternumber" class="form-control" placeholder="SMS Supporter Number" required></div>
+              <div class="mb-2"><input type="datetime-local" id="dataprimeiracv" class="form-control" required></div>
+              <div class="mb-2"><input type="datetime-local" id="dataultimacv" class="form-control" required></div>
+              <div class="mb-2"><input type="number" id="valorprimeiracv" class="form-control" placeholder="Valor 1st CV" required></div>
+              <div class="mb-2"><input type="number" id="valorultimacv" class="form-control" placeholder="Valor Last CV" required></div>
+              <div class="mb-2"><input type="text" id="linhaterapeutica" class="form-control" placeholder="Linha Terapêutica" required></div>
+              <div class="mb-2"><input type="text" id="regime" class="form-control" placeholder="Regime" required></div>
+              <!-- Dropdowns -->
+              <div class="mb-2"><select id="stateSelect" class="form-select"></select></div>
+              <div class="mb-2"><select id="textmessageSelect" class="form-select"></select></div>
+              <div class="mb-2"><select id="grouptypeSelect" class="form-select"></select></div>
+              <div class="mb-2"><select id="groupSelect" class="form-select"></select></div>
+              <div class="mb-2"><select id="locationSelect" class="form-select"></select></div>
+              <div class="mb-2"><select id="userSelect" class="form-select"></select></div>
             </div>
           </div> <!-- row -->
-
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Save</button>
@@ -88,6 +92,38 @@
       </form>
     </div>
   </div>
+</div>
+
+<!-- Loader Circular -->
+<div id="overlay" style="
+    display:none;
+    position: fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background: rgba(255,255,255,0.8);
+    z-index:1050;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+">
+    <div class="circular-progress" style="
+        position: relative;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: conic-gradient(#007bff 0% 0%, #e0e0e0 0% 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: bold;
+        font-size: 20px;
+        color: #007bff;
+        box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    ">
+        <span id="progressText">0%</span>
+    </div>
 </div>
 
 
@@ -100,8 +136,80 @@ const apiGroup = '/api/group';
 const apiLocation = '/api/location';
 const apiUser = '/api/user';
 
+let observationsData = [];
+
+// Função para atualizar barra de progresso
+function updateProgress(percent){
+    const overlay = document.getElementById('overlay');
+    const progressCircle = overlay.querySelector('.circular-progress');
+    const progressText = document.getElementById('progressText');
+    progressCircle.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
+    progressText.innerText = `${percent}%`;
+}
+
+// Carregar observações com loader
+async function loadObservationsWithProgress(){
+    const overlay = document.getElementById('overlay');
+    const progressText = document.getElementById('progressText');
+    const progressCircle = overlay.querySelector('.circular-progress');
+
+    overlay.style.display = 'flex';
+    let progress = 0;
+
+    // Animação contínua (até 90%)
+    const progressInterval = setInterval(() => {
+        if (progress < 90) {
+            progress += 1;
+            progressCircle.style.background = `conic-gradient(#007bff ${progress}%, #e0e0e0 ${progress}% 100%)`;
+            progressText.innerText = `${progress}%`;
+        }
+    }, 30); // velocidade de preenchimento visual
+
+    try {
+        const res = await fetch(apiObs);
+        const data = await res.json();
+
+        // Parar animação e completar
+        clearInterval(progressInterval);
+        progress = 100;
+        progressCircle.style.background = `conic-gradient(#007bff 100%, #e0e0e0 100% 100%)`;
+        progressText.innerText = `100%`;
+
+        observationsData = data;
+
+        const tbody = document.getElementById('obsTableBody');
+        tbody.innerHTML = '';
+        data.forEach(o=>{
+            tbody.innerHTML += `<tr>
+                <td>${o.id}</td>
+                <td>${o.fullname}</td>
+                <td>${o.nid}</td>
+                <td>${o.gender}</td>
+                <td>${o.age}</td>
+                <td>${o.contact}</td>
+                <td>${o.occupation}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editObs(${o.id})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteObs(${o.id})">Delete</button>
+                </td>
+            </tr>`;
+        });
+
+        await new Promise(r => setTimeout(r, 500)); // mostrar 100% por um momento
+
+    } catch(err){
+        console.error("Error loading observations:", err);
+        alert("Failed to load data.");
+    } finally {
+        overlay.style.display = 'none';
+        progressText.innerText = '0%';
+        progressCircle.style.background = `conic-gradient(#007bff 0%, #e0e0e0 0% 100%)`;
+    }
+}
+
+
 // Carregar dropdowns
-async function loadDropdown(url, selectId, textField='description') {
+async function loadDropdown(url, selectId, textField='description'){
     const res = await fetch(url);
     const items = await res.json();
     const select = document.getElementById(selectId);
@@ -109,74 +217,49 @@ async function loadDropdown(url, selectId, textField='description') {
     items.forEach(item => select.innerHTML += `<option value="${item.id}">${item[textField]}</option>`);
 }
 
-// Carregar todos
-async function loadObservations() {
-    const res = await fetch(apiObs);
-    const obs = await res.json();
-    const tbody = document.getElementById('obsTableBody');
-    tbody.innerHTML = '';
-    obs.forEach(o => {
-        tbody.innerHTML += `<tr>
-            <td>${o.id}</td>
-            <td>${o.fullname}</td>
-            <td>${o.nid}</td>
-            <td>${o.gender}</td>
-            <td>${o.age}</td>
-            <td>${o.contact}</td>
-            <td>${o.occupation}</td>
-            <td>
-                <button class="btn btn-sm btn-warning" onclick="editObs(${o.id})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteObs(${o.id})">Delete</button>
-            </td>
-        </tr>`;
-    });
-}
-
-// Abrir modal
-function openObsModal() {
-    document.getElementById('modalTitle').innerText = 'Add Observation';
+// Modal e CRUD
+function openObsModal(){
+    document.getElementById('modalTitle').innerText='Add Observation';
     document.getElementById('obsForm').reset();
-    document.getElementById('obsId').value = '';
+    document.getElementById('obsId').value='';
 }
 
-// Editar
-async function editObs(id) {
+async function editObs(id){
     const res = await fetch(`${apiObs}/${id}`);
     const obs = await res.json();
-    document.getElementById('modalTitle').innerText = 'Edit Observation';
-    document.getElementById('obsId').value = obs.id;
-    document.getElementById('nid').value = obs.nid;
-    document.getElementById('fullname').value = obs.fullname;
-    document.getElementById('gender').value = obs.gender;
-    document.getElementById('age').value = obs.age;
-    document.getElementById('contact').value = obs.contact;
-    document.getElementById('occupation').value = obs.occupation;
-    document.getElementById('datainiciotarv').value = obs.datainiciotarv.slice(0,16);
-    document.getElementById('datalevantamento').value = obs.datalevantamento.slice(0,16);
-    document.getElementById('dataproximolevantamento').value = obs.dataproximolevantamento.slice(0,16);
-    document.getElementById('dataconsulta').value = obs.dataconsulta.slice(0,16);
-    document.getElementById('dataproximaconsulta').value = obs.dataproximaconsulta.slice(0,16);
-    document.getElementById('dataalocacao').value = obs.dataalocacao.slice(0,16);
-    document.getElementById('dataenvio').value = obs.dataenvio.slice(0,16);
-    document.getElementById('smssendernumber').value = obs.smssendernumber;
-    document.getElementById('smssuporternumber').value = obs.smssuporternumber;
-    document.getElementById('dataprimeiracv').value = obs.dataprimeiracv.slice(0,16);
-    document.getElementById('dataultimacv').value = obs.dataultimacv.slice(0,16);
-    document.getElementById('valorprimeiracv').value = obs.valorprimeiracv;
-    document.getElementById('valorultimacv').value = obs.valorultimacv;
-    document.getElementById('linhaterapeutica').value = obs.linhaterapeutica;
-    document.getElementById('regime').value = obs.regime;
-    document.getElementById('stateSelect').value = obs.stateId;
-    document.getElementById('textmessageSelect').value = obs.textmessageId;
-    document.getElementById('grouptypeSelect').value = obs.grouptypeId;
-    document.getElementById('groupSelect').value = obs.groupId;
-    document.getElementById('locationSelect').value = obs.locationId;
-    document.getElementById('userSelect').value = obs.userId;
+    document.getElementById('modalTitle').innerText='Edit Observation';
+    document.getElementById('obsId').value=obs.id;
+    document.getElementById('nid').value=obs.nid;
+    document.getElementById('fullname').value=obs.fullname;
+    document.getElementById('gender').value=obs.gender;
+    document.getElementById('age').value=obs.age;
+    document.getElementById('contact').value=obs.contact;
+    document.getElementById('occupation').value=obs.occupation;
+    document.getElementById('datainiciotarv').value=obs.datainiciotarv.slice(0,16);
+    document.getElementById('datalevantamento').value=obs.datalevantamento.slice(0,16);
+    document.getElementById('dataproximolevantamento').value=obs.dataproximolevantamento.slice(0,16);
+    document.getElementById('dataconsulta').value=obs.dataconsulta.slice(0,16);
+    document.getElementById('dataproximaconsulta').value=obs.dataproximaconsulta.slice(0,16);
+    document.getElementById('dataalocacao').value=obs.dataalocacao.slice(0,16);
+    document.getElementById('dataenvio').value=obs.dataenvio.slice(0,16);
+    document.getElementById('smssendernumber').value=obs.smssendernumber;
+    document.getElementById('smssuporternumber').value=obs.smssuporternumber;
+    document.getElementById('dataprimeiracv').value=obs.dataprimeiracv.slice(0,16);
+    document.getElementById('dataultimacv').value=obs.dataultimacv.slice(0,16);
+    document.getElementById('valorprimeiracv').value=obs.valorprimeiracv;
+    document.getElementById('valorultimacv').value=obs.valorultimacv;
+    document.getElementById('linhaterapeutica').value=obs.linhaterapeutica;
+    document.getElementById('regime').value=obs.regime;
+    document.getElementById('stateSelect').value=obs.stateId;
+    document.getElementById('textmessageSelect').value=obs.textmessageId;
+    document.getElementById('grouptypeSelect').value=obs.grouptypeId;
+    document.getElementById('groupSelect').value=obs.groupId;
+    document.getElementById('locationSelect').value=obs.locationId;
+    document.getElementById('userSelect').value=obs.userId;
     new bootstrap.Modal(document.getElementById('obsModal')).show();
 }
 
-// Salvar
-document.getElementById('obsForm').addEventListener('submit', async e => {
+document.getElementById('obsForm').addEventListener('submit', async e=>{
     e.preventDefault();
     const id = document.getElementById('obsId').value;
     const data = {
@@ -211,9 +294,17 @@ document.getElementById('obsForm').addEventListener('submit', async e => {
 
     let res;
     if(id){
-        res = await fetch(`${apiObs}/${id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        res = await fetch(`${apiObs}/${id}`, {
+            method:'PUT',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(data)
+        });
     } else{
-        res = await fetch(apiObs, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        res = await fetch(apiObs,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(data)
+        });
     }
 
     if(!res.ok){
@@ -223,25 +314,24 @@ document.getElementById('obsForm').addEventListener('submit', async e => {
     }
 
     bootstrap.Modal.getInstance(document.getElementById('obsModal')).hide();
-    loadObservations();
+    await loadObservationsWithProgress();
 });
 
-// Deletar
 async function deleteObs(id){
     if(!confirm('Are you sure?')) return;
-    await fetch(`${apiObs}/${id}`, {method:'DELETE'});
-    loadObservations();
+    await fetch(`${apiObs}/${id}`,{method:'DELETE'});
+    await loadObservationsWithProgress();
 }
 
 // Inicialização
-window.onload = async () => {
+window.onload = async ()=>{
     await loadDropdown(apiState, 'stateSelect');
     await loadDropdown(apiTextmessage, 'textmessageSelect', 'messagetext');
     await loadDropdown(apiGrouptype, 'grouptypeSelect');
     await loadDropdown(apiGroup, 'groupSelect');
     await loadDropdown(apiLocation, 'locationSelect', 'name');
     await loadDropdown(apiUser, 'userSelect', 'fullname');
-    loadObservations();
+    await loadObservationsWithProgress();
 }
 </script>
 {% endblock %}

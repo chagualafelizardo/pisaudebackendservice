@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
 
-{% block title %}Key Populations{% endblock %}
+{% block title %}PI-SAUDE/ Key Populations{% endblock %}
 
 {% block content %}
+{% include 'navbar.html' %}
+
 <h2>Manage Key Populations</h2>
 
 <button id="addUserBtn" class="btn btn-primary rounded-circle" title="Add User" data-bs-toggle="modal" data-bs-target="#kpModal" onclick="openModal()">+</button>

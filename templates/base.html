@@ -1,25 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Bootstrap Icons -->
+    <meta charset="UTF-8">
+    <title>{% block title %}PI-SAÚDE / Dashboard{% endblock %}</title>
+
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
-    <meta charset="UTF-8">
-    <title>{% block title %}Dashboard{% endblock %}</title>
-
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- jQuery -->
+    <!-- jQuery + Bootstrap Bundle JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Custom CSS -->
+    <!-- Custom CSS/JS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-
-    <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
 
     <style>
@@ -34,12 +28,24 @@
             flex: 1;
         }
 
-        .sidebar {
-            width: 250px;
-            height: 100vh;
+        /* Navbar */
+        .navbar {
             position: fixed;
-            top: 56px; /* altura do navbar */
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: fixed;
+            top: 56px;
             left: 0;
+            width: 250px;
+            height: calc(100vh - 56px);
             background-color: #343a40;
             color: white;
             padding-top: 20px;
@@ -50,7 +56,6 @@
             padding: 10px 20px;
             display: block;
             text-decoration: none;
-            text-align: left; /* mantém tudo à esquerda */
         }
 
         .sidebar a:hover {
@@ -58,7 +63,7 @@
         }
 
         .sidebar .submenu {
-            padding-left: 40px; /* submenus recuados */
+            padding-left: 40px;
             font-size: 14px;
         }
 
@@ -66,118 +71,130 @@
             font-size: 16px;
         }
 
+        .sidebar .logo-container {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .sidebar .logo-container img {
+            width: 80px;
+            height: auto;
+        }
+
+        .user-dropdown-container {
+            padding: 10px 20px;
+        }
+
+        .user-dropdown-container .btn {
+            width: 100%;
+            text-align: left;
+        }
+
+        /* Main Content */
         .main-content {
             margin-left: 250px;
-            margin-top: 56px; /* altura do navbar */
+            margin-top: 56px;
             padding: 20px;
             width: 100%;
         }
 
+        /* Footer */
         footer {
-            background-color: #f6f7f8; /* mesmo que bg-dark */
+            background-color: #f6f7f8;
             color: #212529;
-            text-align: right;
-            padding: 10px 0;
-            margin-top: auto;
-        }
-
-        .navbar {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 1000;
+            padding: 10px 20px;
+            text-align: left;
         }
     </style>
 </head>
 <body>
 
-<!-- Navbar superior -->
+<!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="/dashboard">PI-SAÚDE</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
             <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse" id="topNav">
-            <ul class="navbar-nav ms-auto">
-                <!-- Dropdown do Usuário -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle me-2"></i> John Doe
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="/content/user"><i class="bi bi-person me-2"></i> Profile</a></li>
-                        <li><a class="dropdown-item" href="/settings"><i class="bi bi-gear me-2"></i> Settings</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/login"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
+        <div class="collapse navbar-collapse" id="topNav"></div>
     </div>
 </nav>
 
-<!-- Estrutura da página com sidebar e conteúdo -->
+<!-- Main Wrapper -->
 <div class="wrapper">
-    <!-- Sidebar lateral esquerda -->
+
+    <!-- Sidebar -->
     <div class="sidebar">
-    <!-- Logo alinhado à esquerda -->
-        <div class="mb-3 ps-3">
-            <img src="/static/imgs/logo.ico" alt="Logo PI-SAÚDE" style="width: 80px; height: auto;">
+        <div>
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='imgs/logo.png') }}" alt="Logo">
+            </div>
+
+            <a href="/content/dashboard"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a>
+
+            <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#dataManageMenu">
+                <span><i class="bi bi-folder2-open me-2"></i> Data Manage</span>
+                <i class="bi bi-chevron-down"></i>
+            </a>
+            <div class="collapse" id="dataManageMenu">
+                <a href="/content/location" class="submenu">Locations</a>
+                <a href="/content/keypopulation" class="submenu">Key Population</a>
+                <a href="/content/portatestagem" class="submenu">Porta Testagem</a>
+                <a href="/content/group" class="submenu">Groups</a>
+                <a href="/content/grouptype" class="submenu">Group Types</a>
+                <a href="/content/textmessage" class="submenu">Text Messages</a>
+                <a href="/content/roles" class="submenu">Roles</a>
+                <a href="/content/states" class="submenu">States</a>
+            </div>
+
+            <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#gruposMenu">
+                <span><i class="bi bi-people-fill me-2"></i> Grupos</span>
+                <i class="bi bi-chevron-down"></i>
+            </a>
+            <div class="collapse" id="gruposMenu">
+                <a href="/content/iniciotarv" class="submenu">Pacientes: Inicio TARV</a>
+                <a href="/content/adesaotarv" class="submenu">Pacientes: Adesão ao TARV</a>
+                <a href="/content/cargaviral" class="submenu">Pacientes: Carga Viral</a>
+                <a href="/content/faltosos" class="submenu">Pacientes: Faltosos</a>
+                <a href="/content/abandonos" class="submenu">Pacientes: Abandonos</a>
+                <a href="/content/marcadoslevantamento" class="submenu">Pacientes: Marcados p/ Levantamento</a>
+                <a href="/content/outros" class="submenu">Pacientes: Outros</a>
+            </div>
+
+            <a href="/content/observation"><i class="bi bi-eye-fill me-2"></i> Observation</a>
         </div>
 
-        <!-- Dashboard -->
-        <a href="/content/dashboard">
-            <i class="bi bi-speedometer2 me-2"></i> Dashboard
-        </a>
-
-        <!-- Data Manage -->
-        <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#dataManageMenu" role="button" aria-expanded="false" aria-controls="dataManageMenu">
-            <span><i class="bi bi-folder2-open me-2"></i> Data Manage</span>
-            <i class="bi bi-chevron-down"></i>
-        </a>
-        <div class="collapse" id="dataManageMenu">
-            <a href="/content/location" class="submenu">Locations</a>
-            <a href="/content/keypopulation" class="submenu">Key Population</a>
-            <a href="/content/portatestagem" class="submenu">Porta Testagem</a>
-            <a href="/content/group" class="submenu">Groups</a>
-            <a href="/content/grouptype" class="submenu">Group Types</a>
-            <a href="/content/textmessage" class="submenu">Text Messages</a>
-            <a href="/content/roles" class="submenu">Roles</a>
-            <a href="/content/states" class="submenu">States</a>
+        <!-- Dropdown do usuário -->
+        <div class="user-dropdown-container">
+            <div class="dropdown w-100">
+                <button class="btn btn-dark dropdown-toggle d-flex align-items-center" type="button"
+                        id="sidebarUserDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle me-2"></i>
+                    <div class="text-start">
+                        <strong>{{ username }}</strong><br>
+                        <small>{{ location_name }}</small>
+                    </div>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="sidebarUserDropdown">
+                    <li><a class="dropdown-item" href="/content/user"><i class="bi bi-person me-2"></i> Profile</a></li>
+                    <li><a class="dropdown-item" href="/settings"><i class="bi bi-gear me-2"></i> Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/login"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                </ul>
+            </div>
         </div>
-
-        <!-- Grupos -->
-        <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#gruposMenu" role="button" aria-expanded="false" aria-controls="gruposMenu">
-            <span><i class="bi bi-people-fill me-2"></i> Grupos</span>
-            <i class="bi bi-chevron-down"></i>
-        </a>
-        <div class="collapse" id="gruposMenu">
-            <a href="/content/iniciotarv" class="submenu">Pacientes: Inicio TARV</a>
-            <a href="/content/adesaotarv" class="submenu">Pacientes: Adesão ao TARV</a>
-            <a href="/content/cargaviral" class="submenu">Pacientes: Carga Viral</a>
-            <a href="/content/faltosos" class="submenu">Pacientes: Faltosos</a>
-            <a href="/content/abandono" class="submenu">Pacientes: Abandonos</a>
-            <a href="/content/marcadoslevantamento" class="submenu">Pacientes: Marcados para o Levantamento de ARVs</a>
-            <a href="/content/outros" class="submenu">Pacientes: Outros</a>
-        </div>
-
-        <!-- Outros links -->
-        <a href="/content/observation"><i class="bi bi-eye-fill me-2"></i> Observation</a>
     </div>
 
-
-
-    <!-- Conteúdo principal -->
+    <!-- Main Content -->
     <div class="main-content">
         {% block content %}
         <h2>Welcome to the Dashboard</h2>
-        <p>This is your home page. Select an option from the menu.</p>
+        <p>Select an option from the sidebar to begin.</p>
         {% endblock %}
     </div>
 </div>
 
-<!-- Rodapé -->
+<!-- Footer -->
 <footer>
     <small>&copy; {{ current_year }} - Developed by: Felizardo Chaguala | Powered by Flask</small>
 </footer>
