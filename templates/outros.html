@@ -1,15 +1,27 @@
 {% extends 'base.html' %}
-{% block title %PI-SAUDE/ }Observations Import{% endblock %}
+{% block title %}PI-SAÚDE/ Observations Import{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
 
-<h2>Import Observations - Inicio TARV</h2>
+<h2>Import Observations - Outro grupo de pacientes</h2>
 
 <!-- Upload File -->
 <div class="mb-3">
     <input type="file" id="fileInput" class="form-control" accept=".xlsx,.xls,.csv">
     <button id="importBtn" class="btn btn-primary mt-2">Import Data</button>
+</div>
+
+<!-- Dropdowns -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <label for="stateDropdown" class="form-label">State</label>
+        <select id="stateDropdown" class="form-select"></select>
+    </div>
+    <div class="col-md-6">
+        <label for="grouptypeDropdown" class="form-label">Group Type</label>
+        <select id="grouptypeDropdown" class="form-select"></select>
+    </div>
 </div>
 
 <!-- Loader Circular Overlay Centralizado -->
@@ -65,41 +77,50 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <script>
-const observationsTableBody = document.getElementById('observationsTableBody');
 const fileInput = document.getElementById('fileInput');
 const importBtn = document.getElementById('importBtn');
 const overlay = document.getElementById('overlay');
 const progressCircle = document.getElementById('progressCircle');
 const progressText = document.getElementById('progressText');
+const observationsTableBody = document.getElementById('observationsTableBody');
+
+const stateDropdown = document.getElementById('stateDropdown');
+const grouptypeDropdown = document.getElementById('grouptypeDropdown');
 
 let observationsData = [];
 
-// Campos mapeáveis do Excel
 const requiredFields = {
     nid: ['nid', 'NID'],
     fullname: ['fullname', 'FullName', 'NomeCompleto'],
-    gender: ['gender', 'Gender', 'sexo'],
-    age: ['age', 'Age', 'idade_actual'],
-    contact: ['contact', 'Contact', 'contacto_paciente'],
+    gender: ['gender', 'Gender', 'sexo', 'Sexo'],
+    age: ['age', 'Age', 'idade_actual', 'Idade'],
+    contact: ['telefone','Telefone','contact', 'Contact', 'contacto_paciente'],
     occupation: ['occupation', 'Occupation', 'Profissao'],
 };
+
+function updateProgress(percent) {
+    progressCircle.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
+    progressText.innerText = `${percent}%`;
+}
 
 function populateTable(data) {
     observationsTableBody.innerHTML = '';
     data.forEach((obs, index) => {
-        observationsTableBody.innerHTML += `<tr>
-            <td>${obs.id || index + 1}</td>
-            <td>${obs.fullname || ''}</td>
-            <td>${obs.nid || ''}</td>
-            <td>${obs.gender || ''}</td>
-            <td>${obs.age || ''}</td>
-            <td>${obs.contact || ''}</td>
-            <td>${obs.occupation || ''}</td>
-            <td>
-                <button class="btn btn-sm btn-warning" onclick="editObservation(${index})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteObservation(${index})">Delete</button>
-            </td>
-        </tr>`;
+        observationsTableBody.innerHTML += `
+            <tr>
+                <td>${obs.id || index + 1}</td>
+                <td>${obs.fullname || ''}</td>
+                <td>${obs.nid || ''}</td>
+                <td>${obs.gender || ''}</td>
+                <td>${obs.age || ''}</td>
+                <td>${obs.contact || ''}</td>
+                <td>${obs.occupation || ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editObservation(${index})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteObservation(${index})">Delete</button>
+                </td>
+            </tr>
+        `;
     });
 }
 
@@ -116,41 +137,64 @@ function mapRow(row) {
     return mapped;
 }
 
-function updateProgress(percent) {
-    progressCircle.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
-    progressText.innerText = `${percent}%`;
-}
-
 async function loadObservationsWithProgress() {
     overlay.style.display = 'flex';
     let progress = 0;
 
-    const progressInterval = setInterval(() => {
+    const interval = setInterval(() => {
         if (progress < 90) {
-            progress += 1;
+            progress++;
             updateProgress(progress);
         }
-    }, 30); // velocidade do incremento visual
+    }, 30);
 
     try {
         const res = await fetch('/api/observation');
         const data = await res.json();
 
-        clearInterval(progressInterval);
+        clearInterval(interval);
         updateProgress(100);
+
         observationsData = data;
         populateTable(data);
 
         await new Promise(r => setTimeout(r, 500));
-
-    } catch (error) {
-        console.error("Error loading observations:", error);
-        alert("Failed to load data.");
+    } catch (err) {
+        alert("Failed to load observations.");
+        console.error(err);
     } finally {
         overlay.style.display = 'none';
         updateProgress(0);
     }
 }
+
+function normalize(text) {
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove acentos
+        .trim();
+}
+
+async function loadDropdown(url, selectElement, defaultDescription) {
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const normalizedDefault = normalize(defaultDescription);
+
+        selectElement.innerHTML = data.map(item => {
+            const isSelected = normalize(item.description) === normalizedDefault;
+            return `<option value="${item.id}" ${isSelected ? 'selected' : ''}>
+                        ${item.description}
+                    </option>`;
+        }).join('');
+    } catch (err) {
+        console.error(`Failed to load ${url}`, err);
+        selectElement.innerHTML = '<option disabled>Error loading</option>';
+    }
+}
+
 
 importBtn.addEventListener('click', async () => {
     const file = fileInput.files[0];
@@ -159,12 +203,15 @@ importBtn.addEventListener('click', async () => {
         return;
     }
 
+    const selectedStateID = stateDropdown.value;
+    const selectedGroupTypeID = grouptypeDropdown.value;
+
     overlay.style.display = 'flex';
     let progress = 0;
 
-    const progressInterval = setInterval(() => {
+    const interval = setInterval(() => {
         if (progress < 90) {
-            progress += 1;
+            progress++;
             updateProgress(progress);
         }
     }, 25);
@@ -175,36 +222,38 @@ importBtn.addEventListener('click', async () => {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
+            const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-            const firstSheet = workbook.SheetNames[0];
-            const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
-
-            if (!sheetData.length) throw new Error("No data found in the sheet.");
+            if (!sheetData.length) throw new Error("Empty sheet");
 
             const mappedData = sheetData.map(mapRow);
+
+            const payload = {
+                stateID: selectedStateID,
+                groupTypeID: selectedGroupTypeID,
+                observations: mappedData
+            };
 
             const res = await fetch('/api/observations/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(mappedData)
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
-                clearInterval(progressInterval);
+                clearInterval(interval);
                 updateProgress(100);
-                alert('Data imported successfully!');
+                alert("Data imported successfully.");
                 await loadObservationsWithProgress();
             } else {
                 const err = await res.json();
-                throw new Error(err?.message || "Import failed");
+                throw new Error(err.message || "Import failed");
             }
-
-        } catch (error) {
-            clearInterval(progressInterval);
-            console.error("Import error:", error);
-            alert("Error during import: " + error.message);
-            updateProgress(0);
+        } catch (err) {
+            console.error("Import failed:", err);
+            alert("Error during import: " + err.message);
         } finally {
+            clearInterval(interval);
             setTimeout(() => {
                 overlay.style.display = 'none';
                 updateProgress(0);
@@ -213,9 +262,9 @@ importBtn.addEventListener('click', async () => {
     };
 
     reader.onerror = function (err) {
-        console.error("FileReader error:", err);
+        clearInterval(interval);
+        console.error("File reading error:", err);
         alert("Failed to read file.");
-        clearInterval(progressInterval);
         overlay.style.display = 'none';
     };
 
@@ -237,6 +286,10 @@ function deleteObservation(index) {
     populateTable(observationsData);
 }
 
-window.onload = loadObservationsWithProgress;
+window.onload = async () => {
+    await loadObservationsWithProgress();
+    await loadDropdown('/api/state', stateDropdown, 'Inicial');
+    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Faltosos');
+};
 </script>
 {% endblock %}

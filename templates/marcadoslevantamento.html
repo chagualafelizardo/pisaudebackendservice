@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}PI-SAUDE/ Observations Import{% endblock %}
+{% block title %}PI-SAÚDE/ Observations Import{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
@@ -77,9 +77,9 @@ let observationsData = [];
 const requiredFields = {
     nid: ['nid', 'NID'],
     fullname: ['fullname', 'FullName', 'NomeCompleto'],
-    gender: ['gender', 'Gender', 'sexo'],
-    age: ['age', 'Age', 'idade_actual'],
-    contact: ['contact', 'Contact', 'contacto_paciente'],
+    gender: ['gender', 'Gender', 'sexo', 'Sexo'],
+    age: ['age', 'Age', 'idade_actual', 'Idade'],
+    contact: ['telefone','Telefone','contact', 'Contact', 'contacto_paciente'],
     occupation: ['occupation', 'Occupation', 'Profissao'],
 };
 
