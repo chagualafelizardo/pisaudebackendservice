@@ -1,19 +1,22 @@
 {% extends 'base.html' %}
 
-{% block title %}PI-SAÚDE/ Locations{% endblock %}
+{% block title %}PI-SAÚDE / Locations{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
 
 <h2>Manage Locations</h2>
 
-<!-- Formulário de criação/edição -->
-<form id="locationForm" class="mb-4">
-    <input type="hidden" id="locationId">
-    <input type="text" id="locationName" class="form-control mb-2" placeholder="Location Name" required>
-    <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
-</form>
+<!-- Floating Action Button (FAB) -->
+<button
+    class="btn btn-success rounded-circle position-fixed"
+    style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+    data-bs-toggle="modal"
+    data-bs-target="#locationModal"
+    title="Add Location">
+    +
+</button>
+
 
 <!-- Tabela de locations -->
 <table class="table table-bordered">
@@ -21,6 +24,7 @@
         <tr>
             <th>ID</th>
             <th>Name</th>
+            <th>Description</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -29,8 +33,35 @@
     </tbody>
 </table>
 
+<!-- Modal de Formulário -->
+<div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="locationForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="locationModalLabel">Add/Edit Location</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="locationId">
+        <div class="mb-3">
+          <label for="locationName" class="form-label">Location Name</label>
+          <input type="text" id="locationName" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label for="locationDescription" class="form-label">Description</label>
+          <textarea id="locationDescription" class="form-control" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
-const apiUrl = '/api/location'; // Endpoint da API
+const apiUrl = '/api/location';
 
 // Carrega a lista de locations
 async function loadLocations() {
@@ -46,8 +77,9 @@ async function loadLocations() {
                 <tr>
                     <td>${loc.id}</td>
                     <td>${loc.name}</td>
+                    <td>${loc.description || ''}</td>
                     <td>
-                        <button class="btn btn-sm btn-warning" onclick="editLocation(${loc.id}, '${loc.name}')">Edit</button>
+                        <button class="btn btn-sm btn-warning" onclick="editLocation(${loc.id}, '${loc.name}', \`${loc.description || ''}\`)">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteLocation(${loc.id})">Delete</button>
                     </td>
                 </tr>
@@ -63,28 +95,34 @@ document.getElementById('locationForm').addEventListener('submit', async (e) => 
     e.preventDefault();
     const id = document.getElementById('locationId').value;
     const name = document.getElementById('locationName').value;
+    const description = document.getElementById('locationDescription').value;
 
     try {
+        const payload = { name, description };
+
+        let res;
         if (id) {
-            // Atualizar
-            const res = await fetch(`${apiUrl}/${id}`, {
+            res = await fetch(`${apiUrl}/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
+                body: JSON.stringify(payload)
             });
-            if (!res.ok) throw await res.json();
         } else {
-            // Criar
-            const res = await fetch(apiUrl, {
+            res = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
+                body: JSON.stringify(payload)
             });
-            if (!res.ok) throw await res.json();
         }
 
+        if (!res.ok) throw await res.json();
+
+        // Resetar e fechar modal
         document.getElementById('locationForm').reset();
         document.getElementById('locationId').value = '';
+        const modal = bootstrap.Modal.getInstance(document.getElementById('locationModal'));
+        modal.hide();
+
         loadLocations();
     } catch (err) {
         alert(err.message || 'Error saving location');
@@ -92,16 +130,12 @@ document.getElementById('locationForm').addEventListener('submit', async (e) => 
 });
 
 // Editar location
-function editLocation(id, name) {
+function editLocation(id, name, description) {
     document.getElementById('locationId').value = id;
     document.getElementById('locationName').value = name;
+    document.getElementById('locationDescription').value = description;
+    new bootstrap.Modal(document.getElementById('locationModal')).show();
 }
-
-// Cancelar edição
-document.getElementById('cancelEdit').addEventListener('click', () => {
-    document.getElementById('locationForm').reset();
-    document.getElementById('locationId').value = '';
-});
 
 // Deletar location
 async function deleteLocation(id) {

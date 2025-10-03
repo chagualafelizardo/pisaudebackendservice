@@ -1,15 +1,20 @@
+# Dockerfile
 FROM python:3.11-slim
 
+# Define o diretório de trabalho
 WORKDIR /app
 
-COPY app/requirements.txt requirements.txt
+# Copia o arquivo de dependências
+COPY requirements.txt .
+
+# Instala as dependências
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ .
+# Copia o restante do projeto
+COPY . .
 
-# Pasta para os arquivos enviados
-RUN mkdir -p /app/data
-
+# Expõe a porta usada pelo Flask
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+# Comando de execução
+CMD ["python", "app.py", "--host=0.0.0.0"]

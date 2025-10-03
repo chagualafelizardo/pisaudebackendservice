@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Resources{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage Resources</h2>
+
+<!-- Floating Button -->
+<button
+    class="btn btn-success rounded-circle position-fixed"
+    style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+    data-bs-toggle="modal"
+    data-bs-target="#resourceModal"
+    title="Add Resource">
+    +
+</button>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Resource Type</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="resourcesTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="resourceModal" tabindex="-1" aria-labelledby="resourceModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="resourceForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resourceModalLabel">Add/Edit Resource</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="resourceId">
+        <div class="mb-3">
+          <label for="resourceName" class="form-label">Name</label>
+          <input type="text" id="resourceName" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label for="resourceDescription" class="form-label">Description</label>
+          <textarea id="resourceDescription" class="form-control" required></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="resourceTypeId" class="form-label">Resource Type</label>
+          <select id="resourceTypeId" class="form-select" required></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const apiUrl = '/api/resource';
+const typeUrl = '/api/resourcetype';
+
+async function loadResourceTypesOptions() {
+    const res = await fetch(typeUrl);
+    const types = await res.json();
+    const select = document.getElementById('resourceTypeId');
+    select.innerHTML = types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+}
+
+async function loadResources() {
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+
+    const tbody = document.getElementById('resourcesTableBody');
+    tbody.innerHTML = '';
+    data.forEach(r => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${r.id}</td>
+                <td>${r.name}</td>
+                <td>${r.description}</td>
+                <td>${r.resourcetypeName}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editResource(${r.id}, '${r.name}', \`${r.description}\`, ${r.resourcetypeId})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteResource(${r.id})">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+document.getElementById('resourceForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('resourceId').value;
+    const name = document.getElementById('resourceName').value;
+    const description = document.getElementById('resourceDescription').value;
+    const resourcetypeId = document.getElementById('resourceTypeId').value;
+
+    const payload = { name, description, resourcetypeId };
+
+    let res;
+    if (id) {
+        res = await fetch(`${apiUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } else {
+        res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    }
+
+    if (!res.ok) return alert('Error saving resource');
+
+    document.getElementById('resourceForm').reset();
+    document.getElementById('resourceId').value = '';
+    bootstrap.Modal.getInstance(document.getElementById('resourceModal')).hide();
+    loadResources();
+});
+
+function editResource(id, name, description, resourcetypeId) {
+    document.getElementById('resourceId').value = id;
+    document.getElementById('resourceName').value = name;
+    document.getElementById('resourceDescription').value = description;
+    document.getElementById('resourceTypeId').value = resourcetypeId;
+    new bootstrap.Modal(document.getElementById('resourceModal')).show();
+}
+
+async function deleteResource(id) {
+    if (!confirm('Confirm delete?')) return;
+    const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+    if (!res.ok) return alert('Error deleting');
+    loadResources();
+}
+
+window.onload = async () => {
+    await loadResourceTypesOptions();
+    loadResources();
+};
+</script>
+{% endblock %}

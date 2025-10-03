@@ -290,6 +290,7 @@ window.onload = async () => {
     await loadObservationsWithProgress();
     await loadDropdown('/api/state', stateDropdown, 'Inicial');
     await loadDropdown('/api/grouptype', grouptypeDropdown, 'Carga Viral');
+    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Pacientes com carga viral');
 };
 </script>
 {% endblock %}

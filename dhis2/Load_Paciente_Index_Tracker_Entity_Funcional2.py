@@ -344,7 +344,7 @@ def main():
     setup_logging()
     # excel_file = r"C:\Users\Felizardo Chaguala\Desktop\dhis2\data\paciente_atualmente_tarv.xls"
     # ======
-    data_directory = r"C:\Users\Felizardo Chaguala\Desktop\dhis2\data"
+    data_directory = r"C:\Users\Felizardo Chaguala\Desktop\pisaude\backendservice\data"
     excel_files = glob.glob(os.path.join(data_directory, "*.xls*"))  # pega .xls e .xlsx
     excel_files += glob.glob(os.path.join(data_directory, "*.csv"))   # adiciona .csv
     

@@ -274,7 +274,8 @@ function deleteObservation(index) {
 window.onload = async () => {
     await loadObservationsWithProgress();
     await loadDropdown('/api/state', stateDropdown, 'Inicial');
-    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Marcados para levantamento de ARV');
+    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Marcados para levantamento de ARV'); 	
+    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Pacientes marcados para o levantamento de arv'); 	
 };
 </script>
 {% endblock %}

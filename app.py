@@ -4,7 +4,7 @@ from config import Config
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, request, jsonify
-from models import Observation, State, Textmessage, Grouptype, Group, Location, User
+from models import Observation, State, Textmessage, Grouptype, Group, Location, User, Resource, ResourceType
 import logging
 
 # -------------------------------
@@ -23,6 +23,8 @@ from routes.UserRoleRoutes import userrole_bp
 from routes.UserRoutes import user_bp
 from routes.KeyPopulationRoutes import keypopulation_bp
 from routes.PortaTestagemRoutes import portatestagem_bp
+from routes.ResourceTypeRoutes import resourcetype_bp
+from routes.ResourceRoutes import resource_bp
 
 # -------------------------------
 # Inicialização da App Flask
@@ -43,7 +45,8 @@ state_default_id = 9  # ID default para State "inicial"
 blueprints = [
     contactlink_bp, dailyrecord_bp, observation_bp, location_bp, role_bp,
     group_bp, grouptype_bp, state_bp, textmessage_bp, userrole_bp,
-    user_bp, keypopulation_bp, portatestagem_bp
+    user_bp, keypopulation_bp, portatestagem_bp, resource_bp,
+    resourcetype_bp
 ]
 
 for bp in blueprints:
@@ -264,4 +267,4 @@ def inject_year():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  # Cria tabelas
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)

@@ -10,6 +10,7 @@ class LocationController:
             return jsonify([{
                 'id': loc.id,
                 'name': loc.name,
+                'description': loc.description,
                 'createAt': loc.createAt,
                 'updateAt': loc.updateAt
             } for loc in locations]), 200
@@ -24,6 +25,7 @@ class LocationController:
                 return jsonify({
                     'id': location.id,
                     'name': location.name,
+                    'description': location.description,
                     'createAt': location.createAt,
                     'updateAt': location.updateAt
                 }), 200
@@ -51,6 +53,7 @@ class LocationController:
             return jsonify({
                 'id': new_location.id,
                 'name': new_location.name,
+                'description': new_location.description,
                 'createAt': new_location.createAt,
                 'updateAt': new_location.updateAt
             }), 201
@@ -84,6 +87,7 @@ class LocationController:
             return jsonify({
                 'id': location.id,
                 'name': location.name,
+                'description': location.description,
                 'createAt': location.createAt,
                 'updateAt': location.updateAt
             }), 200

@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Resource Types{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage Resource Types</h2>
+
+<!-- Floating Action Button -->
+<button
+    class="btn btn-success rounded-circle position-fixed"
+    style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+    data-bs-toggle="modal"
+    data-bs-target="#resourcetypeModal"
+    title="Add Resource Type">
+    +
+</button>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="resourcetypesTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="resourcetypeModal" tabindex="-1" aria-labelledby="resourcetypeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="resourcetypeForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resourcetypeModalLabel">Add/Edit Resource Type</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="resourcetypeId">
+        <div class="mb-3">
+          <label for="resourcetypeName" class="form-label">Name</label>
+          <input type="text" id="resourcetypeName" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label for="resourcetypeDescription" class="form-label">Description</label>
+          <textarea id="resourcetypeDescription" class="form-control" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const apiUrl = '/api/resourcetype';
+
+async function loadResourceTypes() {
+    const res = await fetch(apiUrl);
+    const types = await res.json();
+
+    const tbody = document.getElementById('resourcetypesTableBody');
+    tbody.innerHTML = '';
+    types.forEach(t => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${t.id}</td>
+                <td>${t.name}</td>
+                <td>${t.description || ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editType(${t.id}, '${t.name}', \`${t.description || ''}\`)">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteType(${t.id})">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+document.getElementById('resourcetypeForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('resourcetypeId').value;
+    const name = document.getElementById('resourcetypeName').value;
+    const description = document.getElementById('resourcetypeDescription').value;
+
+    const payload = { name, description };
+    let res;
+    if (id) {
+        res = await fetch(`${apiUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } else {
+        res = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    }
+
+    if (!res.ok) return alert('Error saving resource type');
+
+    document.getElementById('resourcetypeForm').reset();
+    document.getElementById('resourcetypeId').value = '';
+    bootstrap.Modal.getInstance(document.getElementById('resourcetypeModal')).hide();
+    loadResourceTypes();
+});
+
+function editType(id, name, description) {
+    document.getElementById('resourcetypeId').value = id;
+    document.getElementById('resourcetypeName').value = name;
+    document.getElementById('resourcetypeDescription').value = description;
+    new bootstrap.Modal(document.getElementById('resourcetypeModal')).show();
+}
+
+async function deleteType(id) {
+    if (!confirm('Confirm delete?')) return;
+    const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+    if (!res.ok) return alert('Error deleting');
+    loadResourceTypes();
+}
+
+window.onload = loadResourceTypes;
+</script>
+{% endblock %}

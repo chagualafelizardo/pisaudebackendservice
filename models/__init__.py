@@ -13,11 +13,13 @@ from .UserRole import UserRole
 from .Observation import Observation
 from .keyPopulation import KeyPopulation
 from .PortaTestagem import PortaTestagem
-from .ContactLink import ContactLink        # ✅ Adicionado
-from .DailyRecord import DailyRecord        # ✅ Adicionado
+from .ContactLink import ContactLink 
+from .DailyRecord import DailyRecord
+from .Resource import Resource # <-- IMPORTAÇÃO CORRETA
+from .ResourceType import ResourceType  # <-- IMPORTAÇÃO CORRETA
 
 __all__ = [
     'db', 'Role', 'State', 'Grouptype', 'Group', 'Location', 
     'Textmessage', 'User', 'UserRole', 'Observation', 'ContactLink',
-    'DailyRecord', 'KeyPopulation', 'PortaTestagem'
+    'DailyRecord', 'KeyPopulation', 'PortaTestagem','Resource','ResourceType'
 ]

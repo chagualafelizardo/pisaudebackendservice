@@ -289,7 +289,7 @@ function deleteObservation(index) {
 window.onload = async () => {
     await loadObservationsWithProgress();
     await loadDropdown('/api/state', stateDropdown, 'Inicial');
-    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Faltosos');
+    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Adesão ao TARV');
 };
 </script>
 {% endblock %}
