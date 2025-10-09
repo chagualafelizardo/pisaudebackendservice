@@ -313,7 +313,13 @@ document.getElementById('obsForm').addEventListener('submit', async e=>{
         return;
     }
 
-    bootstrap.Modal.getInstance(document.getElementById('obsModal')).hide();
+    const modalEl = document.getElementById('obsModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+
+    // Remove o backdrop manualmente após esconder o modal
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    
     await loadObservationsWithProgress();
 });
 

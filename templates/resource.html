@@ -122,7 +122,14 @@ document.getElementById('resourceForm').addEventListener('submit', async e => {
 
     document.getElementById('resourceForm').reset();
     document.getElementById('resourceId').value = '';
-    bootstrap.Modal.getInstance(document.getElementById('resourceModal')).hide();
+
+    const modalEl = document.getElementById('resourceModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+
+    // Remove o backdrop manualmente após esconder o modal
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    
     loadResources();
 });
 

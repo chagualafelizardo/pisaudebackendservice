@@ -25,6 +25,18 @@ from routes.KeyPopulationRoutes import keypopulation_bp
 from routes.PortaTestagemRoutes import portatestagem_bp
 from routes.ResourceTypeRoutes import resourcetype_bp
 from routes.ResourceRoutes import resource_bp
+from routes.FormaPrestacaoServicoRoutes import forma_prestacao_servico_bp
+from routes.PersonRoutes import person_bp
+from routes.PatentRoutes import patent_bp
+from routes.RamoRoutes import ramo_bp
+from routes.SubunidadeRoutes import subunidade_bp
+from routes.EspecialidadeRoutes import especialidade_bp
+from routes.SubespecialidadeRoutes import subespecialidade_bp
+from routes.SituacaoGeralRoutes import situacao_geral_bp
+from routes.FuncaoRoutes import funcao_bp
+from routes.SituacaoPrestacaoServicoRoutes import situacao_prestacao_servico_bp
+from routes.AfetacaoRoutes import afetacao_bp
+from routes.TransferenciaRoutes import transferencia_bp
 
 # -------------------------------
 # Inicialização da App Flask
@@ -46,7 +58,10 @@ blueprints = [
     contactlink_bp, dailyrecord_bp, observation_bp, location_bp, role_bp,
     group_bp, grouptype_bp, state_bp, textmessage_bp, userrole_bp,
     user_bp, keypopulation_bp, portatestagem_bp, resource_bp,
-    resourcetype_bp
+    resourcetype_bp, forma_prestacao_servico_bp, person_bp, patent_bp,
+    ramo_bp, subunidade_bp, especialidade_bp, subespecialidade_bp,
+    situacao_geral_bp, funcao_bp, situacao_prestacao_servico_bp, afetacao_bp,
+    transferencia_bp
 ]
 
 for bp in blueprints:
@@ -105,6 +120,10 @@ def login():
             flash('Invalid username or password', 'danger')
     
     return render_template('login.html')
+
+@app.route('/register')
+def register():
+    return render_template('register.html')
 
 @app.route('/settings')
 def settings():

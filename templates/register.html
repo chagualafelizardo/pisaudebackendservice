@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register - PI-SAÚDE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h3 class="text-center mb-4">Create Your Account</h3>
+                    <form id="registerForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <input type="text" id="fullname" class="form-control" placeholder="Full Name" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <input type="text" id="username" class="form-control" placeholder="Username" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <input type="password" id="password" class="form-control" placeholder="Password" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <select id="gender" class="form-select" required>
+                                    <option value="">Select Gender</option>
+                                    <option value="M">M</option>
+                                    <option value="F">F</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <input type="email" id="email" class="form-control" placeholder="Email" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <input type="text" id="profile" class="form-control" placeholder="Profile" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <input type="text" id="contact" class="form-control" placeholder="Contact" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <select id="locationSelect" class="form-select" required>
+                                    <option value="">Select Location</option>
+                                </select>
+                            </div>
+                            <div class="col-md-12 mb-2">
+                                <label for="rolesSelect">Roles</label>
+                                <select id="rolesSelect" class="form-select" multiple required>
+                                    <!-- Populado via JS -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary mt-3">Register</button>
+                            <a href="/login" class="btn btn-link mt-2">Already have an account? Login</a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <small>© 2025 PI-SAÚDE</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const apiUsers = '/api/user';
+const apiRoles = '/api/role';
+const apiLocations = '/api/location';
+const apiUserRole = '/api/userrole';
+
+// Carrega locais e roles
+async function loadLocationsAndRoles() {
+    const locRes = await fetch(apiLocations);
+    const locations = await locRes.json();
+    const locationSelect = document.getElementById('locationSelect');
+    locationSelect.innerHTML = '<option value="">Select Location</option>';
+    locations.forEach(loc => {
+        locationSelect.innerHTML += `<option value="${loc.id}">${loc.name}</option>`;
+    });
+
+    const roleRes = await fetch(apiRoles);
+    const roles = await roleRes.json();
+    const roleSelect = document.getElementById('rolesSelect');
+    roleSelect.innerHTML = '';
+    roles.forEach(role => {
+        roleSelect.innerHTML += `<option value="${role.id}">${role.description}</option>`;
+    });
+}
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        fullname: document.getElementById('fullname').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        gender: document.getElementById('gender').value,
+        email: document.getElementById('email').value,
+        profile: document.getElementById('profile').value,
+        contact: document.getElementById('contact').value,
+        locationId: parseInt(document.getElementById('locationSelect').value)
+    };
+
+    try {
+        // Criação do usuário
+        const res = await fetch(apiUsers, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) throw await res.json();
+        const createdUser = await res.json();
+        const userId = createdUser.id;
+
+        // Adiciona roles
+        const selectedRoles = Array.from(document.getElementById('rolesSelect').selectedOptions).map(o => parseInt(o.value));
+        for (const roleId of selectedRoles) {
+            await fetch(apiUserRole, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, roleId })
+            });
+        }
+
+        alert('User registered successfully!');
+        window.location.href = '/login';
+    } catch (err) {
+        alert(err.message || 'Error registering user');
+    }
+});
+
+window.onload = loadLocationsAndRoles;
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -113,7 +113,13 @@ document.getElementById('kpForm').addEventListener('submit', async e => {
         return;
     }
 
-    bootstrap.Modal.getInstance(document.getElementById('kpModal')).hide();
+    const modalEl = document.getElementById('kpModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+
+    // Remove o backdrop manualmente após esconder o modal
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
     loadKeyPopulations();
 });
 

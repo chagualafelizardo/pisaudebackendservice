@@ -1,0 +1,399 @@
+
+
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Persons{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage Persons</h2>
+
+<style>
+#imageFrame:hover {
+    border-color: #28a745;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+</style>
+
+<!-- Floating Action Button (FAB) -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        data-bs-toggle="modal"
+        data-bs-target="#personModal"
+        onclick="openPersonModal()">
+    +
+</button>
+
+<!-- Tabela de Persons -->
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Image</th>
+            <th>Full Name</th>
+            <th>Patent</th>
+            <th>NIM</th>
+            <th>NUIT</th>
+            <th>Gender</th>
+            <th>Date of Birth</th>
+            <th>Incorporation Date</th>
+            <th>Service Form</th>
+            <th>Sync Status</th>
+            <th>Sync Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="personsTableBody">
+        <!-- Populado via JS -->
+    </tbody>
+</table>
+
+<!-- Modal de Formulário -->
+<div class="modal fade" id="personModal" tabindex="-1" aria-labelledby="personModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="personForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="personModalLabel">Add/Edit Person</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="personId">
+
+        <!-- Imagem -->
+        <div class="mb-3 text-center">
+          <label class="form-label">Image</label>
+          <input type="file" id="personImage" accept="image/*" style="display: none;">
+          <div id="imageFrame"
+               style="width: 150px; height: 150px; border: 2px dashed #ccc;
+                      border-radius: 50%; overflow: hidden;
+                      display: flex; align-items: center; justify-content: center;
+                      cursor: pointer; margin: auto;">
+            <img id="personImagePreview" src="" alt="Click to select image"
+                 style="max-height: 100%; max-width: 100%; border-radius: 50%; object-fit: cover; display: none;">
+            <span id="placeholderText" style="color: #999;">Click to select image</span>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-3" id="personTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personalTabContent" type="button" role="tab">Personal</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professionalTabContent" type="button" role="tab">Professional</button>
+          </li>
+        </ul>
+
+        <div class="tab-content">
+          <!-- Tab 1: Personal -->
+          <div class="tab-pane fade show active" id="personalTabContent" role="tabpanel">
+            <div class="mb-3">
+              <label for="personFullname" class="form-label">Full Name</label>
+              <input type="text" id="personFullname" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="personPatent" class="form-label">Patent</label>
+              <select id="personPatent" class="form-select" required>
+                <option value="">Select Patent</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="personNIM" class="form-label">NIM</label>
+              <input type="text" id="personNIM" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="personNUIT" class="form-label">NUIT</label>
+              <input type="text" id="personNUIT" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="personGender" class="form-label">Gender</label>
+              <select id="personGender" class="form-select" required>
+                <option value="">Select</option>
+                <option value="Male">M</option>
+                <option value="Female">F</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="personDateOfBirth" class="form-label">Date of Birth</label>
+              <input type="date" id="personDateOfBirth" class="form-control" required>
+            </div>
+          </div>
+
+          <!-- Tab 2: Professional / Sync -->
+          <div class="tab-pane fade" id="professionalTabContent" role="tabpanel">
+            <div class="mb-3">
+              <label for="personIncorporationDate" class="form-label">Incorporation Date</label>
+              <input type="date" id="personIncorporationDate" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="personServiceForm" class="form-label">Service Form</label>
+              <select id="personServiceForm" class="form-select" required>
+                <option value="">Select Service Form</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="personSyncStatus" class="form-label">Sync Status</label>
+              <select id="personSyncStatus" class="form-select" required>
+                <option value="Not Syncronized">Not Syncronized</option>
+                <option value="Syncronized">Syncronized</option>
+                <option value="Updated">Updated</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="personSyncStatusDate" class="form-label">Sync Status Date</label>
+              <input type="datetime-local" id="personSyncStatusDate" class="form-control" required>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<script>
+const apiUrl = '/api/person';
+const serviceFormApiUrl = '/api/serviceform';
+const patentApiUrl = '/api/patent';
+
+// Abrir modal de pessoa
+function openPersonModal() {
+    document.getElementById('personForm').reset();
+    document.getElementById('personId').value = '';
+    document.getElementById('personImagePreview').style.display = 'none';
+    loadServiceFormsOptions();
+    loadPatentsOptions();
+
+    const modalEl = document.getElementById('personModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+// Carregar Service Forms
+async function loadServiceFormsOptions() {
+    try {
+        const res = await fetch(serviceFormApiUrl);
+        const forms = await res.json();
+        const select = document.getElementById('personServiceForm');
+        select.innerHTML = '<option value="">Select Service Form</option>';
+        forms.forEach(f => {
+            select.innerHTML += `<option value="${f.id}">${f.description}</option>`;
+        });
+    } catch (err) {
+        alert('Error loading service forms: ' + err);
+    }
+}
+
+// Carregar Patentes
+async function loadPatentsOptions() {
+    try {
+        const res = await fetch(patentApiUrl);
+        const patents = await res.json();
+        const select = document.getElementById('personPatent');
+        select.innerHTML = '<option value="">Select Patent</option>';
+        patents.forEach(p => {
+            select.innerHTML += `<option value="${p.id}">${p.description}</option>`;
+        });
+    } catch (err) {
+        alert('Error loading patents: ' + err);
+    }
+}
+
+// Carregar pessoas
+async function loadPersons() {
+    try {
+        const res = await fetch(apiUrl);
+        const persons = await res.json();
+        const tbody = document.getElementById('personsTableBody');
+        
+        tbody.innerHTML = '';
+
+        persons.forEach(p => {
+            const patentText = p.patents?.map(pt => pt.description).join(', ') || '';
+            const imgSrc = p.image ? `data:image/*;base64,${p.image}` : '';
+            tbody.innerHTML += `
+                <tr>
+                    <td>${p.id}</td>
+                    <td>
+                      ${imgSrc
+                        ? `<img src="${imgSrc}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">`
+                        : ''
+                      }
+                    </td>
+                    <td>${p.fullname}</td>
+                    <td>${patentText}</td>
+                    <td>${p.nim || ''}</td>
+                    <td>${p.nuit || ''}</td>
+                    <td>${p.gender || ''}</td>
+                    <td>${p.dateofbirth || ''}</td>
+                    <td>${p.incorporationdata || ''}</td>
+                    <td>${p.forma_prestacao_servico_description || ''}</td>
+                    <td>${p.syncStatus || ''}</td>
+                    <td>${p.syncStatusDate || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick='editPerson(${JSON.stringify(p)})'>Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deletePerson(${p.id})">Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        alert('Error loading persons: ' + err);
+    }
+}
+
+// Preview da imagem
+// Clique no frame abre o seletor de imagem
+document.getElementById('imageFrame').addEventListener('click', function () {
+    document.getElementById('personImage').click();
+});
+
+// Preview da imagem ao selecionar
+document.getElementById('personImage').addEventListener('change', function () {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const imgPreview = document.getElementById('personImagePreview');
+            imgPreview.src = e.target.result;
+            imgPreview.style.display = 'block';
+            document.getElementById('placeholderText').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+
+// Editar pessoa
+function editPerson(p) {
+    document.getElementById('personId').value = p.id;
+    document.getElementById('personFullname').value = p.fullname;
+    document.getElementById('personNIM').value = p.nim || '';
+    document.getElementById('personNUIT').value = p.nuit || '';
+    document.getElementById('personGender').value = p.gender || '';
+    document.getElementById('personDateOfBirth').value = p.dateofbirth || '';
+    document.getElementById('personIncorporationDate').value = p.incorporationdata || '';
+
+    loadServiceFormsOptions().then(() => {
+        document.getElementById('personServiceForm').value = p.forma_prestacao_servico_id || '';
+    });
+
+    loadPatentsOptions().then(() => {
+        const select = document.getElementById('personPatent');
+        if (p.patents && p.patents.length > 0) {
+            select.value = p.patents[0].id;
+        } else {
+            select.value = '';
+        }
+    });
+
+    document.getElementById('personSyncStatus').value = p.syncStatus || 'Not Syncronized';
+    document.getElementById('personSyncStatusDate').value = p.syncStatusDate ? p.syncStatusDate.slice(0, 16) : '';
+
+    const imgPreview = document.getElementById('personImagePreview');
+    if (p.image) {
+        imgPreview.src = 'data:image/*;base64,' + p.image;
+        imgPreview.style.display = 'block';
+    } else {
+        imgPreview.style.display = 'none';
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('personModal'));
+    modal.show();
+}
+
+// Salvar pessoa
+document.getElementById('personForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const id = document.getElementById('personId').value;
+    const fileInput = document.getElementById('personImage');
+    let imageBase64 = null;
+
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        imageBase64 = await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = e => resolve(e.target.result.split(',')[1]);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    const payload = {
+        fullname: document.getElementById('personFullname').value,
+        patent_ids: document.getElementById('personPatent').value ? [parseInt(document.getElementById('personPatent').value)] : [],
+        nim: document.getElementById('personNIM').value,
+        nuit: document.getElementById('personNUIT').value,
+        gender: document.getElementById('personGender').value,
+        dateofbirth: document.getElementById('personDateOfBirth').value,
+        incorporationdata: document.getElementById('personIncorporationDate').value,
+        forma_prestacao_servico_id: document.getElementById('personServiceForm').value,
+        image: imageBase64,
+        syncStatus: document.getElementById('personSyncStatus').value,
+        syncStatusDate: document.getElementById('personSyncStatusDate').value
+            ? new Date(document.getElementById('personSyncStatusDate').value).toISOString()
+            : null
+    };
+
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw await res.json();
+
+        const modalEl = document.getElementById('personModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadPersons();
+    } catch (err) {
+        alert(err.message || 'Error saving person');
+    }
+});
+
+// Excluir pessoa
+async function deletePerson(id) {
+    if (!confirm('Are you sure you want to delete this person?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        loadPersons();
+    } catch (err) {
+        alert(err.message || 'Error deleting person');
+    }
+}
+
+// Inicialização
+window.onload = () => {
+    loadPersons();
+
+    document.getElementById('personModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('personForm').reset();
+        document.getElementById('personId').value = '';
+        document.getElementById('personImagePreview').src = '';
+        document.getElementById('personImagePreview').style.display = 'none';
+        document.getElementById('placeholderText').style.display = 'block';
+    });
+};
+
+</script>
+
+{% endblock %}

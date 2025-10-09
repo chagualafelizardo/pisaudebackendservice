@@ -230,7 +230,12 @@ document.getElementById('userForm').addEventListener('submit', async (e) => {
             });
         }
 
-        bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+        const modalEl = document.getElementById('userModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+        // Remove o backdrop manualmente após esconder o modal
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         loadUsers();
     } catch (err) {
         alert(err.message || 'Error saving user');

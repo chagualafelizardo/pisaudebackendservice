@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Patents Management{% endblock %}
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage Patents</h2>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        data-bs-toggle="modal"
+        data-bs-target="#patentModal"
+        onclick="openPatentModal()">
+    +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Description</th>
+            <th>Created At</th>
+            <th>Updated At</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="patentsTableBody">
+        <!-- Populado por JS -->
+    </tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="patentModal" tabindex="-1" aria-labelledby="patentModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="patentForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add/Edit Patent</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="patentId">
+        <div class="mb-3">
+          <label for="patentDescription" class="form-label">Description</label>
+          <input type="text" id="patentDescription" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const apiUrl = '/api/patent';
+
+function openPatentModal() {
+    document.getElementById('patentForm').reset();
+    document.getElementById('patentId').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('patentModal'));
+    modal.show();
+}
+
+async function loadPatents() {
+    try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        const tbody = document.getElementById('patentsTableBody');
+        tbody.innerHTML = '';
+        data.forEach(p => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${p.id}</td>
+                    <td>${p.description}</td>
+                    <td>${p.createAt || '-'}</td>
+                    <td>${p.updateAt || '-'}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick='editPatent(${JSON.stringify(p)})'>Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick='deletePatent(${p.id})'>Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        alert("Failed to load patents: " + err);
+    }
+}
+
+function editPatent(p) {
+    document.getElementById('patentId').value = p.id;
+    document.getElementById('patentDescription').value = p.description;
+    const modal = new bootstrap.Modal(document.getElementById('patentModal'));
+    modal.show();
+}
+
+document.getElementById('patentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('patentId').value;
+    const description = document.getElementById('patentDescription').value;
+
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description })
+        });
+
+        if (!res.ok) throw await res.json();
+
+        const modalEl = document.getElementById('patentModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+        // Remove o backdrop manualmente após esconder o modal
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
+        loadPatents();
+    } catch (err) {
+        alert(err.message || 'Failed to save patent.');
+    }
+});
+
+async function deletePatent(id) {
+    if (!confirm('Are you sure you want to delete this patent?')) return;
+
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        loadPatents();
+    } catch (err) {
+        alert(err.message || 'Failed to delete patent.');
+    }
+}
+
+window.onload = loadPatents;
+</script>
+{% endblock %}

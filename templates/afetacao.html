@@ -1,0 +1,401 @@
+{% extends 'base.html' %}
+{% block title %}Afetações Management{% endblock %}
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage Afetações</h2>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="openAfetacaoModal()">
+    +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Person</th>
+            <th>Ramo</th>
+            <th>Unidade Militar</th>
+            <th>Subunidade</th>
+            <th>Especialidade</th>
+            <th>Subespecialidade</th>
+            <th>Função</th>
+            <th>Situação Geral</th>
+            <th>Situação Prestação Serviço</th>
+            <th>Último Ano Promoção</th>
+            <th>Ordem Serviço Promoção</th>
+            <th>Sync Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="afetacaoTableBody">
+        <!-- Populado por JS -->
+    </tbody>
+</table>
+
+<!-- Modal Add/Edit -->
+<div class="modal fade" id="afetacaoModal" tabindex="-1" aria-labelledby="afetacaoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="afetacaoForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add/Edit Afetação</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <div class="modal-body">
+        <input type="hidden" id="afetacaoId">
+
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs" id="afetacaoTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab1-tab" data-bs-toggle="tab" data-bs-target="#tab1"
+                    type="button" role="tab" aria-controls="tab1" aria-selected="true">General Info</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab2-tab" data-bs-toggle="tab" data-bs-target="#tab2"
+                    type="button" role="tab" aria-controls="tab2" aria-selected="false">Promotion & Status</button>
+          </li>
+        </ul>
+
+        <!-- Tab contents -->
+        <div class="tab-content mt-3" id="afetacaoTabsContent">
+
+          <!-- Tab 1 -->
+          <div class="tab-pane fade show active" id="tab1" role="tabpanel" aria-labelledby="tab1-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="personId" class="form-label">Person</label>
+                  <select id="personId" class="form-select" required>
+                    <option value="">Select...</option>
+                  </select>
+                </div>
+                <!-- Person Details -->
+                <div id="personDetails" class="border rounded p-3 bg-light mt-2" style="display: none;">
+                    <h6>Person Details</h6>
+                    <img id="personImage" src="" alt="Person Image" class="img-thumbnail mb-2" style="max-width: 150px;">
+                    <p><strong>Fullname:</strong> <span id="personFullname"></span></p>
+                    <p><strong>NIM:</strong> <span id="personNim"></span></p>
+                    <p><strong>Gender:</strong> <span id="personGender"></span></p>
+                    <p><strong>Date of Birth:</strong> <span id="personDob"></span></p>
+                    <p><strong>Incorporation Date:</strong> <span id="personIncorp"></span></p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="ramoId" class="form-label">Ramo</label>
+                  <select id="ramoId" class="form-select" required></select>
+                </div>
+                <div class="mb-3">
+                  <label for="unidadeMilitarId" class="form-label">Unidade Militar</label>
+                  <select id="unidadeMilitarId" class="form-select" required></select>
+                </div>
+                <div class="mb-3">
+                  <label for="subunidadeId" class="form-label">Subunidade</label>
+                  <select id="subunidadeId" class="form-select" required></select>
+                </div>
+                <div class="mb-3">
+                  <label for="especialidadeId" class="form-label">Especialidade</label>
+                  <select id="especialidadeId" class="form-select" required></select>
+                </div>
+                <div class="mb-3">
+                  <label for="subespecialidadeId" class="form-label">Subespecialidade</label>
+                  <select id="subespecialidadeId" class="form-select" required></select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2 -->
+          <div class="tab-pane fade" id="tab2" role="tabpanel" aria-labelledby="tab2-tab">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="funcaoId" class="form-label">Função</label>
+                  <select id="funcaoId" class="form-select" required></select>
+                </div>
+                <div class="mb-3">
+                  <label for="situacaoGeralId" class="form-label">Situação Geral</label>
+                  <select id="situacaoGeralId" class="form-select" required></select>
+                </div>
+                <div class="mb-3">
+                  <label for="situacaoPrestacaoServicoId" class="form-label">Situação Prestação Serviço</label>
+                  <select id="situacaoPrestacaoServicoId" class="form-select" required></select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="ultimoAnoPromocao" class="form-label">Último Ano Promoção</label>
+                  <input type="date" id="ultimoAnoPromocao" class="form-control">
+                </div>
+                <div class="mb-3">
+                  <label for="ordemServicoPromocao" class="form-label">Ordem Serviço Promoção</label>
+                  <input type="text" id="ordemServicoPromocao" class="form-control">
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- tab-content -->
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const apiUrl = '/api/afetacao';
+
+function openAfetacaoModal() {
+    document.getElementById('afetacaoForm').reset();
+    document.getElementById('afetacaoId').value = '';
+    loadDropdowns();
+
+    document.getElementById('personId').addEventListener('change', async function () {
+        const personId = this.value;
+        if (!personId) {
+            document.getElementById('personDetails').style.display = 'none';
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/person/${personId}`);
+            if (!res.ok) throw new Error('Failed to fetch person details');
+            const person = await res.json();
+
+            // Atualiza os campos
+            document.getElementById('personFullname').textContent = person.fullname || '-';
+            document.getElementById('personNim').textContent = person.nim || '-';
+            document.getElementById('personGender').textContent = person.gender || '-';
+            document.getElementById('personDob').textContent = person.dateofbirth || '-';
+            document.getElementById('personIncorp').textContent = person.incorporationdata || '-';
+            document.getElementById('personImage').src = person.image ? `data:image/jpeg;base64,${person.image}` : '';
+
+            document.getElementById('personDetails').style.display = 'block';
+        } catch (err) {
+            console.error('Error loading person details:', err);
+            document.getElementById('personDetails').style.display = 'none';
+        }
+    });
+
+    const modal = new bootstrap.Modal(document.getElementById('afetacaoModal'));
+    modal.show();
+}
+
+// Função para carregar todos os dropdowns com fallback
+async function loadDropdowns() {
+    const endpoints = {
+        person: '/api/person',
+        ramo: '/api/ramo',
+        unidadeMilitar: '/api/location',
+        subunidade: '/api/subunidade',
+        especialidade: '/api/especialidade',
+        subespecialidade: '/api/subespecialidade',
+        funcao: '/api/funcao',
+        situacaoGeral: '/api/situacaogeral',
+        situacaoPrestacaoServico: '/api/situacaoprestacaoservico'
+    };
+
+    for (const [key, url] of Object.entries(endpoints)) {
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            const select = document.getElementById(key + 'Id');
+            select.innerHTML = '<option value="">Select...</option>';
+            data.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.fullname || item.description || item.name || 'Unknown';
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error(`Failed to load ${key}:`, err);
+        }
+    }
+}
+
+// Carregar tabela
+async function loadAfetacoes() {
+    try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        const tbody = document.getElementById('afetacaoTableBody');
+        tbody.innerHTML = '';
+        data.forEach(a => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${a.id || '-'}</td>
+                    <td>
+                      ${a.person && a.person.image ? `<img src="data:image/jpeg;base64,${a.person.image}" alt="Person" class="img-thumbnail me-2" style="max-width: 40px;">` : ''}
+                      ${a.person && a.person.fullname ? a.person.fullname : a.personDescription || '-'}
+                    </td>
+                    <td>${a.ramoDescription || a.ramoId || '-'}</td>
+                    <td>${a.unidadeMilitarDescription || a.unidadeMilitarId || '-'}</td>
+                    <td>${a.subunidadeDescription || a.subunidadeId || '-'}</td>
+                    <td>${a.especialidadeDescription || a.especialidadeId || '-'}</td>
+                    <td>${a.subespecialidadeDescription || a.subespecialidadeId || '-'}</td>
+                    <td>${a.funcaoDescription || a.funcaoId || '-'}</td>
+                    <td>${a.situacaoGeralDescription || a.situacaoGeralId || '-'}</td>
+                    <td>${a.situacaoPrestacaoServicoDescription || a.situacaoPrestacaoServicoId || '-'}</td>
+                    <td>${a.ultimoAnoPromocao || '-'}</td>
+                    <td>${a.ordemServicoPromocao || '-'}</td>
+                    <td>${a.syncStatus || '-'}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick='editAfetacao(${JSON.stringify(a)})'>Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick='deleteAfetacao(${a.id})'>Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        alert("Failed to load afetações: " + err);
+    }
+}
+
+// Edit
+async function editAfetacao(a) {
+    document.getElementById('afetacaoId').value = a.id || '';
+    document.getElementById('ultimoAnoPromocao').value = a.ultimoAnoPromocao ? a.ultimoAnoPromocao.split('T')[0] : '';
+    document.getElementById('ordemServicoPromocao').value = a.ordemServicoPromocao || '';
+
+    // Carrega os dropdowns primeiro
+    await loadDropdowns();
+
+    // Agora preenche os valores depois que os dropdowns estão populados
+    document.getElementById('personId').value = a.personId || '';
+    document.getElementById('ramoId').value = a.ramoId || '';
+    document.getElementById('unidadeMilitarId').value = a.unidadeMilitarId || '';
+    document.getElementById('subunidadeId').value = a.subunidadeId || '';
+    document.getElementById('especialidadeId').value = a.especialidadeId || '';
+    document.getElementById('subespecialidadeId').value = a.subespecialidadeId || '';
+    document.getElementById('funcaoId').value = a.funcaoId || '';
+    document.getElementById('situacaoGeralId').value = a.situacaoGeralId || '';
+    document.getElementById('situacaoPrestacaoServicoId').value = a.situacaoPrestacaoServicoId || '';
+
+    // Dispara manualmente o change para carregar imagem + dados
+    document.getElementById('personId').dispatchEvent(new Event('change'));
+
+    // Abre o modal
+    const modal = new bootstrap.Modal(document.getElementById('afetacaoModal'));
+    modal.show();
+}
+
+
+// Submit form
+document.getElementById('afetacaoForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('afetacaoId').value;
+
+    const payload = {
+        personId: parseInt(document.getElementById('personId').value) || null,
+        ramoId: parseInt(document.getElementById('ramoId').value) || null,
+        unidadeMilitarId: document.getElementById('unidadeMilitarId').value || null,
+        subunidadeId: document.getElementById('subunidadeId').value || null,
+        especialidadeId: document.getElementById('especialidadeId').value || null,
+        subespecialidadeId: document.getElementById('subespecialidadeId').value || null,
+        funcaoId: document.getElementById('funcaoId').value || null,
+        situacaoGeralId: document.getElementById('situacaoGeralId').value || null,
+        situacaoPrestacaoServicoId: document.getElementById('situacaoPrestacaoServicoId').value || null,
+        ultimoAnoPromocao: document.getElementById('ultimoAnoPromocao').value || null,
+        ordemServicoPromocao: document.getElementById('ordemServicoPromocao').value || null
+    };
+
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw await res.json();
+
+        const modalEl = document.getElementById('afetacaoModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadAfetacoes();
+    } catch (err) {
+        alert(err.message || 'Failed to save afetação.');
+    }
+});
+
+// Delete
+async function deleteAfetacao(id) {
+    if (!confirm('Are you sure you want to delete this afetação?')) return;
+
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        loadAfetacoes();
+    } catch (err) {
+        alert(err.message || 'Failed to delete afetação.');
+    }
+}
+
+window.onload = () => {
+    loadAfetacoes();
+
+    document.getElementById('personId').addEventListener('change', async function () {
+        const personId = this.value;
+        if (!personId) {
+            document.getElementById('personDetails').style.display = 'none';
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/person/${personId}`);
+            if (!res.ok) throw new Error('Failed to fetch person details');
+            const person = await res.json();
+
+            document.getElementById('personFullname').textContent = person.fullname || '-';
+            document.getElementById('personNim').textContent = person.nim || '-';
+            document.getElementById('personGender').textContent = person.gender || '-';
+            document.getElementById('personDob').textContent = person.dateofbirth || '-';
+            document.getElementById('personIncorp').textContent = person.incorporationdata || '-';
+            document.getElementById('personImage').src = person.image ? `data:image/jpeg;base64,${person.image}` : '';
+
+            document.getElementById('personDetails').style.display = 'block';
+        } catch (err) {
+            console.error('Error loading person details:', err);
+            document.getElementById('personDetails').style.display = 'none';
+            }
+        });
+    };
+
+    document.getElementById('especialidadeId').addEventListener('change', async function () {
+      const especialidadeId = this.value;
+      const subespecialidadeSelect = document.getElementById('subespecialidadeId');
+      
+      // Limpa o campo
+      subespecialidadeSelect.innerHTML = '<option value="">Select...</option>';
+
+      if (!especialidadeId) return;
+
+      try {
+          const res = await fetch(`/api/subespecialidade/byespecialidade/${especialidadeId}`);
+          if (!res.ok) throw new Error('Failed to fetch subespecialidades');
+          const data = await res.json();
+
+          data.forEach(item => {
+              const opt = document.createElement('option');
+              opt.value = item.id;
+              opt.textContent = item.name || item.description || 'Unknown';
+              subespecialidadeSelect.appendChild(opt);
+          });
+      } catch (err) {
+          console.error('Error loading subespecialidades:', err);
+      }
+  });
+
+
+</script>
+
+{% endblock %}
