@@ -361,8 +361,7 @@ function openAfetacaoModal() {
             document.getElementById('personDob').textContent = person.dateofbirth || '-';
             document.getElementById('personIncorp').textContent = person.incorporationdata || '-';
             document.getElementById('personImage').src = person.image ? `data:image/jpeg;base64,${person.image}` : '';
-            document.getElementById('unidadeMilitarId').value = a.unidadeMilitar ? a.unidadeMilitar.id : '';
-            
+
             document.getElementById('personDetails').style.display = 'block';
         } catch (err) {
             console.error('Error loading person details:', err);
@@ -525,25 +524,20 @@ async function deleteAfetacao(id) {
     }
 }
 
-function openTransferenciaModal(person) {
-    if (!person) {
-        alert('No person selected for transfer!');
-        return;
-    }
-
+ function openTransferenciaModal(person) {
+    if (!person) return alert('No person selected for transfer!');
     document.getElementById('personIdTransferencia').value = person.id;
     document.getElementById('personFullnameTransferencia').textContent = person.fullname || '-';
     document.getElementById('personNimTransferencia').textContent = person.nim || '-';
-    document.getElementById('personGenderTransferencia').textContent = person.gender || '-';
-    document.getElementById('personDobTransferencia').textContent = person.dateofbirth || '-';
-    document.getElementById('personIncorpTransferencia').textContent = person.incorporationdata || '-';
     document.getElementById('personImageTransferencia').src = person.image
-        ? `data:image/jpeg;base64,${person.image}`
-        : '/static/default-user.png';
+      ? `data:image/jpeg;base64,${person.image}` : '/static/default-user.png';
+    new bootstrap.Modal(document.getElementById('transferenciaModal')).show();
+  }
 
-    const modal = new bootstrap.Modal(document.getElementById('transferenciaModal'));
-    modal.show();
-}
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadAllPersons();
+    await loadAfetacoes();
+  });
 
 
 window.onload = () => {

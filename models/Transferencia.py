@@ -4,6 +4,8 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 
+from .Person import person_transferencia
+
 # Enum para o campo de sincronização
 class SyncStatusEnum(enum.Enum):
     NotSyncronized = "Not Syncronized"
@@ -26,6 +28,9 @@ class Transferencia(db.Model):
     unidadeMilitarAtual = relationship('Location', foreign_keys=[unidadeMilitarAtualId], backref='transferencias_atual')
 
     observation = Column(String(255), nullable=True)
+
+    # Relacionamento com Person
+    persons = relationship('Person', secondary=person_transferencia, back_populates='transferencias')
 
     # Sincronização
     syncStatus = Column(SQLAlchemyEnum(SyncStatusEnum), nullable=False, default=SyncStatusEnum.NotSyncronized)

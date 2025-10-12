@@ -1,3 +1,5 @@
+
+
 {% extends 'base.html' %}
 {% block title %}Transferências Management{% endblock %}
 {% block content %}
@@ -12,11 +14,18 @@
     +
 </button>
 
+<!-- Campo de busca para filtrar a tabela -->
+<div class="mb-3 position-relative">
+    <label for="tablePersonSearch" class="form-label">Search Person</label>
+    <input type="text" id="tablePersonSearch" class="form-control" placeholder="Type to search...">
+</div>
+
 <!-- Tabela -->
 <table class="table table-bordered mt-3">
     <thead>
         <tr>
             <th>ID</th>
+            <th>Militar</th>
             <th>Unidade Militar de Origem</th>
             <th>Data [Unidade Militar de Origem]</th>
             <th>Unidade Militar Atual</th>
@@ -45,6 +54,22 @@
       <div class="modal-body">
         <input type="hidden" id="transferenciaId">
 
+        <div class="mb-3">
+          <label for="personModalSearch" class="form-label">Search Person</label>
+          <input type="text" id="personModalSearch" class="form-control" placeholder="Type to search...">
+          <ul id="personSuggestions" class="list-group position-absolute w-100" style="z-index: 1000; display: none;"></ul>
+        </div>
+
+        <div class="mb-3">
+          <label for="personIds" class="form-label">Person</label>
+          <select id="personIds" class="form-select" multiple required></select>
+        </div>
+
+        <div id="personDetailsContainer" class="border rounded p-3 bg-light mt-2" style="display: none;">
+          <h6>Person Details</h6>
+          <div id="personDetailsList"></div>
+        </div>
+
         <div class="row">
           <div class="col-md-6">
             <div class="mb-3">
@@ -53,13 +78,11 @@
                 <option value="">Select...</option>
               </select>
             </div>
-
             <div class="mb-3">
               <label for="dataUmOrigem" class="form-label">Data [Unidade Militar de Origem]</label>
               <input type="date" id="dataUmOrigem" class="form-control">
             </div>
           </div>
-
           <div class="col-md-6">
             <div class="mb-3">
               <label for="unidadeMilitarAtualId" class="form-label">Unidade Militar Atual</label>
@@ -67,7 +90,6 @@
                 <option value="">Select...</option>
               </select>
             </div>
-
             <div class="mb-3">
               <label for="dataUmAtual" class="form-label">Data [Unidade Militar Atual]</label>
               <input type="date" id="dataUmAtual" class="form-control">
@@ -91,7 +113,6 @@
               </select>
             </div>
           </div>
-
           <div class="col-md-6">
             <div class="mb-3">
               <label for="syncStatusDate" class="form-label">Data de Sincronização</label>
@@ -100,7 +121,6 @@
           </div>
         </div>
       </div>
-
 
       <div class="modal-footer">
         <button type="submit" class="btn btn-primary">Save</button>
@@ -112,26 +132,171 @@
 
 <script>
 const apiUrl = '/api/transferencia';
-const locationApiUrl = '/api/location';  // deve existir esse endpoint que retorna lista de locations
+const locationApiUrl = '/api/location';
+const personApiUrl = '/api/person';
+let allPersons = [];
+let allTransferencias = [];
 
-function openTransferenciaModal() {
-    document.getElementById('transferenciaForm').reset();
-    document.getElementById('transferenciaId').value = '';
-    const modal = new bootstrap.Modal(document.getElementById('transferenciaModal'));
-    modal.show();
+window.onload = function () {
+    loadLocationsDropdown();
+    loadPersonsDropdown();
+    loadTransferencias();
+};
+
+// Carrega transferências
+async function loadTransferencias() {
+    try {
+        const res = await fetch(apiUrl);
+        allTransferencias = await res.json();
+        renderTransferenciasTable(allTransferencias);
+    } catch (err) {
+        alert("Failed to load transferências: " + err);
+    }
 }
 
+// Renderiza a tabela
+function renderTransferenciasTable(data) {
+    const tbody = document.getElementById('transferenciaTableBody');
+    tbody.innerHTML = '';
+
+    data.forEach(t => {
+        let personHtml = '-';
+        if (t.persons && Array.isArray(t.persons) && t.persons.length > 0) {
+            personHtml = t.persons.map(p => {
+                const image = p.image ? `<img src="data:image/jpeg;base64,${p.image}" alt="Person" class="img-thumbnail me-2" style="max-width: 40px;">` : '';
+                const name = p.fullname || 'Unnamed';
+                return `<div class="d-flex align-items-center mb-1">${image}<span>${name}</span></div>`;
+            }).join('');
+        }
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${t.id}</td>
+                <td>${personHtml}</td>
+                <td>${t.unidadeMilitarOrigemName || '-'}</td>
+                <td>${t.dataUmOrigem || '-'}</td>
+                <td>${t.unidadeMilitarAtualName || '-'}</td>
+                <td>${t.dataUmAtual || '-'}</td>
+                <td>${t.observation || '-'}</td>
+                <td>${t.syncStatus || '-'}</td>
+                <td>${t.createdAt || '-'}</td>
+                <td>${t.updatedAt || '-'}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick='editTransferencia(${JSON.stringify(t)})'>Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick='deleteTransferencia(${t.id})'>Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+// Filtro por nome da pessoa na tabela
+document.getElementById('tablePersonSearch').addEventListener('input', function () {
+    const query = this.value.toLowerCase();
+    const filtered = allTransferencias.filter(t =>
+        t.persons &&
+        t.persons.some(p => p.fullname.toLowerCase().includes(query))
+    );
+    renderTransferenciasTable(filtered);
+});
+
+// Carrega persons
+async function loadPersonsDropdown() {
+    try {
+        const res = await fetch(personApiUrl);
+        allPersons = await res.json();
+        renderPersonOptions(allPersons);
+    } catch (err) {
+        alert("Failed to load persons: " + err);
+    }
+}
+
+// Renderiza select de persons
+function renderPersonOptions(persons) {
+    const personSelect = document.getElementById('personIds');
+    personSelect.innerHTML = '';
+    persons.forEach(p => {
+        personSelect.innerHTML += `<option value="${p.id}">${p.fullname}</option>`;
+    });
+}
+
+// Busca no modal
+document.getElementById('personModalSearch').addEventListener('input', function () {
+    const query = this.value.toLowerCase().trim();
+    const suggestions = document.getElementById('personSuggestions');
+    const filtered = allPersons.filter(p => p.fullname.toLowerCase().includes(query));
+
+    suggestions.innerHTML = '';
+    filtered.forEach(p => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action';
+        li.textContent = p.fullname;
+        li.style.cursor = 'pointer';
+        li.onclick = () => {
+            if (!Array.from(personIds.options).some(opt => parseInt(opt.value) === p.id)) {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.text = p.fullname;
+                option.selected = true;
+                personIds.appendChild(option);
+                personIds.dispatchEvent(new Event('change'));
+            }
+            document.getElementById('personModalSearch').value = '';
+            suggestions.style.display = 'none';
+        };
+        suggestions.appendChild(li);
+    });
+
+    suggestions.style.display = filtered.length > 0 ? 'block' : 'none';
+});
+
+// Fecha sugestões
+document.addEventListener('click', function (e) {
+    const suggestions = document.getElementById('personSuggestions');
+    if (!document.getElementById('personModalSearch').contains(e.target) &&
+        !suggestions.contains(e.target)) {
+        suggestions.style.display = 'none';
+    }
+});
+
+// Mostra detalhes dos persons
+document.getElementById('personIds').addEventListener('change', function () {
+    const selectedIds = Array.from(this.selectedOptions).map(opt => parseInt(opt.value));
+    const container = document.getElementById('personDetailsContainer');
+    const detailsList = document.getElementById('personDetailsList');
+    if (selectedIds.length === 0) {
+        container.style.display = 'none';
+        detailsList.innerHTML = '';
+        return;
+    }
+    container.style.display = 'block';
+    detailsList.innerHTML = '';
+    selectedIds.forEach(id => {
+        const person = allPersons.find(p => p.id === id);
+        if (person) {
+            detailsList.innerHTML += `
+                <div class="mb-3 border-bottom pb-2">
+                    <img src="data:image/jpeg;base64,${person.image}" alt="Person" class="img-thumbnail mb-2" style="max-width: 150px;">
+                    <p><strong>Fullname:</strong> ${person.fullname}</p>
+                    <p><strong>NIM:</strong> ${person.nim || '-'}</p>
+                    <p><strong>Gender:</strong> ${person.gender || '-'}</p>
+                    <p><strong>Date of Birth:</strong> ${person.dateofbirth || '-'}</p>
+                    <p><strong>Incorporation Date:</strong> ${person.incorporationdata || '-'}</p>
+                </div>
+            `;
+        }
+    });
+});
+
+// Carrega locations
 async function loadLocationsDropdown() {
     try {
         const res = await fetch(locationApiUrl);
         const locations = await res.json();
-
         const origemSelect = document.getElementById('unidadeMilitarOrigemId');
         const atualSelect = document.getElementById('unidadeMilitarAtualId');
-
         origemSelect.innerHTML = '<option value="">Select...</option>';
         atualSelect.innerHTML = '<option value="">Select...</option>';
-
         locations.forEach(loc => {
             origemSelect.innerHTML += `<option value="${loc.id}">${loc.name}</option>`;
             atualSelect.innerHTML += `<option value="${loc.id}">${loc.name}</option>`;
@@ -141,36 +306,17 @@ async function loadLocationsDropdown() {
     }
 }
 
-async function loadTransferencias() {
-    try {
-        const res = await fetch(apiUrl);
-        const data = await res.json();
-        const tbody = document.getElementById('transferenciaTableBody');
-        tbody.innerHTML = '';
-        data.forEach(t => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${t.id}</td>
-                    <td>${t.unidadeMilitarOrigemName || '-'}</td>
-                    <td>${t.dataUmOrigem || '-'}</td>
-                    <td>${t.unidadeMilitarAtualName || '-'}</td>
-                    <td>${t.dataUmAtual || '-'}</td>
-                    <td>${t.observation || '-'}</td>
-                    <td>${t.syncStatus || '-'}</td>
-                    <td>${t.createdAt || '-'}</td>
-                    <td>${t.updatedAt || '-'}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm" onclick='editTransferencia(${JSON.stringify(t)})'>Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick='deleteTransferencia(${t.id})'>Delete</button>
-                    </td>
-                </tr>
-            `;
-        });
-    } catch (err) {
-        alert("Failed to load transferências: " + err);
-    }
+// Abrir modal
+function openTransferenciaModal() {
+    document.getElementById('transferenciaForm').reset();
+    document.getElementById('transferenciaId').value = '';
+    document.getElementById('personIds').innerHTML = '';
+    document.getElementById('personDetailsContainer').style.display = 'none';
+    const modal = new bootstrap.Modal(document.getElementById('transferenciaModal'));
+    modal.show();
 }
 
+// Editar
 function editTransferencia(t) {
     document.getElementById('transferenciaId').value = t.id;
     document.getElementById('unidadeMilitarOrigemId').value = t.unidadeMilitarOrigemId || '';
@@ -181,14 +327,28 @@ function editTransferencia(t) {
     document.getElementById('syncStatus').value = t.syncStatus || 'NotSyncronized';
     document.getElementById('syncStatusDate').value = t.syncStatusDate ? t.syncStatusDate.substring(0, 16) : '';
 
+    // Preenche os persons
+    const personSelect = document.getElementById('personIds');
+    personSelect.innerHTML = '';
+    if (Array.isArray(t.persons)) {
+        t.persons.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p.id;
+            option.text = p.fullname;
+            option.selected = true;
+            personSelect.appendChild(option);
+        });
+        personSelect.dispatchEvent(new Event('change'));
+    }
+
     const modal = new bootstrap.Modal(document.getElementById('transferenciaModal'));
     modal.show();
 }
 
+// Submeter
 document.getElementById('transferenciaForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('transferenciaId').value;
-
     const payload = {
         unidadeMilitarOrigemId: parseInt(document.getElementById('unidadeMilitarOrigemId').value),
         dataUmOrigem: document.getElementById('dataUmOrigem').value || null,
@@ -196,18 +356,16 @@ document.getElementById('transferenciaForm').addEventListener('submit', async (e
         dataUmAtual: document.getElementById('dataUmAtual').value || null,
         observation: document.getElementById('observation').value,
         syncStatus: document.getElementById('syncStatus').value,
-        syncStatusDate: document.getElementById('syncStatusDate').value || null
+        syncStatusDate: document.getElementById('syncStatusDate').value || null,
+        personIds: Array.from(document.getElementById('personIds').selectedOptions).map(opt => parseInt(opt.value))
     };
-
     try {
         const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
             method: id ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-
         if (!res.ok) throw await res.json();
-
         bootstrap.Modal.getInstance(document.getElementById('transferenciaModal')).hide();
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         loadTransferencias();
@@ -216,9 +374,9 @@ document.getElementById('transferenciaForm').addEventListener('submit', async (e
     }
 });
 
+// Excluir
 async function deleteTransferencia(id) {
     if (!confirm('Are you sure you want to delete this transferência?')) return;
-
     try {
         const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
         if (!res.ok) throw await res.json();
@@ -227,10 +385,7 @@ async function deleteTransferencia(id) {
         alert(err.message || 'Failed to delete transferência.');
     }
 }
-
-window.onload = function () {
-    loadTransferencias();
-    loadLocationsDropdown();
-};
 </script>
+
+
 {% endblock %}

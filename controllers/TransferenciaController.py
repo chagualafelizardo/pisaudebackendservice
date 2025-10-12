@@ -1,7 +1,8 @@
 import logging
 from flask import jsonify, request
-from models import db, Transferencia, SyncStatusEnum, Location
+from models import db, Transferencia, SyncStatusEnum, Location, Person
 from datetime import datetime
+from models.Afetacao import Afetacao
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +24,7 @@ class TransferenciaController:
                     'unidadeMilitarAtualId': t.unidadeMilitarAtualId,
                     'unidadeMilitarAtualName': t.unidadeMilitarAtual.name if t.unidadeMilitarAtual else None,
                     'observation': t.observation,
+                    'persons': [{'id': p.id, 'fullname': p.fullname} for p in t.persons],
                     'syncStatus': t.syncStatus.value if t.syncStatus else None,
                     'syncStatusDate': t.syncStatusDate.isoformat() if t.syncStatusDate else None,
                     'createdAt': t.createdAt.isoformat() if t.createdAt else None,
@@ -49,6 +51,7 @@ class TransferenciaController:
                 'unidadeMilitarAtualId': t.unidadeMilitarAtualId,
                 'unidadeMilitarAtualName': t.unidadeMilitarAtual.name if t.unidadeMilitarAtual else None,
                 'observation': t.observation,
+                'persons': [{'id': p.id, 'fullname': p.fullname} for p in t.persons],
                 'syncStatus': t.syncStatus.value if t.syncStatus else None,
                 'syncStatusDate': t.syncStatusDate.isoformat() if t.syncStatusDate else None,
                 'createdAt': t.createdAt.isoformat() if t.createdAt else None,
@@ -62,6 +65,7 @@ class TransferenciaController:
     def create():
         try:
             data = request.get_json()
+            person_ids = data.get('personIds', [])
 
             t = Transferencia(
                 dataUmOrigem=datetime.fromisoformat(data['dataUmOrigem']).date() if data.get('dataUmOrigem') else None,
@@ -73,17 +77,28 @@ class TransferenciaController:
                 syncStatusDate=datetime.fromisoformat(data['syncStatusDate']) if data.get('syncStatusDate') else None,
             )
 
+            for pid in person_ids:
+                person = Person.query.get(pid)
+                if person:
+                    t.persons.append(person)
+
+                    # 🟡 Atualiza Afetacao com nova localização
+                    afetacao = Afetacao.query.filter_by(personId=pid).order_by(Afetacao.id.desc()).first()
+                    if afetacao:
+                        afetacao.unidadeMilitarId = data.get('unidadeMilitarAtualId')
+                        afetacao.updatedAt = datetime.utcnow()
+
             db.session.add(t)
             db.session.commit()
 
             return jsonify({
-                'message': 'Transferencia created successfully',
+                'message': 'Transferencia created and afetacao updated successfully',
                 'id': t.id
             }), 201
 
         except Exception as e:
             db.session.rollback()
-            logger.exception("[CREATE] Failed to create transferencia")
+            logger.exception("[CREATE] Failed to create transferencia and update afetacao")
             return jsonify({'error': str(e)}), 500
 
     @staticmethod
@@ -104,6 +119,14 @@ class TransferenciaController:
                 t.syncStatus = SyncStatusEnum[data['syncStatus']]
             if data.get('syncStatusDate'):
                 t.syncStatusDate = datetime.fromisoformat(data['syncStatusDate'])
+
+            # Atualizar persons
+            if 'personIds' in data:
+                t.persons = []
+                for pid in data['personIds']:
+                    person = Person.query.get(pid)
+                    if person:
+                        t.persons.append(person)
 
             t.updatedAt = datetime.utcnow()
             db.session.commit()

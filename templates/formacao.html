@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Formações{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage Formações</h2>
+
+<!-- Input de busca -->
+<div class="mb-3 position-relative" style="max-width: 400px;">
+    <input type="text" id="formacaoSearch" class="form-control" placeholder="Search formação..." oninput="filtrarTabela(this.value)">
+</div>
+
+<!-- Botão de download Excel -->
+<div class="mb-3">
+    <button class="btn btn-outline-success" onclick="downloadExcel()">
+        📥 Download Excel
+    </button>
+</div>
+
+<!-- Floating Action Button (FAB) -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="openFormacaoModal()">
+    +
+</button>
+
+<!-- Tabela de Formações -->
+<table class="table table-bordered" id="formacoesTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Início</th>
+            <th>Duração</th>
+            <th>Ano Acadêmico</th>
+            <th>Despacho Autorização</th>
+            <th>Pais</th>
+            <th>Tipo Licença</th>
+            <th>Person</th>
+            <th>Sync Status</th>
+            <th>Sync Date</th>
+            <th>Created At</th>
+            <th>Updated At</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="formacoesTableBody"></tbody>
+</table>
+
+<!-- Modal de Formulário -->
+<div class="modal fade" id="formacaoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="formacaoForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add/Edit Formação</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="formacaoId">
+
+        <div class="row">
+            <!-- Coluna 1 -->
+            <div class="col-md-6">
+                <div class="mb-3">
+                <label class="form-label">Person</label>
+                <select id="formacaoPerson" class="form-select" required></select>
+                </div>
+                <div id="personDetails" class="border rounded p-3 bg-light mt-2" style="display: none;">
+                <h6>Person Details</h6>
+                <img id="personImage" src="" alt="Person Image" class="img-thumbnail mb-2" style="max-width: 150px;">
+                <p><strong>Fullname:</strong> <span id="personFullname"></span></p>
+                <p><strong>NIM:</strong> <span id="personNim"></span></p>
+                <p><strong>Gender:</strong> <span id="personGender"></span></p>
+                </div>
+                <div class="mb-3">
+                <label class="form-label">Início</label>
+                <input type="datetime-local" id="formacaoInicio" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                <label class="form-label">Duração</label>
+                <input type="text" id="formacaoDuracao" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                <label class="form-label">Ano Acadêmico</label>
+                <input type="text" id="formacaoAnoAcademico" class="form-control" required>
+                </div>
+            </div>
+
+            <!-- Coluna 2 -->
+            <div class="col-md-6">
+                <div class="mb-3">
+                <label class="form-label">Despacho Autorização</label>
+                <input type="text" id="formacaoDespacho" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                <label class="form-label">País</label>
+                <select id="formacaoPais" class="form-select" required></select>
+                </div>
+                <div class="mb-3">
+                <label class="form-label">Tipo Licença</label>
+                <select id="formacaoTipoLicenca" class="form-select" required></select>
+                </div>
+                <div class="mb-3">
+                <label class="form-label">Sync Status</label>
+                <select id="formacaoSyncStatus" class="form-select" required>
+                    <option value="NotSyncronized">Not Syncronized</option>
+                    <option value="Syncronized">Syncronized</option>
+                    <option value="Updated">Updated</option>
+                </select>
+                </div>
+                <div class="mb-3">
+                <label class="form-label">Sync Status Date</label>
+                <input type="datetime-local" id="formacaoSyncStatusDate" class="form-control">
+                </div>
+            </div>
+            </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+let allFormacoes = [];
+let allPaises = [];
+let allTiposLicenca = [];
+let allPersons = [];
+
+const apiUrl = '/api/formacao';
+const paisApiUrl = '/api/pais';
+const tipoLicencaApiUrl = '/api/tipolicenca';
+const personApiUrl = '/api/person';
+
+async function loadPaises() {
+    const res = await fetch(paisApiUrl);
+    allPaises = await res.json();
+    const select = document.getElementById('formacaoPais'); // mudou aqui
+    select.innerHTML = '<option value="">Select País</option>';
+    allPaises.forEach(p => select.innerHTML += `<option value="${p.id}">${p.description}</option>`);
+}
+
+async function loadTiposLicenca() {
+    const res = await fetch(tipoLicencaApiUrl);
+    allTiposLicenca = await res.json();
+    const select = document.getElementById('formacaoTipoLicenca');
+    select.innerHTML = '<option value="">Select Tipo Licença</option>';
+    allTiposLicenca.forEach(t => select.innerHTML += `<option value="${t.id}">${t.description}</option>`);
+}
+
+async function loadPersons() {
+    const res = await fetch(personApiUrl);
+    allPersons = await res.json();
+    const select = document.getElementById('formacaoPerson');
+    select.innerHTML = '<option value="">Select Person</option>';
+    allPersons.forEach(p => select.innerHTML += `<option value="${p.id}">${p.fullname}</option>`);
+}
+
+document.getElementById('formacaoPerson').addEventListener('change', e => {
+    const id = parseInt(e.target.value);
+    const p = allPersons.find(p => p.id === id);
+    if(!p) {
+        document.getElementById('personDetails').style.display = 'none';
+        return;
+    }
+    document.getElementById('personDetails').style.display = 'block';
+    document.getElementById('personImage').src = p.image
+        ? `data:image/jpeg;base64,${p.image}`
+        : '/static/default-user.png';
+    document.getElementById('personFullname').innerText = p.fullname || '';
+    document.getElementById('personNim').innerText = p.nim || '';
+    document.getElementById('personGender').innerText = p.gender || '';
+    document.getElementById('personDob').innerText = p.dateofbirth || '';
+    document.getElementById('personIncorp').innerText = p.incorporationdata || '';
+});
+
+async function loadFormacoes() {
+    const res = await fetch(apiUrl);
+    allFormacoes = await res.json();
+    filtrarTabela(document.getElementById('formacaoSearch').value);
+}
+
+function filtrarTabela(query) {
+    const tbody = document.getElementById('formacoesTableBody');
+    tbody.innerHTML = '';
+    const termo = query.trim().toLowerCase();
+    allFormacoes.filter(f => (f.anoacademico||'').toLowerCase().includes(termo) || (f.duracao||'').toLowerCase().includes(termo))
+        .forEach(f => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${f.id}</td>
+                <td>${f.inicio||''}</td>
+                <td>${f.duracao||''}</td>
+                <td>${f.anoacademico||''}</td>
+                <td>${f.despachoautorizacao||''}</td>
+                <td>${f.pais?.description||''}</td>
+                <td>${f.tipo_licenca?.description||''}</td>
+                <td>${f.person?.fullname||''}</td>
+                <td>${f.syncStatus||''}</td>
+                <td>${f.syncStatusDate||''}</td>
+                <td>${f.createAt||''}</td>
+                <td>${f.updateAt||''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" type="button" onclick='editFormacao(${f.id})'>Edit</button>
+                    <button class="btn btn-sm btn-danger" type="button" onclick="deleteFormacao(${f.id})">Delete</button>
+                </td>
+            </tr>`;
+        });
+}
+
+function openFormacaoModal() {
+    document.getElementById('formacaoForm').reset();
+    document.getElementById('formacaoId').value = '';
+    loadPaises();
+    loadTiposLicenca();
+    loadPersons();
+    document.getElementById('personDetails').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('formacaoModal')).show();
+}
+
+function editFormacao(id) {
+    const f = allFormacoes.find(f => f.id == id);
+    if (!f) return;
+    document.getElementById('formacaoId').value = f.id;
+    document.getElementById('formacaoInicio').value = f.inicio?.slice(0,16) || '';
+    document.getElementById('formacaoDuracao').value = f.duracao || '';
+    document.getElementById('formacaoAnoAcademico').value = f.anoacademico || '';
+    document.getElementById('formacaoDespacho').value = f.despachoautorizacao || '';
+    document.getElementById('formacaoPais').value = f.pais?.id || '';
+    document.getElementById('formacaoTipoLicenca').value = f.tipo_licenca?.id || '';
+    document.getElementById('formacaoPerson').value = f.person?.id || '';
+
+    if(f.person) {
+        document.getElementById('personDetails').style.display = 'block';
+        document.getElementById('personImage').src = f.person.image || '';
+        document.getElementById('personFullname').innerText = f.person.fullname || '';
+        document.getElementById('personNim').innerText = f.person.nim || '';
+        document.getElementById('personGender').innerText = f.person.gender || '';
+        document.getElementById('personDob').innerText = f.person.dateOfBirth || '';
+        document.getElementById('personIncorp').innerText = f.person.incorporationDate || '';
+    } else {
+        document.getElementById('personDetails').style.display = 'none';
+    }
+
+    document.getElementById('formacaoSyncStatus').value = f.syncStatus || 'NotSyncronized';
+    document.getElementById('formacaoSyncStatusDate').value = f.syncStatusDate?.slice(0,16) || '';
+    new bootstrap.Modal(document.getElementById('formacaoModal')).show();
+}
+
+document.getElementById('formacaoForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('formacaoId').value;
+    const payload = {
+        inicio: document.getElementById('formacaoInicio').value,
+        duracao: document.getElementById('formacaoDuracao').value,
+        anoacademico: document.getElementById('formacaoAnoAcademico').value,
+        despachoautorizacao: document.getElementById('formacaoDespacho').value,
+        pais_id: parseInt(document.getElementById('formacaoPais').value),
+        tipo_licenca_id: parseInt(document.getElementById('formacaoTipoLicenca').value),
+        person_id: parseInt(document.getElementById('formacaoPerson').value),
+        syncStatus: document.getElementById('formacaoSyncStatus').value,
+        syncStatusDate: document.getElementById('formacaoSyncStatusDate').value 
+            ? new Date(document.getElementById('formacaoSyncStatusDate').value).toISOString() 
+            : null
+    };
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if(!res.ok) throw await res.json();
+        bootstrap.Modal.getInstance(document.getElementById('formacaoModal')).hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadFormacoes();
+    } catch(err) {
+        alert(err.message || 'Error saving formação');
+    }
+});
+
+async function deleteFormacao(id) {
+    if(!confirm('Are you sure you want to delete this formação?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if(!res.ok) throw await res.json();
+        loadFormacoes();
+    } catch(err) {
+        alert(err.message || 'Error deleting formação');
+    }
+}
+
+/* -------------------- FUNÇÃO DE DOWNLOAD EXCEL -------------------- */
+function downloadExcel() {
+    const table = document.getElementById("formacoesTable");
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Formacoes" });
+    XLSX.writeFile(wb, "formacoes.xlsx");
+}
+
+/* -------------------- Inicialização -------------------- */
+window.onload = () => {
+    loadFormacoes();
+};
+</script>
+
+{% endblock %}

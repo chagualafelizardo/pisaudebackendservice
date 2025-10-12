@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Candidatos{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage Candidatos</h2>
+
+<!-- Input de busca -->
+<div class="mb-3 position-relative" style="max-width: 400px;">
+    <input type="text" id="candidatoSearch" class="form-control" placeholder="Search candidato...">
+    <ul id="candidatoSuggestions" class="list-group"></ul>
+</div>
+
+<!-- Botão de download Excel -->
+<div class="mb-3">
+    <button class="btn btn-outline-success" onclick="downloadExcel()">
+        📥 Download Excel
+    </button>
+</div>
+
+<!-- Floating Action Button (FAB) -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="openCandidatoModal()">
+    +
+</button>
+
+<!-- Tabela de Candidatos -->
+<table class="table table-bordered" id="candidatosTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Person</th>
+            <th>Curso</th>
+            <th>Instituicao</th>
+            <th>Número da Edição</th>
+            <th>Data da Edição</th>
+            <th>Sync Status</th>
+            <th>Sync Date</th>
+            <th>Created At</th>
+            <th>Updated At</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="candidatosTableBody"></tbody>
+</table>
+
+<!-- Modal de Formulário -->
+<div class="modal fade" id="candidatoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="candidatoForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add/Edit Candidato</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="candidatoId">
+
+        <div class="row">
+          <!-- Coluna Esquerda -->
+          <div class="col-md-6">
+            <!-- Person -->
+            <div class="mb-3">
+              <label class="form-label">Person</label>
+              <select id="candidatoPerson" class="form-select" required onchange="loadPersonDetails(this.value)"></select>
+            </div>
+
+            <!-- Curso -->
+            <div class="mb-3">
+                <label class="form-label">Curso</label>
+                <select id="candidatoCurso" class="form-select" required></select>
+            </div>
+
+            <!-- Instituicao -->
+            <div class="mb-3">
+                <label class="form-label">Instituicao</label>
+                <select id="candidatoInstituicao" class="form-select"></select>
+            </div>
+
+            <!-- Número da Edição -->
+            <div class="mb-3">
+              <label class="form-label">Número da Edição</label>
+              <input type="text" id="candidatoNumeroEdicao" class="form-control">
+            </div>
+
+            <!-- Data da Edição -->
+            <div class="mb-3">
+              <label class="form-label">Data da Edição</label>
+              <input type="date" id="candidatoDataEdicao" class="form-control">
+            </div>
+
+            <!-- Sync -->
+            <div class="mb-3">
+              <label class="form-label">Sync Status</label>
+              <select id="candidatoSyncStatus" class="form-select" required>
+                <option value="NotSyncronized">Not Syncronized</option>
+                <option value="Syncronized">Syncronized</option>
+                <option value="Updated">Updated</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Sync Status Date</label>
+              <input type="datetime-local" id="candidatoSyncStatusDate" class="form-control">
+            </div>
+          </div>
+
+          <!-- Coluna Direita -->
+          <div class="col-md-6">
+            <div id="personDetailsContainer" class="border rounded p-3 bg-light">
+              <h6>Person Details</h6>
+              <img id="personImageCandidato" src="" alt="Person Image" class="img-thumbnail mb-2" style="max-width: 150px;">
+              <p><strong>Fullname:</strong> <span id="personFullnameCandidato"></span></p>
+              <p><strong>NIM:</strong> <span id="personNimCandidato"></span></p>
+              <p><strong>Gender:</strong> <span id="personGenderCandidato"></span></p>
+              <p><strong>Date of Birth:</strong> <span id="personDobCandidato"></span></p>
+              <p><strong>Incorporation Date:</strong> <span id="personIncorpCandidato"></span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- SheetJS (biblioteca para exportar Excel) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+let allCandidatos = [];
+let allPersons = [];
+let allEspecialidades = [];
+
+const apiUrl = '/api/candidato';
+const personApiUrl = '/api/person';
+const especialidadeApiUrl = '/api/especialidadesaude';
+
+async function loadEspecialidades() {
+    try {
+        const res = await fetch(especialidadeApiUrl);
+        allEspecialidades = await res.json();
+        const cursoSelect = document.getElementById('candidatoCurso');
+        cursoSelect.innerHTML = '<option value="">Select Curso</option>';
+        const cursosUnicos = [...new Set(allEspecialidades.map(e => e.curso))];
+        cursosUnicos.forEach(curso => {
+            cursoSelect.innerHTML += `<option value="${curso}">${curso}</option>`;
+        });
+        const instSelect = document.getElementById('candidatoInstituicao');
+        instSelect.innerHTML = '<option value="">Select Instituicao</option>';
+        const instUnicas = [...new Set(allEspecialidades.map(e => e.instituicaoFormacao).filter(i => i))];
+        instUnicas.forEach(inst => {
+            instSelect.innerHTML += `<option value="${inst}">${inst}</option>`;
+        });
+    } catch (err) {
+        alert('Error loading especialidades: ' + err);
+    }
+}
+
+function loadPersonDetails(personId){
+    if(!personId) {
+        document.getElementById('personFullnameCandidato').textContent = '';
+        document.getElementById('personNimCandidato').textContent = '';
+        document.getElementById('personGenderCandidato').textContent = '';
+        document.getElementById('personDobCandidato').textContent = '';
+        document.getElementById('personIncorpCandidato').textContent = '';
+        document.getElementById('personImageCandidato').src = '';
+        return;
+    }
+
+    const person = allPersons.find(p => p.id == personId);
+    if(person){
+        document.getElementById('personFullnameCandidato').textContent = person.fullname || '';
+        document.getElementById('personNimCandidato').textContent = person.nim || '';
+        document.getElementById('personGenderCandidato').textContent = person.gender || '';
+        document.getElementById('personDobCandidato').textContent = person.dateofbirth || '';
+        document.getElementById('personIncorpCandidato').textContent = person.incorporationdata || '';
+        document.getElementById('personImageCandidato').src = person.image ? `data:image/jpeg;base64,${person.image}` : '';
+    }
+}
+
+async function loadCandidatos() {
+    try {
+        const res = await fetch(apiUrl);
+        allCandidatos = await res.json();
+        filtrarTabela('');
+    } catch (err) { alert('Error loading candidatos: ' + err); }
+}
+
+function filtrarTabela(query) {
+    const tbody = document.getElementById('candidatosTableBody');
+    tbody.innerHTML = '';
+    const termo = query.trim().toLowerCase();
+    allCandidatos.filter(c => (c.personFullname||'').toLowerCase().includes(termo))
+        .forEach(c => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${c.id}</td>
+                <td>${c.personFullname||''}</td>
+                <td>${c.curso||''}</td>
+                <td>${c.instituicao||''}</td>
+                <td>${c.numero_da_edicao||''}</td>
+                <td>${c.data_edicao||''}</td>
+                <td>${c.syncStatus||''}</td>
+                <td>${c.syncStatusDate||''}</td>
+                <td>${c.createAt||''}</td>
+                <td>${c.updateAt||''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" type="button" onclick='editCandidato(${c.id})'>Edit</button>
+                    <button class="btn btn-sm btn-danger" type="button" onclick="deleteCandidato(${c.id})">Delete</button>
+                </td>
+            </tr>`;
+        });
+}
+
+async function loadPersonsOptions() {
+    try {
+        const res = await fetch(personApiUrl);
+        allPersons = await res.json();
+        const select = document.getElementById('candidatoPerson');
+        select.innerHTML = '<option value="">Select Person</option>';
+        allPersons.forEach(p => select.innerHTML += `<option value="${p.id}">${p.fullname}</option>`);
+    } catch (err) { alert('Error loading persons: ' + err); }
+}
+
+function openCandidatoModal() {
+    document.getElementById('candidatoForm').reset();
+    document.getElementById('candidatoId').value = '';
+    loadPersonsOptions();
+    loadEspecialidades();
+    new bootstrap.Modal(document.getElementById('candidatoModal')).show();
+}
+
+function editCandidato(id) {
+    const c = allCandidatos.find(c => c.id == id);
+    if (!c) return;
+    document.getElementById('candidatoId').value = c.id;
+    document.getElementById('candidatoPerson').value = c.personId||'';
+    document.getElementById('candidatoCurso').value = c.curso||'';
+    document.getElementById('candidatoInstituicao').value = c.instituicao||'';
+    document.getElementById('candidatoNumeroEdicao').value = c.numero_da_edicao||'';
+    document.getElementById('candidatoDataEdicao').value = c.data_edicao||'';
+    document.getElementById('candidatoSyncStatus').value = c.syncStatus||'NotSyncronized';
+    document.getElementById('candidatoSyncStatusDate').value = c.syncStatusDate?.slice(0,16)||'';
+    new bootstrap.Modal(document.getElementById('candidatoModal')).show();
+}
+
+document.getElementById('candidatoForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const id = document.getElementById('candidatoId').value;
+    const payload = {
+        personId: parseInt(document.getElementById('candidatoPerson').value),
+        curso: document.getElementById('candidatoCurso').value,
+        instituicao: document.getElementById('candidatoInstituicao').value,
+        numero_da_edicao: document.getElementById('candidatoNumeroEdicao').value,
+        data_edicao: document.getElementById('candidatoDataEdicao').value || null,
+        syncStatus: document.getElementById('candidatoSyncStatus').value,
+        syncStatusDate: document.getElementById('candidatoSyncStatusDate').value ? new Date(document.getElementById('candidatoSyncStatusDate').value).toISOString() : null
+    };
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if(!res.ok) throw await res.json();
+        bootstrap.Modal.getInstance(document.getElementById('candidatoModal')).hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el=>el.remove());
+        loadCandidatos();
+    } catch(err) { alert(err.message||'Error saving candidato'); }
+});
+
+async function deleteCandidato(id){
+    if(!confirm('Are you sure you want to delete this candidato?')) return;
+    try{
+        const res = await fetch(`${apiUrl}/${id}`,{method:'DELETE'});
+        if(!res.ok) throw await res.json();
+        loadCandidatos();
+    }catch(err){ alert(err.message||'Error deleting candidato'); }
+}
+
+/* -------------------- FUNÇÃO DE DOWNLOAD EXCEL -------------------- */
+function downloadExcel() {
+    const table = document.getElementById("candidatosTable");
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Candidatos" });
+    XLSX.writeFile(wb, "candidatos.xlsx");
+}
+
+/* -------------------- Inicialização -------------------- */
+window.onload = () => {
+    loadCandidatos();
+};
+</script>
+
+{% endblock %}

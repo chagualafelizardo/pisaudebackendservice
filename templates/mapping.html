@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Resources Mapping{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Resources And Resources Mapping</h2>
+
+<div class="container-fluid mt-3">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <strong>Map of Locations and Resources</strong>
+                </div>
+                <div class="card-body" style="height: 80vh;">
+                    <div id="mapResources" style="height: 100%; width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script -->
+<script>
+const apiUrl = '/api/location';
+let map;
+let markers = [];
+
+function initMap() {
+    map = new google.maps.Map(document.getElementById("mapResources"), {
+        zoom: 6,
+        center: { lat: -25.9636, lng: 32.5805 },
+        mapTypeId: 'terrain'
+    });
+
+    loadLocations();
+}
+
+async function loadLocations() {
+    try {
+        const res = await fetch(apiUrl);
+        const locations = await res.json();
+
+        locations.forEach(loc => {
+            if (loc.latitude && loc.longitude) {
+                const position = {
+                    lat: parseFloat(loc.latitude),
+                    lng: parseFloat(loc.longitude)
+                };
+
+                // Monta o conteúdo do InfoWindow
+                const resourceList = loc.resources && loc.resources.length
+                    ? loc.resources.map(r => `${r.name} (${r.quantity})`).join('<br>')
+                    : 'No resources available';
+
+                const contentString = `
+                    <div style="min-width: 250px;">
+                        <h6><strong>${loc.name}</strong></h6>
+                        <p>${loc.description || ''}</p>
+                        <table class="table table-sm table-bordered mb-0">
+                            <tr><th>Latitude</th><td>${loc.latitude}</td></tr>
+                            <tr><th>Longitude</th><td>${loc.longitude}</td></tr>
+                            <tr><th>Resources</th><td>${resourceList}</td></tr>
+                        </table>
+                    </div>
+                `;
+
+                const marker = new google.maps.Marker({
+                    position,
+                    map,
+                    title: loc.name,
+                    icon: {
+                        url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
+                    }
+                });
+
+                const infoWindow = new google.maps.InfoWindow({ content: contentString });
+
+                marker.addListener('click', () => {
+                    infoWindow.open(map, marker);
+                });
+
+                markers.push(marker);
+            }
+        });
+    } catch (err) {
+        console.error('Error loading locations:', err);
+        alert('Failed to load locations.');
+    }
+}
+
+window.onload = initMap;
+</script>
+
+<!-- Google Maps Script -->
+<script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDw8qHIN9go7Do3aouyR9343opJ33ZdDb0&libraries=places">
+</script>
+
+{% endblock %}

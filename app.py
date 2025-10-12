@@ -37,6 +37,11 @@ from routes.FuncaoRoutes import funcao_bp
 from routes.SituacaoPrestacaoServicoRoutes import situacao_prestacao_servico_bp
 from routes.AfetacaoRoutes import afetacao_bp
 from routes.TransferenciaRoutes import transferencia_bp
+from routes.EspecialidadeSaudeRoutes import especialidade_saude_bp
+from routes.CandidatoRoutes import candidato_bp
+from routes.TipoLicencaRoutes import tipo_licenca_bp
+from routes.PaisRoutes import pais_bp
+from routes.FormacaoRoutes import formacao_bp
 
 # -------------------------------
 # Inicialização da App Flask
@@ -61,7 +66,8 @@ blueprints = [
     resourcetype_bp, forma_prestacao_servico_bp, person_bp, patent_bp,
     ramo_bp, subunidade_bp, especialidade_bp, subespecialidade_bp,
     situacao_geral_bp, funcao_bp, situacao_prestacao_servico_bp, afetacao_bp,
-    transferencia_bp
+    transferencia_bp, especialidade_saude_bp, candidato_bp, tipo_licenca_bp,
+    pais_bp, formacao_bp
 ]
 
 for bp in blueprints:
@@ -120,6 +126,10 @@ def login():
             flash('Invalid username or password', 'danger')
     
     return render_template('login.html')
+
+@app.route('/mapping')
+def resourcemapping():
+    return render_template('mapping.html')
 
 @app.route('/register')
 def register():

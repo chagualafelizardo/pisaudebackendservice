@@ -9,6 +9,12 @@ person_patent = db.Table(
     db.Column('patent_id', db.Integer, db.ForeignKey('patent.id'), primary_key=True)
 )
 
+person_transferencia = db.Table(
+    'person_transferencia',
+    db.Column('person_id', db.Integer, db.ForeignKey('person.id'), primary_key=True),
+    db.Column('transferencia_id', db.Integer, db.ForeignKey('transferencia.id'), primary_key=True)
+)
+
 class Person(db.Model):
     __tablename__ = 'person'
 
@@ -26,6 +32,9 @@ class Person(db.Model):
 
     # Relacionamento com Patents
     patents = relationship('Patent', secondary=person_patent, back_populates='persons')
+
+    # Relacionamento com transferencias
+    transferencias = relationship('Transferencia', secondary=person_transferencia, back_populates='persons')
 
     # Imagem do person
     image = db.Column(db.LargeBinary, nullable=True)

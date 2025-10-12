@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Pais Management{% endblock %}
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage País</h2>
+
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px;"
+        onclick="openPaisModal()">
+    +
+</button>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Description</th>
+            <th>Sync Status</th>
+            <th>Created At</th>
+            <th>Updated At</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="paisTableBody"></tbody>
+</table>
+
+<div class="modal fade" id="paisModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="paisForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add/Edit País</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="paisId">
+        <div class="mb-3">
+          <label for="paisDescription" class="form-label">Description</label>
+          <input type="text" id="paisDescription" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const apiUrl = '/api/pais';
+
+function openPaisModal() {
+    document.getElementById('paisForm').reset();
+    document.getElementById('paisId').value = '';
+    new bootstrap.Modal(document.getElementById('paisModal')).show();
+}
+
+async function loadPaises() {
+    try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        const tbody = document.getElementById('paisTableBody');
+        tbody.innerHTML = '';
+        data.forEach(p => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${p.id}</td>
+                    <td>${p.description}</td>
+                    <td>${p.syncStatus}</td>
+                    <td>${p.createAt || '-'}</td>
+                    <td>${p.updateAt || '-'}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick='editPais(${JSON.stringify(p)})'>Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick='deletePais(${p.id})'>Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch(err) {
+        console.error(err);
+        alert('Failed to load países');
+    }
+}
+
+function editPais(p) {
+    document.getElementById('paisId').value = p.id;
+    document.getElementById('paisDescription').value = p.description;
+    new bootstrap.Modal(document.getElementById('paisModal')).show();
+}
+
+document.getElementById('paisForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('paisId').value;
+    const description = document.getElementById('paisDescription').value;
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description })
+        });
+        const data = await res.json();
+        if (!res.ok) throw data;
+
+        const modalEl = document.getElementById('paisModal');
+        bootstrap.Modal.getInstance(modalEl).hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadPaises();
+    } catch(err) {
+        alert(err.message || err.error || 'Failed to save país');
+        console.error(err);
+    }
+});
+
+async function deletePais(id) {
+    if (!confirm('Are you sure you want to delete this país?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw data;
+        loadPaises();
+    } catch(err) {
+        alert(err.message || err.error || 'Failed to delete país');
+        console.error(err);
+    }
+}
+
+window.onload = loadPaises;
+</script>
+{% endblock %}

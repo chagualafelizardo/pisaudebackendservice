@@ -28,7 +28,12 @@ from .SituacaoGeral import SituacaoGeral
 from .Funcao import Funcao
 from .SituacaoPrestacaoServico import SituacaoPrestacaoServico
 from .Afetacao import Afetacao
-from .Transferencia import Transferencia
+from .Transferencia import Transferencia, SyncStatusEnum
+from .EspecialidadeSaude import EspecialidadeSaude, SyncStatusEnum
+from .Candidato import Candidato, CandidatoEdicao, SyncStatusEnum
+from .TipoLicenca import TipoLicenca
+from .Pais import Pais, SyncStatusEnum
+from .Formacao import Formacao, SyncStatusEnum
 
 __all__ = [
     'db', 'Role', 'State', 'Grouptype', 'Group', 'Location', 
@@ -36,5 +41,7 @@ __all__ = [
     'DailyRecord', 'KeyPopulation', 'PortaTestagem','Resource','ResourceType',
     'FormaPrestacaoServico','Person', 'Patent', 'SyncStatusEnum','Ramo',
     'Subunidade', 'Especialidade', 'Subespecialidade', 'SituacaoGeral',
-    'Funcao', 'SituacaoPrestacaoServico', 'Afetacao', 'Transferencia'
+    'Funcao', 'SituacaoPrestacaoServico', 'Afetacao', 'Transferencia',
+    'EspecialidadeSaude', 'Candidato', 'CandidatoEdicao', 'TipoLicenca',
+    'Pais', 'Formacao'
 ]
