@@ -22,8 +22,6 @@
         <tr>
             <th>ID</th>
             <th>Description</th>
-            <th>Created At</th>
-            <th>Updated At</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -89,8 +87,6 @@ async function loadServiceForms() {
                 <tr>
                     <td>${f.id}</td>
                     <td>${f.description}</td>
-                    <td>${formatDate(f.createAt)}</td>
-                    <td>${formatDate(f.updateAt)}</td>
                     <td>
                         <button class="btn btn-sm btn-warning" onclick='editServiceForm(${JSON.stringify(f)})'>Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteServiceForm(${f.id})">Delete</button>

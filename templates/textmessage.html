@@ -1,24 +1,21 @@
 {% extends 'base.html' %}
 
-{% block title %}PI-SAÚDE/ Text Messages{% endblock %}
+{% block title %}PI-SAÚDE / Text Messages{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
 
 <h2>Manage Text Messages</h2>
 
-<!-- Formulário de criação/edição -->
-<form id="textmessageForm" class="mb-4">
-    <input type="hidden" id="textmessageId">
-    <input type="text" id="messagetext" class="form-control mb-2" placeholder="Message Text" required>
-    
-    <select id="grouptypeSelect" class="form-select mb-2">
-        <option value="">Select Group Type (optional)</option>
-    </select>
-
-    <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
-</form>
+<!-- Botão para abrir o modal -->
+<!-- Botão flutuante circular -->
+<button id="addMessageBtn" 
+        class="btn btn-primary rounded-circle position-fixed" 
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;" 
+        title="Add New Message"
+        data-bs-toggle="modal" 
+        data-bs-target="#textmessageModal" 
+        onclick="openModal()">+</button>
 
 <!-- Tabela de Text Messages -->
 <table class="table table-bordered">
@@ -26,7 +23,7 @@
         <tr>
             <th>ID</th>
             <th>Message Text</th>
-            <th>Group Type</th> <!-- Nome descritivo do grupo -->
+            <th>Group Type</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -35,9 +32,52 @@
     </tbody>
 </table>
 
+<!-- Modal Form -->
+<div class="modal fade" id="textmessageModal" tabindex="-1" aria-labelledby="textmessageModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="textmessageForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="textmessageModalLabel">Add / Edit Text Message</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="textmessageId">
+
+          <div class="mb-3">
+            <label for="messagetext" class="form-label">Message Text</label>
+            <input type="text" id="messagetext" class="form-control" placeholder="Enter message text" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="grouptypeSelect" class="form-label">Group Type (optional)</label>
+            <select id="grouptypeSelect" class="form-select">
+                <option value="">Select Group Type (optional)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelEdit">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 const apiUrl = '/api/textmessage';
 const apiGrouptype = '/api/grouptype';
+let modal;
+
+function openModal() {
+    document.getElementById('textmessageForm').reset();
+    document.getElementById('textmessageId').value = '';
+    const modalElement = document.getElementById('textmessageModal');
+    const modalInstance = new bootstrap.Modal(modalElement);
+    modalInstance.show();
+}
+
 
 // Carrega o dropdown de grouptypes
 async function loadGroupTypesDropdown() {
@@ -63,14 +103,12 @@ async function loadTextMessages() {
         tbody.innerHTML = '';
 
         items.forEach(item => {
-            // Usa a propriedade retornada pela API
             const groupName = item.grouptype_description || '';
-
             tbody.innerHTML += `
                 <tr>
                     <td>${item.id}</td>
                     <td>${item.messagetext}</td>
-                    <td>${groupName}</td> <!-- mostra o nome descritivo do grupo -->
+                    <td>${groupName}</td>
                     <td>
                         <button class="btn btn-sm btn-warning" onclick="editTextMessage(${item.id}, '${item.messagetext}', ${item.grouptypeId || 'null'})">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteTextMessage(${item.id})">Delete</button>
@@ -92,7 +130,6 @@ document.getElementById('textmessageForm').addEventListener('submit', async (e) 
 
     try {
         if (id) {
-            // Atualizar
             const res = await fetch(`${apiUrl}/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -100,7 +137,6 @@ document.getElementById('textmessageForm').addEventListener('submit', async (e) 
             });
             if (!res.ok) throw await res.json();
         } else {
-            // Criar
             const res = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -112,6 +148,8 @@ document.getElementById('textmessageForm').addEventListener('submit', async (e) 
         document.getElementById('textmessageForm').reset();
         document.getElementById('textmessageId').value = '';
         loadTextMessages();
+        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('textmessageModal'));
+        modalInstance.hide();
     } catch (err) {
         alert(err.message || 'Error saving message');
     }
@@ -122,13 +160,11 @@ function editTextMessage(id, messagetext, grouptypeId) {
     document.getElementById('textmessageId').value = id;
     document.getElementById('messagetext').value = messagetext;
     document.getElementById('grouptypeSelect').value = grouptypeId || '';
-}
 
-// Cancelar edição
-document.getElementById('cancelEdit').addEventListener('click', () => {
-    document.getElementById('textmessageForm').reset();
-    document.getElementById('textmessageId').value = '';
-});
+    const modalElement = document.getElementById('textmessageModal');
+    const modalInstance = new bootstrap.Modal(modalElement);
+    modalInstance.show();
+}
 
 // Deletar
 async function deleteTextMessage(id) {

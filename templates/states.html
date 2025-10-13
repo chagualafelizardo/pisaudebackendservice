@@ -1,21 +1,22 @@
 {% extends 'base.html' %}
 
-{% block title %}PI-SAÚDE/ States{% endblock %}
+{% block title %}PI-SAÚDE / States{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
 
 <h2>Manage States</h2>
 
-<!-- Formulário de criação/edição -->
-<form id="stateForm" class="mb-4">
-    <input type="hidden" id="stateId">
-    <input type="text" id="stateDescription" class="form-control mb-2" placeholder="State description" required>
-    <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
-</form>
+<!-- Botão flutuante para adicionar -->
+<button id="addRoleBtn" 
+        class="btn btn-primary rounded-circle position-fixed" 
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        title="Add Role"
+        data-bs-toggle="modal" 
+        data-bs-target="#stateModal"
+        onclick="openModal()">+</button>
 
-<!-- Tabela de estados -->
+<!-- Tabela -->
 <table class="table table-bordered">
     <thead>
         <tr>
@@ -24,15 +25,35 @@
             <th>Actions</th>
         </tr>
     </thead>
-    <tbody id="statesTableBody">
-        <!-- Populado via JS -->
-    </tbody>
+    <tbody id="statesTableBody"></tbody>
 </table>
+
+<!-- Modal -->
+<div class="modal fade" id="stateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="stateForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Add State</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="stateId">
+          <input type="text" id="stateDescription" class="form-control" placeholder="State Description" required>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <script>
 const apiUrl = '/api/state';
 
-// Carrega a lista de estados
+// Carregar tabela
 async function loadStates() {
     try {
         const res = await fetch(apiUrl);
@@ -47,7 +68,7 @@ async function loadStates() {
                     <td>${state.id}</td>
                     <td>${state.description}</td>
                     <td>
-                        <button class="btn btn-sm btn-warning" onclick="editState(${state.id}, '${state.description}')">Edit</button>
+                        <button class="btn btn-sm btn-warning" onclick="editState(${state.id})">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteState(${state.id})">Delete</button>
                     </td>
                 </tr>
@@ -58,52 +79,63 @@ async function loadStates() {
     }
 }
 
-// Submissão do formulário
+// Abrir modal
+function openModal() {
+    document.getElementById('modalTitle').innerText = 'Add State';
+    document.getElementById('stateForm').reset();
+    document.getElementById('stateId').value = '';
+}
+
+// Editar
+async function editState(id) {
+    const res = await fetch(`${apiUrl}/${id}`);
+    const state = await res.json();
+
+    document.getElementById('modalTitle').innerText = 'Edit State';
+    document.getElementById('stateId').value = state.id;
+    document.getElementById('stateDescription').value = state.description;
+
+    new bootstrap.Modal(document.getElementById('stateModal')).show();
+}
+
+// Salvar
 document.getElementById('stateForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('stateId').value;
     const description = document.getElementById('stateDescription').value;
 
     try {
+        let res;
         if (id) {
-            // Atualizar
-            const res = await fetch(`${apiUrl}/${id}`, {
+            res = await fetch(`${apiUrl}/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ description })
             });
-            if (!res.ok) throw await res.json();
         } else {
-            // Criar
-            const res = await fetch(apiUrl, {
+            res = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ description })
             });
-            if (!res.ok) throw await res.json();
         }
 
-        document.getElementById('stateForm').reset();
-        document.getElementById('stateId').value = '';
+        if (!res.ok) throw await res.json();
+
+        const modalEl = document.getElementById('stateModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+        // Remove o backdrop manualmente após esconder o modal
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
         loadStates();
     } catch (err) {
         alert(err.message || 'Error saving state');
     }
 });
 
-// Editar estado
-function editState(id, description) {
-    document.getElementById('stateId').value = id;
-    document.getElementById('stateDescription').value = description;
-}
-
-// Cancelar edição
-document.getElementById('cancelEdit').addEventListener('click', () => {
-    document.getElementById('stateForm').reset();
-    document.getElementById('stateId').value = '';
-});
-
-// Deletar estado
+// Deletar
 async function deleteState(id) {
     if (!confirm('Are you sure you want to delete this state?')) return;
     try {
@@ -115,7 +147,7 @@ async function deleteState(id) {
     }
 }
 
-// Inicializa a lista ao carregar a página
+// Inicializar
 window.onload = loadStates;
 </script>
 {% endblock %}

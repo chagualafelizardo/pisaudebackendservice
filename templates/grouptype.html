@@ -1,21 +1,22 @@
 {% extends 'base.html' %}
 
-{% block title %}PI-SAÚDE/ Group Types{% endblock %}
+{% block title %}PI-SAÚDE / Group Types{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
 
 <h2>Manage Group Types</h2>
 
-<!-- Formulário de criação/edição -->
-<form id="grouptypeForm" class="mb-4">
-    <input type="hidden" id="grouptypeId">
-    <input type="text" id="grouptypeDescription" class="form-control mb-2" placeholder="Group Type Description" required>
-    <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
-</form>
+<!-- Botão flutuante -->
+<button id="addRoleBtn" 
+        class="btn btn-primary rounded-circle position-fixed" 
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        title="Add Role"
+        data-bs-toggle="modal" 
+        data-bs-target="#groupTypeModal"
+        onclick="openModal()">+</button>
 
-<!-- Tabela de Grouptypes -->
+<!-- Tabela -->
 <table class="table table-bordered">
     <thead>
         <tr>
@@ -24,15 +25,35 @@
             <th>Actions</th>
         </tr>
     </thead>
-    <tbody id="grouptypeTableBody">
-        <!-- Populado via JS -->
-    </tbody>
+    <tbody id="grouptypeTableBody"></tbody>
 </table>
 
-<script>
-const apiUrl = '/api/grouptype'; // Endpoint da API
+<!-- Modal -->
+<div class="modal fade" id="groupTypeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="grouptypeForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Add Group Type</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="grouptypeId">
+          <input type="text" id="grouptypeDescription" class="form-control" placeholder="Group Type Description" required>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-// Carrega a lista de grouptypes
+<script>
+const apiUrl = '/api/grouptype';
+
+// Carregar tabela
 async function loadGroupTypes() {
     try {
         const res = await fetch(apiUrl);
@@ -47,7 +68,7 @@ async function loadGroupTypes() {
                     <td>${item.id}</td>
                     <td>${item.description}</td>
                     <td>
-                        <button class="btn btn-sm btn-warning" onclick="editGroupType(${item.id}, '${item.description}')">Edit</button>
+                        <button class="btn btn-sm btn-warning" onclick="editGroupType(${item.id})">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteGroupType(${item.id})">Delete</button>
                     </td>
                 </tr>
@@ -58,49 +79,60 @@ async function loadGroupTypes() {
     }
 }
 
-// Submissão do formulário
+// Abrir modal
+function openModal() {
+    document.getElementById('modalTitle').innerText = 'Add Group Type';
+    document.getElementById('grouptypeForm').reset();
+    document.getElementById('grouptypeId').value = '';
+}
+
+// Editar
+async function editGroupType(id) {
+    const res = await fetch(`${apiUrl}/${id}`);
+    const item = await res.json();
+
+    document.getElementById('modalTitle').innerText = 'Edit Group Type';
+    document.getElementById('grouptypeId').value = item.id;
+    document.getElementById('grouptypeDescription').value = item.description;
+
+    new bootstrap.Modal(document.getElementById('groupTypeModal')).show();
+}
+
+// Salvar
 document.getElementById('grouptypeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('grouptypeId').value;
     const description = document.getElementById('grouptypeDescription').value;
 
     try {
+        let res;
         if (id) {
-            // Atualizar
-            const res = await fetch(`${apiUrl}/${id}`, {
+            res = await fetch(`${apiUrl}/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ description })
             });
-            if (!res.ok) throw await res.json();
         } else {
-            // Criar
-            const res = await fetch(apiUrl, {
+            res = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ description })
             });
-            if (!res.ok) throw await res.json();
         }
 
-        document.getElementById('grouptypeForm').reset();
-        document.getElementById('grouptypeId').value = '';
+        if (!res.ok) throw await res.json();
+
+        const modalEl = document.getElementById('groupTypeModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+        // Remove backdrop manualmente
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
         loadGroupTypes();
     } catch (err) {
         alert(err.message || 'Error saving data');
     }
-});
-
-// Editar
-function editGroupType(id, description) {
-    document.getElementById('grouptypeId').value = id;
-    document.getElementById('grouptypeDescription').value = description;
-}
-
-// Cancelar edição
-document.getElementById('cancelEdit').addEventListener('click', () => {
-    document.getElementById('grouptypeForm').reset();
-    document.getElementById('grouptypeId').value = '';
 });
 
 // Deletar
@@ -115,7 +147,7 @@ async function deleteGroupType(id) {
     }
 }
 
-// Inicializa a lista ao carregar a página
+// Inicializar
 window.onload = loadGroupTypes;
 </script>
 {% endblock %}

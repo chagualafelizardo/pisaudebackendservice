@@ -38,9 +38,6 @@
             <th>Número da Edição</th>
             <th>Data da Edição</th>
             <th>Sync Status</th>
-            <th>Sync Date</th>
-            <th>Created At</th>
-            <th>Updated At</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -208,9 +205,6 @@ function filtrarTabela(query) {
                 <td>${c.numero_da_edicao||''}</td>
                 <td>${c.data_edicao||''}</td>
                 <td>${c.syncStatus||''}</td>
-                <td>${c.syncStatusDate||''}</td>
-                <td>${c.createAt||''}</td>
-                <td>${c.updateAt||''}</td>
                 <td>
                     <button class="btn btn-sm btn-warning" type="button" onclick='editCandidato(${c.id})'>Edit</button>
                     <button class="btn btn-sm btn-danger" type="button" onclick="deleteCandidato(${c.id})">Delete</button>

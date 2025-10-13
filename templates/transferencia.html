@@ -31,9 +31,6 @@
             <th>Unidade Militar Atual</th>
             <th>Data [Unidade Militar Atual]</th>
             <th>Observação</th>
-            <th>Sync Status</th>
-            <th>Criado em</th>
-            <th>Atualizado em</th>
             <th>Ações</th>
         </tr>
     </thead>
@@ -178,9 +175,6 @@ function renderTransferenciasTable(data) {
                 <td>${t.unidadeMilitarAtualName || '-'}</td>
                 <td>${t.dataUmAtual || '-'}</td>
                 <td>${t.observation || '-'}</td>
-                <td>${t.syncStatus || '-'}</td>
-                <td>${t.createdAt || '-'}</td>
-                <td>${t.updatedAt || '-'}</td>
                 <td>
                     <button class="btn btn-warning btn-sm" onclick='editTransferencia(${JSON.stringify(t)})'>Edit</button>
                     <button class="btn btn-danger btn-sm" onclick='deleteTransferencia(${t.id})'>Delete</button>

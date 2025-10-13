@@ -62,8 +62,6 @@
             <th>Date of Birth</th>
             <th>Incorporation Date</th>
             <th>Service Form</th>
-            <th>Sync Status</th>
-            <th>Sync Date</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -206,8 +204,6 @@ function filtrarTabela(query) {
                 <td>${p.dateofbirth||''}</td>
                 <td>${p.incorporationdata||''}</td>
                 <td>${p.forma_prestacao_servico_description||''}</td>
-                <td>${p.syncStatus||''}</td>
-                <td>${p.syncStatusDate||''}</td>
                 <td>
                     <button class="btn btn-sm btn-warning" type="button" onclick='editPerson(${JSON.stringify(p)})'>Edit</button>
                     <button class="btn btn-sm btn-danger" type="button" onclick="deletePerson(${p.id})">Delete</button>

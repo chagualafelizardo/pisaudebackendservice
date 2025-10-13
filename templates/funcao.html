@@ -18,9 +18,6 @@
         <tr>
             <th>ID</th>
             <th>Description</th>
-            <th>Sync Status</th>
-            <th>Created At</th>
-            <th>Updated At</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -73,9 +70,6 @@ async function loadFuncoes() {
                 <tr>
                     <td>${f.id}</td>
                     <td>${f.description}</td>
-                    <td>${f.syncStatus}</td>
-                    <td>${f.createAt || '-'}</td>
-                    <td>${f.updateAt || '-'}</td>
                     <td>
                         <button class="btn btn-warning btn-sm" onclick='editFuncao(${JSON.stringify(f)})'>Edit</button>
                         <button class="btn btn-danger btn-sm" onclick='deleteFuncao(${f.id})'>Delete</button>

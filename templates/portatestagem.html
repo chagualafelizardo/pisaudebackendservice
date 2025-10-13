@@ -1,21 +1,19 @@
 {% extends 'base.html' %}
 
-{% block title %}PI-SAÚDE/ Porta Testagem{% endblock %}
+{% block title %}PI-SAÚDE / Porta Testagem{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
 
 <h2>Manage Porta Testagem</h2>
 
-<!-- Formulário de criação/edição -->
-<form id="portaForm" class="mb-4">
-    <input type="hidden" id="portaId">
-    <input type="text" id="portaDescription" class="form-control mb-2" placeholder="Porta Testagem Description" required>
-    <button type="submit" class="btn btn-primary">Save</button>
-    <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
-</form>
+<!-- Botão para adicionar -->
+<button id="addUserBtn" class="btn btn-primary rounded-circle" title="Add User" 
+data-bs-toggle="modal" data-bs-target="#portaModal" onclick="openModal()">
+    +
+</button>
 
-<!-- Tabela de Porta Testagem -->
+<!-- Tabela -->
 <table class="table table-bordered">
     <thead>
         <tr>
@@ -24,98 +22,116 @@
             <th>Actions</th>
         </tr>
     </thead>
-    <tbody id="portaTableBody">
-        <!-- Populado via JS -->
-    </tbody>
+    <tbody id="portaTableBody"></tbody>
 </table>
 
+<!-- Modal -->
+<div class="modal fade" id="portaModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="portaForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Add Porta Testagem</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="portaId">
+          <input type="text" id="portaDescription" class="form-control" placeholder="Description" required>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
-const apiUrl = '/api/portatestagem'; // Endpoint da API
+const apiPorta = '/api/portatestagem';
 
-// Carrega a lista de porta testagem
-async function loadPorta() {
-    try {
-        const res = await fetch(apiUrl);
-        const items = await res.json();
-
-        const tbody = document.getElementById('portaTableBody');
-        tbody.innerHTML = '';
-
-        items.forEach(item => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${item.id}</td>
-                    <td>${item.description}</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="editPorta(${item.id}, '${item.description}')">Edit</button>
-                        <button class="btn btn-sm btn-danger" onclick="deletePorta(${item.id})">Delete</button>
-                    </td>
-                </tr>
-            `;
-        });
-    } catch (err) {
-        alert('Error loading data: ' + err);
-    }
+// Carregar tabela
+async function loadPortas() {
+    const res = await fetch(apiPorta);
+    const portas = await res.json();
+    const tbody = document.getElementById('portaTableBody');
+    tbody.innerHTML = '';
+    portas.forEach(porta => {
+        tbody.innerHTML += `
+        <tr>
+            <td>${porta.id}</td>
+            <td>${porta.description}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editPorta(${porta.id})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deletePorta(${porta.id})">Delete</button>
+            </td>
+        </tr>
+        `;
+    });
 }
 
-// Submissão do formulário
-document.getElementById('portaForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('portaId').value;
-    const description = document.getElementById('portaDescription').value;
-
-    try {
-        if (id) {
-            // Atualizar
-            const res = await fetch(`${apiUrl}/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description })
-            });
-            if (!res.ok) throw await res.json();
-        } else {
-            // Criar
-            const res = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description })
-            });
-            if (!res.ok) throw await res.json();
-        }
-
-        document.getElementById('portaForm').reset();
-        document.getElementById('portaId').value = '';
-        loadPorta();
-    } catch (err) {
-        alert(err.message || 'Error saving data');
-    }
-});
-
-// Editar
-function editPorta(id, description) {
-    document.getElementById('portaId').value = id;
-    document.getElementById('portaDescription').value = description;
-}
-
-// Cancelar edição
-document.getElementById('cancelEdit').addEventListener('click', () => {
+// Abrir modal
+function openModal() {
+    document.getElementById('modalTitle').innerText = 'Add Porta Testagem';
     document.getElementById('portaForm').reset();
     document.getElementById('portaId').value = '';
+}
+
+// Editar
+async function editPorta(id) {
+    const res = await fetch(`${apiPorta}/${id}`);
+    const porta = await res.json();
+    document.getElementById('modalTitle').innerText = 'Edit Porta Testagem';
+    document.getElementById('portaId').value = porta.id;
+    document.getElementById('portaDescription').value = porta.description;
+    new bootstrap.Modal(document.getElementById('portaModal')).show();
+}
+
+// Salvar
+document.getElementById('portaForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('portaId').value;
+    const data = { description: document.getElementById('portaDescription').value };
+
+    let res;
+    if (id) {
+        res = await fetch(`${apiPorta}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    } else {
+        res = await fetch(apiPorta, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    }
+
+    if (!res.ok) {
+        const err = await res.json();
+        alert(err.message);
+        return;
+    }
+
+    const modalEl = document.getElementById('portaModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+
+    // Remove backdrop manualmente após fechar
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
+    loadPortas();
 });
 
 // Deletar
 async function deletePorta(id) {
     if (!confirm('Are you sure you want to delete this item?')) return;
-    try {
-        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw await res.json();
-        loadPorta();
-    } catch (err) {
-        alert(err.message || 'Error deleting data');
-    }
+    await fetch(`${apiPorta}/${id}`, { method: 'DELETE' });
+    loadPortas();
 }
 
-// Inicializa a lista ao carregar a página
-window.onload = loadPorta;
+// Inicializar
+window.onload = () => loadPortas();
 </script>
 {% endblock %}

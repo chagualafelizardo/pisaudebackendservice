@@ -46,8 +46,6 @@
             <th>Training Year</th>
             <th>Training Institution</th>
             <th>Observation</th>
-            <th>Sync Status</th>
-            <th>Sync Date</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -137,8 +135,6 @@ function filtrarTabela(query) {
                 <td>${e.anoFormacao || ''}</td>
                 <td>${e.instituicaoFormacao || ''}</td>
                 <td>${e.observation || ''}</td>
-                <td>${e.syncStatus || ''}</td>
-                <td>${e.syncStatusDate ? e.syncStatusDate.split('T')[0] : ''}</td>
                 <td>
                     <button class="btn btn-sm btn-warning" onclick='editEspecialidade(${JSON.stringify(e)})'>Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteEspecialidade(${e.id})">Delete</button>

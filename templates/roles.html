@@ -1,24 +1,140 @@
 {% extends 'base.html' %}
 
-{% block title %}PI-SAÚDE/ Roles{% endblock %}
+{% block title %}PI-SAÚDE / Roles{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
 
 <h2>Manage Roles</h2>
 
-<!-- Sua lógica de CRUD aqui -->
-<div id="roles-section">
-    <form id="roleForm" class="mb-4">
-        <input type="hidden" id="roleId">
-        <input type="text" id="roleName" class="form-control mb-2" placeholder="Role Name" required>
-        <button type="submit" class="btn btn-primary">Save</button>
-        <button type="button" class="btn btn-secondary" id="cancelEdit">Cancel</button>
-    </form>
+<!-- Botão flutuante -->
+<button id="addRoleBtn" 
+        class="btn btn-primary rounded-circle position-fixed" 
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        title="Add Role"
+        data-bs-toggle="modal" 
+        data-bs-target="#roleModal"
+        onclick="openModal()">+</button>
 
-    <table class="table table-bordered">
-        <thead><tr><th>ID</th><th>Name</th><th>Actions</th></tr></thead>
-        <tbody id="rolesTableBody"></tbody>
-    </table>
+<!-- Tabela -->
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Role Description</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="rolesTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="roleForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTitle">Add Role</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="roleId">
+          <input type="text" id="roleName" class="form-control" placeholder="Role Name" required>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
+
+<script>
+const apiRoles = '/api/role';
+
+// Carregar tabela
+async function loadRoles() {
+    const res = await fetch(apiRoles);
+    const roles = await res.json();
+    const tbody = document.getElementById('rolesTableBody');
+    tbody.innerHTML = '';
+
+    roles.forEach(role => {
+        tbody.innerHTML += `
+        <tr>
+            <td>${role.id}</td>
+            <td>${role.description}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editRole(${role.id})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteRole(${role.id})">Delete</button>
+            </td>
+        </tr>`;
+    });
+}
+
+// Abrir modal para criar novo
+function openModal() {
+    document.getElementById('modalTitle').innerText = 'Add Role';
+    document.getElementById('roleForm').reset();
+    document.getElementById('roleId').value = '';
+}
+
+// Editar
+async function editRole(id) {
+    const res = await fetch(`${apiRoles}/${id}`);
+    const role = await res.json();
+    document.getElementById('modalTitle').innerText = 'Edit Role';
+    document.getElementById('roleId').value = role.id;
+    document.getElementById('roleName').value = role.description;
+    new bootstrap.Modal(document.getElementById('roleModal')).show();
+}
+
+// Salvar (criar/editar)
+document.getElementById('roleForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('roleId').value;
+    const data = { description: document.getElementById('roleName').value };
+
+    let res;
+    if (id) {
+        res = await fetch(`${apiRoles}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    } else {
+        res = await fetch(apiRoles, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    }
+
+    if (!res.ok) {
+        const err = await res.json();
+        alert(err.message || 'Error saving role');
+        return;
+    }
+
+    const modalEl = document.getElementById('roleModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    modal.hide();
+
+    // Remove backdrop manualmente (evita bug visual)
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
+    loadRoles();
+});
+
+// Deletar
+async function deleteRole(id) {
+    if (!confirm('Are you sure you want to delete this role?')) return;
+    await fetch(`${apiRoles}/${id}`, { method: 'DELETE' });
+    loadRoles();
+}
+
+// Inicializar
+window.onload = () => loadRoles();
+</script>
 {% endblock %}
