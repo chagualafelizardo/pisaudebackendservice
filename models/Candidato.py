@@ -1,15 +1,6 @@
 from . import db
-from sqlalchemy import Enum
 from sqlalchemy.orm import relationship
-import enum
 from datetime import datetime
-
-
-# Enum para syncStatus
-class SyncStatusEnum(enum.Enum):
-    NotSyncronized = "Not Syncronized"
-    Syncronized = "Syncronized"
-    Updated = "Updated"
 
 
 class CandidatoEdicao(db.Model):
@@ -25,6 +16,7 @@ class CandidatoEdicao(db.Model):
     def __repr__(self):
         return f'<Edicao {self.numeroedicao} - {self.dataedicao}>'
 
+
 class Candidato(db.Model):
     __tablename__ = 'candidato'
 
@@ -35,7 +27,8 @@ class Candidato(db.Model):
     curso = db.Column(db.String(150), nullable=False)
     instituicao = db.Column(db.String(150), nullable=True)
 
-    syncStatus = db.Column(Enum(SyncStatusEnum), nullable=False, default=SyncStatusEnum.NotSyncronized)
+    # Agora syncStatus é apenas uma string simples
+    syncStatus = db.Column(db.String(50), nullable=False, default="Not Syncronized")
     syncStatusDate = db.Column(db.DateTime, nullable=True)
 
     createAt = db.Column(db.DateTime, default=db.func.current_timestamp())

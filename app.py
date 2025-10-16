@@ -1,11 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from models import db, User
 from config import Config
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, request, jsonify
-from models import Observation, State, Textmessage, Grouptype, Group, Location, User, Resource, ResourceType
+from models import db ,Observation, State, Textmessage, Grouptype, Group, Location, User, Resource, ResourceType
 import logging
+
+# from flask_babel import Babel
+
+# Flask-Babel para gestao da mudancas de idioma
+from flask_babelex import Babel, gettext as _
+from flask_migrate import Migrate
 
 # -------------------------------
 # Importações dos Blueprints
@@ -52,6 +57,13 @@ app.secret_key = 'sua_chave_secreta'  # Necessário para sessões
 
 # Inicialização do SQLAlchemy
 db.init_app(app)
+migrate = Migrate(app, db)
+
+# Inicialização do Babel
+# -------------------------------
+app.config['BABEL_DEFAULT_LOCALE'] = 'pt'  # idioma padrão
+app.config['BABEL_SUPPORTED_LOCALES'] = ['pt', 'en']  # idiomas suportados
+babel = Babel(app)
 
 # Definicao de constantes
 state_default_id = 9  # ID default para State "inicial"
@@ -72,6 +84,32 @@ blueprints = [
 
 for bp in blueprints:
     app.register_blueprint(bp, url_prefix='/api')
+
+# -------------------------------
+# Função para selecionar idioma manualmente
+# -------------------------------
+@babel.localeselector
+def get_locale():
+    # Se o idioma estiver guardado na sessão, usa-o
+    if 'lang' in session:
+        return session['lang']
+
+    # Caso contrário, tenta detectar automaticamente (browser)
+    return request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES'])
+
+
+@app.context_processor
+def inject_get_locale():
+    return dict(get_locale=get_locale)
+
+# -------------------------------
+# Rota para trocar o idioma
+# -------------------------------
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    if lang in app.config['BABEL_SUPPORTED_LOCALES']:
+        session['lang'] = lang
+    return redirect(request.referrer or url_for('dashboard'))
 
 # -------------------------------
 # Rotas do Frontend (Renderização)

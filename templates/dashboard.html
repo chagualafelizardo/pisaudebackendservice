@@ -3,10 +3,361 @@
 {% block title %}PI-SAÚDE/ Dashboard{% endblock %}
 
 {% block content %}
-{% include 'navbar.html' %}
+<div class="container-fluid mt-3">
+  <!-- 🚀 SEÇÃO DE ATALHOS -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white fw-semibold">
+          <i class="bi bi-lightning-fill me-2"></i>{{ _('Quick Access') }}
+        </div>
+        <div class="card-body py-4">
+          <div class="row g-3 justify-content-center">
+            <!-- Atalho para Afetação -->
+            <div class="col-md-3 col-sm-6">
+              <a href="/content/afetacao" class="btn btn-primary btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100 w-100 text-decoration-none">
+                <i class="bi bi-person-check-fill mb-2" style="font-size: 2rem;"></i>
+                <span class="fw-semibold">{{ _('Assignment') }}</span>
+                <small class="text-white-50 mt-1 text-center">{{ _('Manage personnel assignments') }}</small>
+              </a>
+            </div>
+            
+            <!-- Atalho para Transferência -->
+            <div class="col-md-3 col-sm-6">
+              <a href="/content/transferencia" class="btn btn-success btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100 w-100 text-decoration-none">
+                <i class="bi bi-arrow-left-right mb-2" style="font-size: 2rem;"></i>
+                <span class="fw-semibold">{{ _('Transfer') }}</span>
+                <small class="text-white-50 mt-1 text-center">{{ _('Process personnel transfers') }}</small>
+              </a>
+            </div>
+            
+            <!-- Atalho para Registar Candidatos -->
+            <div class="col-md-3 col-sm-6">
+              <a href="/content/candidato" class="btn btn-info btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100 w-100 text-decoration-none">
+                <i class="bi bi-person-plus-fill mb-2" style="font-size: 2rem;"></i>
+                <span class="fw-semibold">{{ _('Register Candidates') }}</span>
+                <small class="text-white-50 mt-1 text-center">{{ _('Register new candidates') }}</small>
+              </a>
+            </div>
+            
+            <!-- Atalho para Militar em Formação -->
+            <div class="col-md-3 col-sm-6">
+              <a href="/content/formacao" class="btn btn-warning btn-lg d-flex flex-column align-items-center justify-content-center p-4 h-100 w-100 text-decoration-none">
+                <i class="bi bi-mortarboard-fill mb-2" style="font-size: 2rem;"></i>
+                <span class="fw-semibold">{{ _('Military in Training') }}</span>
+                <small class="text-white-50 mt-1 text-center">{{ _('View training personnel') }}</small>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<h2>Welcome to the Dashboard</h2>
+  <!-- 🌍 MAPA E GRÁFICO -->
+  <div class="row g-4">
+    <!-- 🌍 MAPA (lado esquerdo) -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white fw-semibold">
+          <i class="bi bi-geo-alt-fill me-2"></i>{{ _('Locations and Resources Map') }}
+        </div>
+        <div class="card-body p-0">
+          <div id="map" style="height: 480px; width: 100%; border-radius: 0 0 8px 8px;"></div>
+        </div>
+      </div>
+    </div>
 
-<p>This is your main dashboard page. No other CRUD content is loaded by default.</p>
+    <!-- 📊 GRAFICO (lado direito) -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-primary text-white fw-semibold">
+          <i class="bi bi-bar-chart-fill me-2"></i>{{ _('Training and Candidate Statistics') }}
+        </div>
+        <div class="card-body">
+          <canvas id="trainingChart" height="380"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
+<!-- ======= SCRIPTS DO MAPA E GRAFICO ======= -->
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+<script>
+  // ============================
+  //  MAPA: Locais e Recursos
+  // ============================
+  const map = L.map('map').setView([-25.97, 32.58], 6); // posição inicial Moçambique
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  // Função para carregar locais da API
+  async function loadLocationsForMap() {
+    try {
+      const response = await fetch('/api/location');
+      if (!response.ok) throw new Error('Failed to fetch locations');
+      
+      const locations = await response.json();
+      
+      locations.forEach(loc => {
+        if (loc.latitude && loc.longitude) {
+          // Criar popup com informações dos recursos
+          const resourcesList = loc.resources && loc.resources.length > 0 
+            ? loc.resources.map(r => `${r.name}: ${r.quantity}`).join('<br>')
+            : 'No resources';
+          
+          const popupContent = `
+            <div>
+              <b>${loc.name}</b><br>
+              ${loc.description || ''}<br>
+              <hr>
+              <b>Resources:</b><br>
+              ${resourcesList}
+            </div>
+          `;
+
+          L.marker([parseFloat(loc.latitude), parseFloat(loc.longitude)])
+            .addTo(map)
+            .bindPopup(popupContent);
+        }
+      });
+
+      // Ajustar o zoom para mostrar todos os marcadores se houver locais
+      if (locations.length > 0) {
+        const group = new L.featureGroup(locations.map(loc => 
+          L.marker([parseFloat(loc.latitude), parseFloat(loc.longitude)])
+        ));
+        map.fitBounds(group.getBounds().pad(0.1));
+      }
+
+    } catch (error) {
+      console.error('Error loading locations for map:', error);
+    }
+  }
+
+  // ============================
+  //  GRAFICO: Estatísticas Anuais
+  // ============================
+  async function loadChartData() {
+    try {
+      // Buscar dados de candidatos
+      const candidatosResponse = await fetch('/api/candidato');
+      if (!candidatosResponse.ok) throw new Error('Failed to fetch candidatos');
+      const candidatos = await candidatosResponse.json();
+
+      // Buscar dados de formações
+      const formacoesResponse = await fetch('/api/formacao');
+      if (!formacoesResponse.ok) throw new Error('Failed to fetch formacoes');
+      const formacoes = await formacoesResponse.json();
+
+      // Definir anos para o gráfico (últimos 5 anos)
+      const currentYear = new Date().getFullYear();
+      const years = Array.from({length: 5}, (_, i) => currentYear - 4 + i);
+      
+      // Processar candidatos por ano - múltiplos critérios
+      const candidatosPorAno = years.map(year => {
+        return candidatos.filter(c => {
+          // Critério 1: Data da edição
+          if (c.data_edicao) {
+            const edicaoYear = new Date(c.data_edicao).getFullYear();
+            if (edicaoYear === year) return true;
+          }
+          
+          // Critério 2: Data de criação
+          if (c.createAt) {
+            const createYear = new Date(c.createAt).getFullYear();
+            if (createYear === year) return true;
+          }
+          
+          // Critério 3: Número da edição contém o ano
+          if (c.numero_da_edicao && c.numero_da_edicao.toString().includes(year.toString())) {
+            return true;
+          }
+          
+          return false;
+        }).length;
+      });
+
+      // Processar formações por ano - múltiplos critérios
+      const formacoesPorAno = years.map(year => {
+        return formacoes.filter(f => {
+          // Critério 1: Data de início
+          if (f.inicio) {
+            const inicioYear = new Date(f.inicio).getFullYear();
+            if (inicioYear === year) return true;
+          }
+          
+          // Critério 2: Ano acadêmico
+          if (f.anoacademico) {
+            // Tentar extrair o ano do campo anoacademico (formato: "2023/2024" ou "2023")
+            const academicYear = f.anoacademico.toString();
+            if (academicYear.includes('/')) {
+              // Formato "2023/2024" - pegar o primeiro ano
+              const startYear = parseInt(academicYear.split('/')[0]);
+              if (startYear === year) return true;
+            } else {
+              // Formato simples "2023"
+              const simpleYear = parseInt(academicYear);
+              if (simpleYear === year) return true;
+            }
+          }
+          
+          // Critério 3: Data de criação
+          if (f.createAt) {
+            const createYear = new Date(f.createAt).getFullYear();
+            if (createYear === year) return true;
+          }
+          
+          return false;
+        }).length;
+      });
+
+      return {
+        years: years,
+        candidatos: candidatosPorAno,
+        formacoes: formacoesPorAno
+      };
+
+    } catch (error) {
+      console.error('Error loading chart data:', error);
+      // Fallback para dados de exemplo
+      return {
+        years: ['2021', '2022', '2023', '2024', '2025'],
+        candidatos: [0, 0, 0, 0, 0],
+        formacoes: [0, 0, 0, 0, 0]
+      };
+    }
+  }
+
+  // Função alternativa mais simples se a anterior for complexa
+  async function loadChartDataSimple() {
+    try {
+      const candidatosResponse = await fetch('/api/candidato');
+      const formacoesResponse = await fetch('/api/formacao');
+      
+      if (!candidatosResponse.ok || !formacoesResponse.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
+      const candidatos = await candidatosResponse.json();
+      const formacoes = await formacoesResponse.json();
+
+      const currentYear = new Date().getFullYear();
+      const years = Array.from({length: 5}, (_, i) => currentYear - 4 + i);
+
+      // Contagem simples por ano de criação
+      const countByYear = (data, dateField) => {
+        const counts = {};
+        years.forEach(year => counts[year] = 0);
+        
+        data.forEach(item => {
+          if (item[dateField]) {
+            const year = new Date(item[dateField]).getFullYear();
+            if (counts[year] !== undefined) {
+              counts[year]++;
+            }
+          }
+        });
+        
+        return years.map(year => counts[year]);
+      };
+
+      return {
+        years: years,
+        candidatos: countByYear(candidatos, 'createAt'),
+        formacoes: countByYear(formacoes, 'createAt')
+      };
+
+    } catch (error) {
+      console.error('Error loading chart data:', error);
+      return {
+        years: ['2021', '2022', '2023', '2024', '2025'],
+        candidatos: [0, 0, 0, 0, 0],
+        formacoes: [0, 0, 0, 0, 0]
+      };
+    }
+  }
+
+  // Inicializar gráfico
+  async function initializeChart() {
+    // Usar a versão simples para maior confiabilidade
+    const chartData = await loadChartDataSimple();
+    
+    const ctx = document.getElementById('trainingChart').getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartData.years,
+        datasets: [
+          {
+            label: '{{ _("Total Candidates") }}',
+            data: chartData.candidatos,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          },
+          {
+            label: '{{ _("Militar in Training") }}',
+            data: chartData.formacoes,
+            backgroundColor: 'rgba(255, 159, 64, 0.6)',
+            borderColor: 'rgba(255, 159, 64, 1)',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { 
+            beginAtZero: true, 
+            title: { 
+              display: true, 
+              text: 'Number of Persons' 
+            },
+            ticks: {
+              stepSize: 1 // Mostrar números inteiros
+            }
+          },
+          x: { 
+            title: { 
+              display: true, 
+              text: 'Year' 
+            } 
+          }
+        },
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: { 
+            mode: 'index', 
+            intersect: false,
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: ${context.parsed.y}`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Inicializar tudo quando a página carregar
+  document.addEventListener('DOMContentLoaded', function() {
+    loadLocationsForMap();
+    initializeChart();
+  });
+</script>
 {% endblock %}

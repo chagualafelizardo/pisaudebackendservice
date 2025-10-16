@@ -30,10 +30,12 @@ from .SituacaoPrestacaoServico import SituacaoPrestacaoServico
 from .Afetacao import Afetacao
 from .Transferencia import Transferencia, SyncStatusEnum
 from .EspecialidadeSaude import EspecialidadeSaude, SyncStatusEnum
-from .Candidato import Candidato, CandidatoEdicao, SyncStatusEnum
+from .Candidato import Candidato, CandidatoEdicao
 from .TipoLicenca import TipoLicenca
 from .Pais import Pais, SyncStatusEnum
-from .Formacao import Formacao, SyncStatusEnum
+from .Formacao import Formacao
+from .Licenca import Licenca, EstadoLicencaEnum
+from .Despacho import Despacho, EstadoDespachoEnum
 
 __all__ = [
     'db', 'Role', 'State', 'Grouptype', 'Group', 'Location', 
@@ -43,5 +45,5 @@ __all__ = [
     'Subunidade', 'Especialidade', 'Subespecialidade', 'SituacaoGeral',
     'Funcao', 'SituacaoPrestacaoServico', 'Afetacao', 'Transferencia',
     'EspecialidadeSaude', 'Candidato', 'CandidatoEdicao', 'TipoLicenca',
-    'Pais', 'Formacao'
+    'Pais', 'Formacao', 'Licenca','EstadoLicencaEnum', 'Despacho','EstadoDespachoEnum'
 ]

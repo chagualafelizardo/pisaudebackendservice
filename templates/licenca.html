@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Licenças{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Gestão de Licenças</h2>
+
+<!-- Input de busca -->
+<div class="mb-3 position-relative" style="max-width: 400px;">
+  <input type="text" id="licencaSearch" class="form-control" placeholder="Pesquisar licença..." oninput="filtrarTabela(this.value)">
+</div>
+
+<!-- Botão de download Excel -->
+<div class="mb-3">
+  <button class="btn btn-outline-success" onclick="downloadExcel()">
+    📥 Exportar Excel
+  </button>
+</div>
+
+<!-- Floating Button -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="openLicencaModal()">
+  +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered" id="licencasTable">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Militar</th>
+      <th>Tipo</th>
+      <th>Motivo</th>
+      <th>Data Início</th>
+      <th>Data Fim</th>
+      <th>Estado</th>
+      <th>Anexo</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody id="licencasTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="licencaModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="licencaForm" class="modal-content" enctype="multipart/form-data">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar / Editar Licença</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="licencaId">
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label">Militar</label>
+              <select id="licencaPerson" class="form-select" required></select>
+            </div>
+            <div id="personDetails" class="border rounded p-3 bg-light mt-2" style="display: none;">
+              <h6>Detalhes do Militar</h6>
+              <p><strong>Nome:</strong> <span id="personFullname"></span></p>
+              <p><strong>NIM:</strong> <span id="personNim"></span></p>
+              <p><strong>Gênero:</strong> <span id="personGender"></span></p>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Despacho (opcional)</label>
+              <select id="licencaDespacho" class="form-select">
+                <option value="">Sem despacho</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Data Início</label>
+              <input type="date" id="licencaInicio" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Data Fim</label>
+              <input type="date" id="licencaFim" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="mb-3">
+              <label class="form-label">Tipo Licença</label>
+              <select id="licencaTipo" class="form-select" required></select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Motivo</label>
+              <input type="text" id="licencaMotivo" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Observação</label>
+              <textarea id="licencaObs" class="form-control"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Anexo</label>
+              <input type="file" id="licencaAnexo" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+const apiUrl = '/api/licenca';
+const personApiUrl = '/api/person';
+const tipoLicencaApiUrl = '/api/tipolicenca';
+const despachoApiUrl = '/api/despacho'; // ✅ nova API
+let allLicencas = [], allPersons = [], allTipos = [], allDespachos = [];
+
+async function loadLicencas() {
+  const res = await fetch(apiUrl);
+  allLicencas = await res.json();
+  filtrarTabela('');
+}
+
+function filtrarTabela(query) {
+  const tbody = document.getElementById('licencasTableBody');
+  tbody.innerHTML = '';
+  const termo = query.trim().toLowerCase();
+  allLicencas.filter(l => (l.person?.fullname||'').toLowerCase().includes(termo))
+    .forEach(l => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${l.id}</td>
+          <td>${l.person?.fullname||''}</td>
+          <td>${l.tipo?.description||''}</td>
+          <td>${l.motivo||''}</td>
+          <td>${l.data_inicio||''}</td>
+          <td>${l.data_fim||''}</td>
+          <td>${l.estado||''}</td>
+          <td>${l.anexo_nome ? `<a href="/api/licenca/${l.id}/anexo" target="_blank">${l.anexo_nome}</a>` : ''}</td>
+          <td>
+            <button class="btn btn-sm btn-warning" onclick="editLicenca(${l.id})">Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteLicenca(${l.id})">Apagar</button>
+          </td>
+        </tr>`;
+    });
+}
+
+async function loadDespachos() {
+  const res = await fetch(despachoApiUrl);
+  allDespachos = await res.json();
+  const select = document.getElementById('licencaDespacho');
+  select.innerHTML = '<option value="">Sem despacho</option>';
+  allDespachos.forEach(d => {
+    select.innerHTML += `<option value="${d.id}">${d.numero || ('Despacho #' + d.id)}</option>`;
+  });
+}
+
+function openLicencaModal() {
+  document.getElementById('licencaForm').reset();
+  document.getElementById('licencaId').value = '';
+  loadPersons();
+  loadTipos();
+  loadDespachos(); // ✅ carrega despachos
+  new bootstrap.Modal(document.getElementById('licencaModal')).show();
+}
+
+async function loadPersons() {
+  const res = await fetch(personApiUrl);
+  allPersons = await res.json();
+  const select = document.getElementById('licencaPerson');
+  select.innerHTML = '<option value="">Selecione o militar</option>';
+  allPersons.forEach(p => select.innerHTML += `<option value="${p.id}">${p.fullname}</option>`);
+}
+
+async function loadTipos() {
+  const res = await fetch(tipoLicencaApiUrl);
+  allTipos = await res.json();
+  const select = document.getElementById('licencaTipo');
+  select.innerHTML = '<option value="">Selecione o tipo</option>';
+  allTipos.forEach(t => select.innerHTML += `<option value="${t.id}">${t.description}</option>`);
+}
+
+document.getElementById('licencaForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('licencaId').value;
+  const formData = new FormData();
+  formData.append('person_id', document.getElementById('licencaPerson').value);
+  formData.append('despacho_id', document.getElementById('licencaDespacho').value);
+  formData.append('tipo_id', document.getElementById('licencaTipo').value);
+  formData.append('motivo', document.getElementById('licencaMotivo').value);
+  formData.append('data_inicio', document.getElementById('licencaInicio').value);
+  formData.append('data_fim', document.getElementById('licencaFim').value);
+  formData.append('observacao', document.getElementById('licencaObs').value);
+  if (document.getElementById('licencaAnexo').files[0])
+    formData.append('anexo', document.getElementById('licencaAnexo').files[0]);
+  const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+    method: id ? 'PUT' : 'POST',
+    body: formData
+  });
+  if (!res.ok) return alert('Erro ao salvar licença');
+  bootstrap.Modal.getInstance(document.getElementById('licencaModal')).hide();
+  loadLicencas();
+});
+
+async function deleteLicenca(id) {
+  if (!confirm('Apagar esta licença?')) return;
+  const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+  if (!res.ok) return alert('Erro ao apagar');
+  loadLicencas();
+}
+
+function downloadExcel() {
+  const wb = XLSX.utils.table_to_book(document.getElementById("licencasTable"), {sheet:"Licencas"});
+  XLSX.writeFile(wb, "licencas.xlsx");
+}
+
+window.onload = loadLicencas;
+</script>
+
+{% endblock %}

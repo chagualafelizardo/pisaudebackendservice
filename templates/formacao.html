@@ -31,17 +31,14 @@
     <thead>
         <tr>
             <th>ID</th>
+            <th>Militar em formação</th>
             <th>Início</th>
             <th>Duração</th>
             <th>Ano Acadêmico</th>
             <th>Despacho Autorização</th>
             <th>Pais</th>
             <th>Tipo Licença</th>
-            <th>Person</th>
             <th>Sync Status</th>
-            <th>Sync Date</th>
-            <th>Created At</th>
-            <th>Updated At</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -64,7 +61,7 @@
             <!-- Coluna 1 -->
             <div class="col-md-6">
                 <div class="mb-3">
-                <label class="form-label">Person</label>
+                <label class="form-label">Militar</label>
                 <select id="formacaoPerson" class="form-select" required></select>
                 </div>
                 <div id="personDetails" class="border rounded p-3 bg-light mt-2" style="display: none;">
@@ -197,17 +194,14 @@ function filtrarTabela(query) {
             tbody.innerHTML += `
             <tr>
                 <td>${f.id}</td>
+                <td>${f.person?.fullname||''}</td>
                 <td>${f.inicio||''}</td>
                 <td>${f.duracao||''}</td>
                 <td>${f.anoacademico||''}</td>
                 <td>${f.despachoautorizacao||''}</td>
                 <td>${f.pais?.description||''}</td>
                 <td>${f.tipo_licenca?.description||''}</td>
-                <td>${f.person?.fullname||''}</td>
                 <td>${f.syncStatus||''}</td>
-                <td>${f.syncStatusDate||''}</td>
-                <td>${f.createAt||''}</td>
-                <td>${f.updateAt||''}</td>
                 <td>
                     <button class="btn btn-sm btn-warning" type="button" onclick='editFormacao(${f.id})'>Edit</button>
                     <button class="btn btn-sm btn-danger" type="button" onclick="deleteFormacao(${f.id})">Delete</button>

@@ -1,15 +1,21 @@
-blinker==1.8.2
-click==8.1.7
-Flask==3.0.3
+# Requirements.txt para bibliotecas
+
+Flask==2.3.3
+# Flask>=2.3
+Flask-BabelEx==0.9.4
 Flask-SQLAlchemy==3.1.1
-greenlet==3.0.3
-importlib_metadata==8.0.0
-itsdangerous==2.2.0
-Jinja2==3.1.4
-MarkupSafe==2.1.5
+Flask-Migrate==4.0.7
 psycopg2-binary==2.9.9
 SQLAlchemy==2.0.31
-typing_extensions==4.12.2
 Werkzeug==3.0.3
+Jinja2==3.1.4
+itsdangerous==2.2.0
+MarkupSafe==2.1.5
+click==8.1.7
+typing_extensions==4.12.2
+greenlet==3.0.3
 zipp==3.19.2
+blinker==1.8.2
+importlib_metadata==8.0.0
+pytz
 Flask-Migrate # ao actualizar o model ele é responsavel por fazer isso na base de dados

@@ -5,7 +5,7 @@
 {% block content %}
 {% include 'navbar.html' %}
 
-<h2>Manage Locations</h2>
+<h2>Manage Health Facility</h2>
 
 <!-- Floating Action Button (FAB) -->
 <button class="btn btn-success rounded-circle position-fixed"
@@ -21,7 +21,7 @@
     <thead>
         <tr>
             <th>ID</th>
-            <th>Name</th>
+            <th>Health Facility Name</th>
             <th>Description</th>
             <th>Latitude</th>
             <th>Longitude</th>
@@ -39,14 +39,14 @@
   <div class="modal-dialog modal-lg">
     <form id="locationForm" class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="locationModalLabel">Add/Edit Location</h5>
+        <h5 class="modal-title" id="locationModalLabel">Add/Edit Health Facility</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="locationId">
 
         <div class="mb-3">
-          <label for="locationName" class="form-label">Location Name</label>
+          <label for="locationName" class="form-label">Health Facility Name</label>
           <input type="text" id="locationName" class="form-control" required>
         </div>
 

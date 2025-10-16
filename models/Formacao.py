@@ -1,14 +1,7 @@
-from enum import Enum as PyEnum
-from sqlalchemy import Enum as SQLEnum, ForeignKey
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from . import db
-
-# Enum Python para SyncStatus
-class SyncStatusEnum(PyEnum):
-    NotSyncronized = "Not Syncronized"
-    Syncronized = "Syncronized"
-    Updated = "Updated"
 
 class Formacao(db.Model):
     __tablename__ = 'formacao'
@@ -32,7 +25,8 @@ class Formacao(db.Model):
     tipo_licenca_id = db.Column(db.Integer, ForeignKey('tipolicenca.id'), nullable=False)
     tipo_licenca = relationship('TipoLicenca', backref='formacoes')
 
-    syncStatus = db.Column(SQLEnum(SyncStatusEnum), nullable=False, default=SyncStatusEnum.NotSyncronized)
+    # SyncStatus como String simples
+    syncStatus = db.Column(db.String(50), nullable=False, default='Not Syncronized')
     syncStatusDate = db.Column(db.DateTime, nullable=True)
 
     createAt = db.Column(db.DateTime, default=db.func.current_timestamp())

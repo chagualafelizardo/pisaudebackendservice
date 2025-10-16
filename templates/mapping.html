@@ -11,8 +11,15 @@
     <div class="row">
         <div class="col-md-12">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <strong>Map of Locations and Resources</strong>
+                    <div class="btn-group" role="group" aria-label="Map Type Toggle">
+                        <input type="radio" class="btn-check" name="mapType" id="map-terrain" autocomplete="off" checked>
+                        <label class="btn btn-light btn-sm" for="map-terrain" onclick="setMapType('terrain')">Map View</label>
+
+                        <input type="radio" class="btn-check" name="mapType" id="map-satellite" autocomplete="off">
+                        <label class="btn btn-light btn-sm" for="map-satellite" onclick="setMapType('satellite')">Satellite View</label>
+                    </div>
                 </div>
                 <div class="card-body" style="height: 80vh;">
                     <div id="mapResources" style="height: 100%; width: 100%;"></div>
@@ -22,7 +29,6 @@
     </div>
 </div>
 
-<!-- Script -->
 <script>
 const apiUrl = '/api/location';
 let map;
@@ -38,6 +44,12 @@ function initMap() {
     loadLocations();
 }
 
+function setMapType(type) {
+    if (map) {
+        map.setMapTypeId(type);
+    }
+}
+
 async function loadLocations() {
     try {
         const res = await fetch(apiUrl);
@@ -50,7 +62,6 @@ async function loadLocations() {
                     lng: parseFloat(loc.longitude)
                 };
 
-                // Monta o conteúdo do InfoWindow
                 const resourceList = loc.resources && loc.resources.length
                     ? loc.resources.map(r => `${r.name} (${r.quantity})`).join('<br>')
                     : 'No resources available';
@@ -71,9 +82,7 @@ async function loadLocations() {
                     position,
                     map,
                     title: loc.name,
-                    icon: {
-                        url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png"
-                    }
+                    icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" }
                 });
 
                 const infoWindow = new google.maps.InfoWindow({ content: contentString });
@@ -94,7 +103,6 @@ async function loadLocations() {
 window.onload = initMap;
 </script>
 
-<!-- Google Maps Script -->
 <script async
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDw8qHIN9go7Do3aouyR9343opJ33ZdDb0&libraries=places">
 </script>

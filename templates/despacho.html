@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Despachos{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Gestão de Despachos</h2>
+
+<div class="mb-3 position-relative" style="max-width: 400px;">
+  <input type="text" id="despachoSearch" class="form-control" placeholder="Pesquisar despacho..." oninput="filtrarTabela(this.value)">
+</div>
+
+<div class="mb-3">
+  <button class="btn btn-outline-success" onclick="downloadExcel()">📥 Exportar Excel</button>
+</div>
+
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="openDespachoModal()">+</button>
+
+<table class="table table-bordered" id="despachosTable">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Título</th>
+      <th>Descrição</th>
+      <th>Data</th>
+      <th>Estado</th>
+      <th>Militar</th>
+      <th>Anexo</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody id="despachosTableBody"></tbody>
+</table>
+
+<div class="modal fade" id="despachoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="despachoForm" class="modal-content" enctype="multipart/form-data">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar / Editar Despacho</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="despachoId">
+
+        <div class="mb-3">
+          <label class="form-label">Título</label>
+          <input type="text" id="despachoTitulo" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Descrição</label>
+          <textarea id="despachoDescricao" class="form-control"></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Data Despacho</label>
+          <input type="date" id="despachoData" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Estado</label>
+          <select id="despachoEstado" class="form-select">
+            <option value="PENDENTE">Pendente</option>
+            <option value="APROVADO">Aprovado</option>
+            <option value="REJEITADO">Rejeitado</option>
+            <option value="CONCLUIDO">Concluído</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Militar (opcional)</label>
+          <select id="despachoPerson" class="form-select"></select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Anexo</label>
+          <input type="file" id="despachoAnexo" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Observação</label>
+          <textarea id="despachoObs" class="form-control"></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+const apiUrl = '/api/despacho';
+const personApiUrl = '/api/person';
+let allDespachos = [], allPersons = [];
+
+async function loadDespachos() {
+  const res = await fetch(apiUrl);
+  allDespachos = await res.json();
+  filtrarTabela('');
+}
+
+function filtrarTabela(query) {
+  const tbody = document.getElementById('despachosTableBody');
+  tbody.innerHTML = '';
+  const termo = query.trim().toLowerCase();
+  allDespachos.filter(d => (d.titulo||'').toLowerCase().includes(termo))
+    .forEach(d => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${d.id}</td>
+          <td>${d.titulo}</td>
+          <td>${d.descricao||''}</td>
+          <td>${d.data_despacho||''}</td>
+          <td>${d.estado||''}</td>
+          <td>${d.person?.fullname||''}</td>
+          <td>${d.anexo_nome ? `<a href="/api/despacho/${d.id}/anexo" target="_blank">${d.anexo_nome}</a>` : ''}</td>
+          <td>
+            <button class="btn btn-sm btn-warning" onclick="editDespacho(${d.id})">Editar</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteDespacho(${d.id})">Apagar</button>
+          </td>
+        </tr>`;
+    });
+}
+
+function openDespachoModal() {
+  document.getElementById('despachoForm').reset();
+  document.getElementById('despachoId').value = '';
+  loadPersons();
+  new bootstrap.Modal(document.getElementById('despachoModal')).show();
+}
+
+async function loadPersons() {
+  const res = await fetch(personApiUrl);
+  allPersons = await res.json();
+  const select = document.getElementById('despachoPerson');
+  select.innerHTML = '<option value="">Selecione o militar</option>';
+  allPersons.forEach(p => select.innerHTML += `<option value="${p.id}">${p.fullname}</option>`);
+}
+
+document.getElementById('despachoForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('despachoId').value;
+  const formData = new FormData();
+  formData.append('titulo', document.getElementById('despachoTitulo').value);
+  formData.append('descricao', document.getElementById('despachoDescricao').value);
+  formData.append('data_despacho', document.getElementById('despachoData').value);
+  formData.append('estado', document.getElementById('despachoEstado').value);
+  formData.append('observacao', document.getElementById('despachoObs').value);
+  if (document.getElementById('despachoPerson').value)
+    formData.append('person_id', document.getElementById('despachoPerson').value);
+  if (document.getElementById('despachoAnexo').files[0])
+    formData.append('anexo', document.getElementById('despachoAnexo').files[0]);
+
+  const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+    method: id ? 'PUT' : 'POST',
+    body: formData
+  });
+  if (!res.ok) return alert('Erro ao salvar despacho');
+  bootstrap.Modal.getInstance(document.getElementById('despachoModal')).hide();
+  loadDespachos();
+});
+
+async function deleteDespacho(id) {
+  if (!confirm('Apagar este despacho?')) return;
+  const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+  if (!res.ok) return alert('Erro ao apagar');
+  loadDespachos();
+}
+
+function downloadExcel() {
+  const wb = XLSX.utils.table_to_book(document.getElementById("despachosTable"), {sheet:"Despachos"});
+  XLSX.writeFile(wb, "despachos.xlsx");
+}
+
+window.onload = loadDespachos;
+</script>
+
+{% endblock %}

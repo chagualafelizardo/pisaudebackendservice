@@ -5,7 +5,7 @@
 {% block content %}
 {% include 'navbar.html' %}
 
-<h2>Manage Candidatos</h2>
+<h2>Manage Candidatos / Militar</h2>
 
 <!-- Input de busca -->
 <div class="mb-3 position-relative" style="max-width: 400px;">
@@ -32,7 +32,7 @@
     <thead>
         <tr>
             <th>ID</th>
-            <th>Person</th>
+            <th>Militar</th>
             <th>Curso</th>
             <th>Instituicao</th>
             <th>Número da Edição</th>
@@ -49,7 +49,7 @@
   <div class="modal-dialog modal-lg">
     <form id="candidatoForm" class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Add/Edit Candidato</h5>
+        <h5 class="modal-title">Add/Edit Candidato/Militar</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
@@ -61,7 +61,7 @@
           <div class="col-md-6">
             <!-- Person -->
             <div class="mb-3">
-              <label class="form-label">Person</label>
+              <label class="form-label">Canditado/Militar</label>
               <select id="candidatoPerson" class="form-select" required onchange="loadPersonDetails(this.value)"></select>
             </div>
 

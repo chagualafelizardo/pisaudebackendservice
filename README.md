@@ -103,3 +103,11 @@ grupo:
 
 # Depois mudar o servidor para um mais profissional
 AVISO: Este é um servidor de desenvolvimento. Não o utilize numa implantação de produção. Em vez disso, utilize um servidor WSGI de produção.
+
+# Para criar as tabelas manualmente
+docker exec -it pisaude-api bash
+root@fa2c433e7a87:/app# python app.py
+
+docker exec -it pisaude-api flask db init      # só na primeira vez
+docker exec -it pisaude-api flask db migrate -m "Alterações nos modelos"
+docker exec -it pisaude-api flask db upgrade

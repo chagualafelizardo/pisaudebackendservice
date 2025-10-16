@@ -1,6 +1,6 @@
 import logging
 from flask import jsonify, request
-from models import db, Candidato, CandidatoEdicao, Person, SyncStatusEnum
+from models import db, Candidato, CandidatoEdicao, Person
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,6 @@ class CandidatoController:
             candidatos = Candidato.query.all()
             result = []
             for c in candidatos:
-                # Para cada candidato, pegar a última edição registrada (se houver)
                 ultima_edicao = c.edicoes[-1] if c.edicoes else None
                 result.append({
                     'id': c.id,
@@ -24,7 +23,7 @@ class CandidatoController:
                     'instituicao': c.instituicao,
                     'numero_da_edicao': ultima_edicao.numeroedicao if ultima_edicao else None,
                     'data_edicao': ultima_edicao.dataedicao.isoformat() if ultima_edicao else None,
-                    'syncStatus': c.syncStatus.value if c.syncStatus else None,
+                    'syncStatus': c.syncStatus,
                     'syncStatusDate': c.syncStatusDate.isoformat() if c.syncStatusDate else None,
                     'createAt': c.createAt.isoformat() if c.createAt else None,
                     'updateAt': c.updateAt.isoformat() if c.updateAt else None
@@ -50,7 +49,7 @@ class CandidatoController:
                 'instituicao': c.instituicao,
                 'numero_da_edicao': ultima_edicao.numeroedicao if ultima_edicao else None,
                 'data_edicao': ultima_edicao.dataedicao.isoformat() if ultima_edicao else None,
-                'syncStatus': c.syncStatus.value if c.syncStatus else None,
+                'syncStatus': c.syncStatus,
                 'syncStatusDate': c.syncStatusDate.isoformat() if c.syncStatusDate else None,
                 'createAt': c.createAt.isoformat() if c.createAt else None,
                 'updateAt': c.updateAt.isoformat() if c.updateAt else None
@@ -68,7 +67,7 @@ class CandidatoController:
             instituicao = data.get('instituicao')
             numeroedicao = data.get('numero_da_edicao')
             dataedicao = data.get('data_edicao')
-            sync_status = data.get('syncStatus', 'NotSyncronized')
+            sync_status = data.get('syncStatus', 'Not Syncronized')
             sync_status_date = data.get('syncStatusDate')
 
             if not person_id or not curso:
@@ -78,18 +77,16 @@ class CandidatoController:
             if not person:
                 return jsonify({'message': 'Person not found'}), 404
 
-            # Cria o candidato
             new_candidato = Candidato(
                 personId=person_id,
                 curso=curso,
                 instituicao=instituicao,
-                syncStatus=SyncStatusEnum[sync_status] if sync_status in SyncStatusEnum.__members__ else SyncStatusEnum.NotSyncronized,
+                syncStatus=sync_status,
                 syncStatusDate=datetime.fromisoformat(sync_status_date) if sync_status_date else None
             )
             db.session.add(new_candidato)
-            db.session.flush()  # <-- garante que new_candidato.id está disponível
+            db.session.flush()
 
-            # Cria a edição se os dados existirem
             if numeroedicao or dataedicao:
                 new_edicao = CandidatoEdicao(
                     candidatoId=new_candidato.id,
@@ -130,14 +127,13 @@ class CandidatoController:
 
             c.curso = curso
             c.instituicao = instituicao
-            if sync_status in SyncStatusEnum.__members__:
-                c.syncStatus = SyncStatusEnum[sync_status]
+            if sync_status:
+                c.syncStatus = sync_status
             if sync_status_date:
                 c.syncStatusDate = datetime.fromisoformat(sync_status_date)
 
             c.updateAt = datetime.utcnow()
 
-            # Atualiza ou cria edição
             if numeroedicao or dataedicao:
                 ultima_edicao = c.edicoes[-1] if c.edicoes else None
                 if ultima_edicao:

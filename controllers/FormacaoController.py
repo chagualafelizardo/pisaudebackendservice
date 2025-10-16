@@ -35,7 +35,7 @@ class FormacaoController:
                         'id': f.tipo_licenca.id,
                         'description': f.tipo_licenca.description
                     } if f.tipo_licenca else None,
-                    'syncStatus': f.syncStatus.value if f.syncStatus else None,
+                    'syncStatus': f.syncStatus if f.syncStatus else None,
                     'syncStatusDate': f.syncStatusDate.isoformat() if f.syncStatusDate else None,
                     'createAt': f.createAt.isoformat() if f.createAt else None,
                     'updateAt': f.updateAt.isoformat() if f.updateAt else None,
@@ -70,7 +70,7 @@ class FormacaoController:
                     'id': f.tipo_licenca.id,
                     'description': f.tipo_licenca.description
                 } if f.tipo_licenca else None,
-                'syncStatus': f.syncStatus.value if f.syncStatus else None,
+                'syncStatus': f.syncStatus if f.syncStatus else None,
                 'syncStatusDate': f.syncStatusDate.isoformat() if f.syncStatusDate else None,
                 'createAt': f.createAt.isoformat() if f.createAt else None,
                 'updateAt': f.updateAt.isoformat() if f.updateAt else None,
@@ -115,9 +115,10 @@ class FormacaoController:
                 person=person,
                 pais=pais,
                 tipo_licenca=tipo_licenca,
-                syncStatus=SyncStatusEnum(data.get('syncStatus', 'Not Syncronized')),
+                syncStatus=data.get('syncStatus', 'Not Syncronized'),  # apenas string
                 syncStatusDate=datetime.fromisoformat(data['syncStatusDate']) if data.get('syncStatusDate') else None
             )
+
             db.session.add(formacao)
             db.session.commit()
             return jsonify({

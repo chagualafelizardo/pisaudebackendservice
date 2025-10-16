@@ -1,20 +1,31 @@
-# Dockerfile
 FROM python:3.11-slim
 
-# Define o diretório de trabalho
+# Evita criação de ficheiros .pyc e melhora logs
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Define diretório de trabalho
 WORKDIR /app
 
-# Copia o arquivo de dependências
+# Copia primeiro o requirements.txt (melhora cache)
 COPY requirements.txt .
 
-# Instala as dependências
-RUN pip install --no-cache-dir -r requirements.txt
+# Instala dependências e corrige conflito com Flask-Babel
+RUN pip install --upgrade pip && \
+    pip uninstall -y Flask-Babel || true && \
+    pip install --no-cache-dir Flask==2.3.3 Flask-BabelEx==0.9.4 && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copia o restante do projeto
+# Copia todo o código do projeto
 COPY . .
 
-# Expõe a porta usada pelo Flask
+# Expõe a porta padrão do Flask
 EXPOSE 5000
 
-# Comando de execução
-CMD ["python", "app.py", "--host=0.0.0.0"]
+# Variáveis de ambiente
+ENV FLASK_APP=app.py
+ENV FLASK_RUN_HOST=0.0.0.0
+ENV FLASK_ENV=development
+
+# 🔥 Comando final com reload automático
+CMD ["flask", "run", "--host=0.0.0.0", "--reload"]
