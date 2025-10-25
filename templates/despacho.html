@@ -7,6 +7,9 @@
 
 <h2>Gestão de Despachos</h2>
 
+<!-- Alertas de feedback -->
+<div id="alertContainer" style="position: fixed; top: 80px; right: 20px; z-index: 1050; min-width: 300px;"></div>
+
 <div class="mb-3 position-relative" style="max-width: 400px;">
   <input type="text" id="despachoSearch" class="form-control" placeholder="Pesquisar despacho..." oninput="filtrarTabela(this.value)">
 </div>
@@ -46,17 +49,17 @@
         <input type="hidden" id="despachoId">
 
         <div class="mb-3">
-          <label class="form-label">Título</label>
+          <label class="form-label">Título <span class="text-danger">*</span></label>
           <input type="text" id="despachoTitulo" class="form-control" required>
         </div>
 
         <div class="mb-3">
           <label class="form-label">Descrição</label>
-          <textarea id="despachoDescricao" class="form-control"></textarea>
+          <textarea id="despachoDescricao" class="form-control" rows="3"></textarea>
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Data Despacho</label>
+          <label class="form-label">Data Despacho <span class="text-danger">*</span></label>
           <input type="date" id="despachoData" class="form-control" required>
         </div>
 
@@ -73,17 +76,32 @@
 
         <div class="mb-3">
           <label class="form-label">Militar (opcional)</label>
-          <select id="despachoPerson" class="form-select"></select>
+          <select id="despachoPerson" class="form-select">
+            <option value="">Selecione...</option>
+          </select>
+        </div>
+
+        <!-- Detalhes do Militar -->
+        <div id="personDetails" class="border rounded p-3 bg-light mt-2" style="display: none;">
+          <h6>Detalhes do Militar</h6>
+          <img id="personImage" src="" alt="Foto do Militar" class="img-thumbnail mb-2" style="max-width: 150px;">
+          <p><strong>Nome:</strong> <span id="personFullname"></span></p>
+          <p><strong>NIM:</strong> <span id="personNim"></span></p>
+          <p><strong>Gênero:</strong> <span id="personGender"></span></p>
+          <p><strong>Data de Nascimento:</strong> <span id="personDob"></span></p>
+          <p><strong>Data de Incorporação:</strong> <span id="personIncorp"></span></p>
         </div>
 
         <div class="mb-3">
           <label class="form-label">Anexo</label>
           <input type="file" id="despachoAnexo" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+          <div id="despachoAnexoContainer" class="form-text mt-1"></div>
+          <div class="form-text">Formatos suportados: PDF, DOC, DOCX, PNG, JPG, JPEG</div>
         </div>
 
         <div class="mb-3">
           <label class="form-label">Observação</label>
-          <textarea id="despachoObs" class="form-control"></textarea>
+          <textarea id="despachoObs" class="form-control" rows="3"></textarea>
         </div>
 
       </div>
@@ -98,90 +116,442 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
+// Substitua TODO o JavaScript no template de despachos por este:
+
 const apiUrl = '/api/despacho';
 const personApiUrl = '/api/person';
 let allDespachos = [], allPersons = [];
 
+// Função para mostrar alertas
+function showAlert(message, type = 'success') {
+  const alertContainer = document.getElementById('alertContainer');
+  const alertId = 'alert-' + Date.now();
+  
+  const alertHTML = `
+    <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  `;
+  
+  alertContainer.innerHTML += alertHTML;
+  
+  // Auto-remover após 5 segundos
+  setTimeout(() => {
+    const alert = document.getElementById(alertId);
+    if (alert) {
+      alert.remove();
+    }
+  }, 5000);
+}
+
+// Função para testar todas as rotas da API
+async function testAllApiRoutes() {
+  console.log('=== TESTANDO ROTAS DA API ===');
+  
+  try {
+    // Testar GET ALL Despachos
+    console.log('1. Testando GET /despacho...');
+    const getAllRes = await fetch(apiUrl);
+    console.log('GET ALL - Status:', getAllRes.status, 'OK:', getAllRes.ok);
+    
+    if (getAllRes.ok) {
+      const data = await getAllRes.json();
+      console.log('GET ALL - Dados recebidos:', data.length, 'itens');
+    } else {
+      const text = await getAllRes.text();
+      console.log('GET ALL - Erro:', text);
+    }
+
+    // Testar GET Person
+    console.log('2. Testando GET /person...');
+    const getPersonRes = await fetch(personApiUrl);
+    console.log('GET PERSON - Status:', getPersonRes.status, 'OK:', getPersonRes.ok);
+    
+    if (getPersonRes.ok) {
+      const data = await getPersonRes.json();
+      console.log('GET PERSON - Dados recebidos:', data.length, 'itens');
+    } else {
+      const text = await getPersonRes.text();
+      console.log('GET PERSON - Erro:', text);
+    }
+
+  } catch (error) {
+    console.error('Erro no teste de API:', error);
+  }
+  
+  console.log('=== FIM DO TESTE ===');
+}
+
 async function loadDespachos() {
-  const res = await fetch(apiUrl);
-  allDespachos = await res.json();
-  filtrarTabela('');
+  try {
+    console.log('Carregando despachos de:', apiUrl);
+    const res = await fetch(apiUrl);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Erro HTTP ${res.status}: ${errorText}`);
+    }
+    
+    allDespachos = await res.json();
+    console.log(`Carregados ${allDespachos.length} despachos`);
+    filtrarTabela('');
+    
+  } catch (error) {
+    console.error('Erro ao carregar despachos:', error);
+    showAlert('Erro ao carregar despachos: ' + error.message, 'danger');
+  }
 }
 
 function filtrarTabela(query) {
   const tbody = document.getElementById('despachosTableBody');
   tbody.innerHTML = '';
   const termo = query.trim().toLowerCase();
-  allDespachos.filter(d => (d.titulo||'').toLowerCase().includes(termo))
-    .forEach(d => {
-      tbody.innerHTML += `
-        <tr>
-          <td>${d.id}</td>
-          <td>${d.titulo}</td>
-          <td>${d.descricao||''}</td>
-          <td>${d.data_despacho||''}</td>
-          <td>${d.estado||''}</td>
-          <td>${d.person?.fullname||''}</td>
-          <td>${d.anexo_nome ? `<a href="/api/despacho/${d.id}/anexo" target="_blank">${d.anexo_nome}</a>` : ''}</td>
-          <td>
-            <button class="btn btn-sm btn-warning" onclick="editDespacho(${d.id})">Editar</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteDespacho(${d.id})">Apagar</button>
-          </td>
-        </tr>`;
-    });
+  
+  const despachosFiltrados = allDespachos.filter(d => 
+    (d.titulo || '').toLowerCase().includes(termo) ||
+    (d.descricao || '').toLowerCase().includes(termo) ||
+    (d.person?.fullname || '').toLowerCase().includes(termo)
+  );
+  
+  console.log(`Filtrando: ${despachosFiltrados.length} despachos encontrados`);
+  
+  despachosFiltrados.forEach(d => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${d.id}</td>
+        <td>${d.titulo}</td>
+        <td>${d.descricao || ''}</td>
+        <td>${d.data_despacho || ''}</td>
+        <td><span class="badge bg-${getEstadoBadgeColor(d.estado)}">${d.estado}</span></td>
+        <td>
+          <div class="d-flex align-items-center">
+            <img src="${d.person_image ? `data:image/jpeg;base64,${d.person_image}` : '/static/img/default-user.png'}"
+                class="rounded-circle me-2"
+                alt="Foto"
+                width="40" height="40"
+                style="object-fit: cover;">
+           <span>${d.person?.fullname || '-'}</span>
+          </div>
+        </td>
+        <td>${d.anexo_nome ? `<a href="/despacho/${d.id}/anexo" target="_blank" class="btn btn-sm btn-outline-primary">📎 ${d.anexo_nome}</a>` : ''}</td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="editDespacho(${d.id})">Editar</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteDespacho(${d.id})">Apagar</button>
+        </td>
+      </tr>`;
+  });
 }
 
-function openDespachoModal() {
+function getEstadoBadgeColor(estado) {
+  const cores = {
+    'PENDENTE': 'warning',
+    'APROVADO': 'success',
+    'REJEITADO': 'danger',
+    'CONCLUIDO': 'info',
+    'CANCELADO': 'secondary'
+  };
+  return cores[estado] || 'secondary';
+}
+
+function openDespachoModal(despachoId = null) {
   document.getElementById('despachoForm').reset();
-  document.getElementById('despachoId').value = '';
+  document.getElementById('despachoId').value = despachoId || '';
+  document.getElementById('despachoData').value = new Date().toISOString().split('T')[0];
+  document.getElementById('despachoEstado').value = 'PENDENTE';
+  
   loadPersons();
+  
+  if (despachoId) {
+    loadDespachoData(despachoId);
+    document.querySelector('.modal-title').textContent = 'Editar Despacho';
+  } else {
+    document.querySelector('.modal-title').textContent = 'Adicionar Despacho';
+  }
+  
   new bootstrap.Modal(document.getElementById('despachoModal')).show();
 }
 
-async function loadPersons() {
-  const res = await fetch(personApiUrl);
-  allPersons = await res.json();
-  const select = document.getElementById('despachoPerson');
-  select.innerHTML = '<option value="">Selecione o militar</option>';
-  allPersons.forEach(p => select.innerHTML += `<option value="${p.id}">${p.fullname}</option>`);
+async function loadDespachoData(id) {
+  try {
+    console.log(`Carregando dados do despacho ${id} de: ${apiUrl}/${id}`);
+    const res = await fetch(`${apiUrl}/${id}`);
+    
+    if (!res.ok) {
+      throw new Error(`Erro HTTP ${res.status} ao carregar despacho`);
+    }
+    
+    const despacho = await res.json();
+    
+    document.getElementById('despachoTitulo').value = despacho.titulo || '';
+    document.getElementById('despachoDescricao').value = despacho.descricao || '';
+    document.getElementById('despachoData').value = despacho.data_despacho || '';
+    document.getElementById('despachoEstado').value = despacho.estado || 'PENDENTE';
+    document.getElementById('despachoObs').value = despacho.observacao || '';
+    document.getElementById('despachoPerson').value = despacho.person_id || '';
+    
+    // Atualizar detalhes do militar se houver
+    if (despacho.person_id) {
+      document.getElementById('despachoPerson').dispatchEvent(new Event('change'));
+    }
+    
+  } catch (error) {
+    console.error('Erro ao carregar dados do despacho:', error);
+    showAlert('Erro ao carregar dados do despacho', 'danger');
+  }
 }
+
+async function loadPersons() {
+  try {
+    console.log('Carregando militares de:', personApiUrl);
+    const res = await fetch(personApiUrl);
+    
+    if (!res.ok) {
+      throw new Error(`Erro HTTP ${res.status} ao carregar militares`);
+    }
+    
+    allPersons = await res.json();
+    const select = document.getElementById('despachoPerson');
+    select.innerHTML = '<option value="">Selecione...</option>';
+
+    allPersons.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.fullname} (${p.nim || 'Sem NIM'})`;
+      select.appendChild(opt);
+    });
+    
+    console.log(`Carregados ${allPersons.length} militares`);
+  } catch (error) {
+    console.error('Erro ao carregar militares:', error);
+    showAlert('Erro ao carregar lista de militares', 'warning');
+  }
+}
+
+document.getElementById('despachoPerson').addEventListener('change', function() {
+  const selectedId = this.value;
+  const person = allPersons.find(p => p.id == selectedId);
+  const details = document.getElementById('personDetails');
+
+  if (person) {
+    document.getElementById('personFullname').textContent = person.fullname || '-';
+    document.getElementById('personNim').textContent = person.nim || '-';
+    document.getElementById('personGender').textContent = person.gender || '-';
+    document.getElementById('personDob').textContent = person.dateofbirth || '-';
+    document.getElementById('personIncorp').textContent = person.incorporationdata || '-';
+
+    const imgEl = document.getElementById('personImage');
+    if (person.image) {
+      imgEl.src = `data:image/jpeg;base64,${person.image}`;
+    } else {
+      imgEl.src = '/static/img/default-user.png';
+    }
+
+    details.style.display = 'block';
+  } else {
+    details.style.display = 'none';
+  }
+});
 
 document.getElementById('despachoForm').addEventListener('submit', async e => {
   e.preventDefault();
+  
   const id = document.getElementById('despachoId').value;
   const formData = new FormData();
-  formData.append('titulo', document.getElementById('despachoTitulo').value);
+  
+  // Validar campos obrigatórios
+  const titulo = document.getElementById('despachoTitulo').value.trim();
+  const dataDespacho = document.getElementById('despachoData').value;
+  
+  if (!titulo) {
+    showAlert('O campo Título é obrigatório', 'warning');
+    return;
+  }
+  
+  if (!dataDespacho) {
+    showAlert('O campo Data é obrigatório', 'warning');
+    return;
+  }
+  
+  formData.append('titulo', titulo);
   formData.append('descricao', document.getElementById('despachoDescricao').value);
-  formData.append('data_despacho', document.getElementById('despachoData').value);
+  formData.append('data_despacho', dataDespacho);
   formData.append('estado', document.getElementById('despachoEstado').value);
   formData.append('observacao', document.getElementById('despachoObs').value);
-  if (document.getElementById('despachoPerson').value)
-    formData.append('person_id', document.getElementById('despachoPerson').value);
-  if (document.getElementById('despachoAnexo').files[0])
-    formData.append('anexo', document.getElementById('despachoAnexo').files[0]);
+  
+  const personId = document.getElementById('despachoPerson').value;
+  if (personId) {
+    formData.append('person_id', personId);
+  }
+  
+  const anexoFile = document.getElementById('despachoAnexo').files[0];
+  if (anexoFile) {
+    formData.append('anexo', anexoFile);
+  }
 
-  const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
-    method: id ? 'PUT' : 'POST',
-    body: formData
-  });
-  if (!res.ok) return alert('Erro ao salvar despacho');
-  bootstrap.Modal.getInstance(document.getElementById('despachoModal')).hide();
-  loadDespachos();
+  try {
+    console.log(`${id ? 'Atualizando' : 'Criando'} despacho...`);
+    
+    const url = id ? `${apiUrl}/${id}` : apiUrl;
+    const method = id ? 'PUT' : 'POST';
+    
+    console.log('URL:', url);
+    console.log('Método:', method);
+    console.log('Dados do formulário:');
+    for (let [key, value] of formData.entries()) {
+      if (key === 'anexo') {
+        console.log(`  ${key}:`, value.name, value.type, value.size + ' bytes');
+      } else {
+        console.log(`  ${key}:`, value);
+      }
+    }
+    
+    const res = await fetch(url, {
+      method: method,
+      body: formData
+    });
+    
+    console.log('Resposta recebida. Status:', res.status);
+    console.log('Headers:', Object.fromEntries(res.headers.entries()));
+    
+    let responseData;
+    const contentType = res.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      responseData = await res.json();
+      console.log('Resposta JSON:', responseData);
+    } else {
+      const textResponse = await res.text();
+      console.error('Resposta não é JSON:', textResponse);
+      
+      if (res.status === 404) {
+        throw new Error(`URL não encontrada (404). Verifique se a rota ${url} está definida no servidor.`);
+      } else {
+        throw new Error(`Resposta inesperada (${res.status}): ${textResponse.substring(0, 200)}`);
+      }
+    }
+    
+    if (!res.ok) {
+      throw new Error(responseData.error || responseData.message || `Erro HTTP: ${res.status}`);
+    }
+    
+    bootstrap.Modal.getInstance(document.getElementById('despachoModal')).hide();
+    showAlert(responseData.message || 'Despacho salvo com sucesso!', 'success');
+    loadDespachos();
+    
+  } catch (error) {
+    console.error('Erro ao salvar despacho:', error);
+    showAlert('Erro ao salvar despacho: ' + error.message, 'danger');
+  }
 });
 
+async function editDespacho(id) {
+  try {
+    // Resetar form
+    const form = document.getElementById('despachoForm');
+    form.reset();
+    document.getElementById('despachoId').value = id || '';
+    document.getElementById('despachoData').value = new Date().toISOString().split('T')[0];
+    document.getElementById('despachoEstado').value = 'PENDENTE';
+
+    // Carregar militares primeiro
+    await loadPersons(); // garante que o select está populado
+
+    // Buscar dados do despacho
+    const res = await fetch(`${apiUrl}/${id}`);
+    if (!res.ok) throw new Error(`Erro ao carregar despacho: ${res.status}`);
+    const despacho = await res.json();
+
+    // Preencher campos do form
+    document.getElementById('despachoTitulo').value = despacho.titulo || '';
+    document.getElementById('despachoDescricao').value = despacho.descricao || '';
+    document.getElementById('despachoData').value = despacho.data_despacho || '';
+    // 🔽 Aqui entra a nova correção
+    const estadoSelect = document.getElementById('despachoEstado');
+    const estadoServidor = (despacho.estado || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    let encontrado = false;
+
+    for (let opt of estadoSelect.options) {
+      const optVal = opt.value.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (optVal === estadoServidor) {
+        estadoSelect.value = opt.value;
+        encontrado = true;
+        break;
+      }
+    }
+
+    if (!encontrado) estadoSelect.value = 'PENDENTE';
+    // 🔼 Fim da correção
+    document.getElementById('despachoObs').value = despacho.observacao || '';
+
+
+    // Selecionar militar no dropdown
+    if (despacho.person_id) {
+      document.getElementById('despachoPerson').value = despacho.person_id;
+      document.getElementById('despachoPerson').dispatchEvent(new Event('change')); // atualiza detalhes
+    }
+
+    // Mostrar anexo antigo, se houver
+    const anexoContainer = document.getElementById('despachoAnexoContainer');
+    if (despacho.anexo_nome) {
+      anexoContainer.innerHTML = `<a href="/despacho/${despacho.id}/anexo" target="_blank">${despacho.anexo_nome}</a>`;
+    } else {
+      anexoContainer.innerHTML = '';
+    }
+
+    // Atualizar título do modal
+    document.querySelector('#despachoModal .modal-title').textContent = 'Editar Despacho';
+
+    // Abrir modal
+    new bootstrap.Modal(document.getElementById('despachoModal')).show();
+
+  } catch (error) {
+    console.error('Erro ao editar despacho:', error);
+    showAlert('Erro ao carregar despacho para edição: ' + error.message, 'danger');
+  }
+}
+
+
 async function deleteDespacho(id) {
-  if (!confirm('Apagar este despacho?')) return;
-  const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
-  if (!res.ok) return alert('Erro ao apagar');
-  loadDespachos();
+  if (!confirm('Tem certeza que deseja apagar este despacho?')) return;
+  
+  try {
+    console.log(`Apagando despacho ${id} de: ${apiUrl}/${id}`);
+    const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Erro HTTP ${res.status}: ${errorText}`);
+    }
+    
+    showAlert('Despacho apagado com sucesso!', 'success');
+    loadDespachos();
+    
+  } catch (error) {
+    console.error('Erro ao apagar despacho:', error);
+    showAlert('Erro ao apagar despacho: ' + error.message, 'danger');
+  }
 }
 
 function downloadExcel() {
-  const wb = XLSX.utils.table_to_book(document.getElementById("despachosTable"), {sheet:"Despachos"});
-  XLSX.writeFile(wb, "despachos.xlsx");
+  try {
+    const wb = XLSX.utils.table_to_book(document.getElementById("despachosTable"), {sheet:"Despachos"});
+    XLSX.writeFile(wb, "despachos.xlsx");
+    showAlert('Excel exportado com sucesso!', 'success');
+  } catch (error) {
+    console.error('Erro ao exportar Excel:', error);
+    showAlert('Erro ao exportar Excel', 'danger');
+  }
 }
 
-window.onload = loadDespachos;
+// Inicializar quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Inicializando página de despachos...');
+  console.log('URL da API Despacho:', apiUrl);
+  console.log('URL da API Person:', personApiUrl);
+  testAllApiRoutes(); // Isso vai mostrar exatamente quais rotas estão funcionando
+  loadDespachos();
+});
 </script>
 
 {% endblock %}

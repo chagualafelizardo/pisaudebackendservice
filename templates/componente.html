@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Gestão de Componentes{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h4 class="mb-3">Gestão de Componentes</h4>
+
+  <form id="addComponenteForm" class="mb-4">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <input type="text" class="form-control" id="componente_id" placeholder="ID do Componente (ex: gestaoAlocacaoMenu)" required>
+      </div>
+      <div class="col-md-6">
+        <input type="text" class="form-control" id="descricao" placeholder="Descrição do componente" required>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Adicionar</button>
+      </div>
+    </div>
+  </form>
+
+  <table class="table table-bordered align-middle text-center">
+    <thead class="table-light">
+      <tr>
+        <th>ID</th>
+        <th>Componente ID</th>
+        <th>Descrição</th>
+        <th>Ativo</th>
+      </tr>
+    </thead>
+    <tbody id="componentesTableBody"></tbody>
+  </table>
+</div>
+
+<script>
+const apiComponentes = '/api/componentes';
+
+async function loadComponentes() {
+  const res = await fetch(apiComponentes);
+  const data = await res.json();
+  const tbody = document.getElementById('componentesTableBody');
+  tbody.innerHTML = '';
+  data.forEach(c => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${c.id}</td>
+        <td>${c.componente_id}</td>
+        <td>${c.descricao}</td>
+        <td>${c.is_active ? '✅' : '❌'}</td>
+      </tr>
+    `;
+  });
+}
+
+document.getElementById('addComponenteForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const componente_id = document.getElementById('componente_id').value;
+  const descricao = document.getElementById('descricao').value;
+  
+  const res = await fetch(apiComponentes, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({componente_id, descricao})
+  });
+  
+  if (res.ok) {
+    alert('Componente registado com sucesso!');
+    loadComponentes();
+    e.target.reset();
+  }
+});
+
+loadComponentes();
+</script>
+{% endblock %}

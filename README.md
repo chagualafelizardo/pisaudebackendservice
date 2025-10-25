@@ -111,3 +111,4 @@ root@fa2c433e7a87:/app# python app.py
 docker exec -it pisaude-api flask db init      # só na primeira vez
 docker exec -it pisaude-api flask db migrate -m "Alterações nos modelos"
 docker exec -it pisaude-api flask db upgrade
+python -m compileall .

@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}PI-SAÚDE / Províncias{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Gestão de Províncias</h2>
+
+<!-- Campo de pesquisa -->
+<div class="mb-3 position-relative" style="max-width: 400px;">
+    <input type="text" id="provinciaSearch" class="form-control" placeholder="Pesquisar província..." oninput="filtrarTabela(this.value)">
+</div>
+
+<!-- Botão de exportar Excel -->
+<div class="mb-3">
+    <button class="btn btn-outline-success" onclick="downloadExcel()">📥 Exportar Excel</button>
+</div>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="abrirModalProvincia()">
+    +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered" id="provinciaTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Sync Status</th>
+            <th>Sync Status Date</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="provinciaTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="provinciaModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="provinciaForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar / Editar Província</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="provinciaId">
+
+        <div class="mb-3">
+          <label class="form-label">Nome</label>
+          <input type="text" id="provinciaNome" class="form-control" required>
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label">Sync Status</label>
+          <select id="provinciaSyncStatus" class="form-select">
+            <option value="Not Syncronized">Not Syncronized</option>
+            <option value="Syncronized">Syncronized</option>
+            <option value="Updated">Updated</option>
+          </select>
+        </div>
+
+        <div class="mb-3 mt-2">
+          <label class="form-label">Sync Status Date</label>
+          <input type="datetime-local" id="provinciaSyncDate" class="form-control">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Dependência Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+let allProvincias = [];
+const apiUrl = '/api/provincia';
+
+/* -------------------- CARREGAMENTO -------------------- */
+window.onload = () => {
+    loadProvincias();
+};
+
+/* -------------------- LISTAR -------------------- */
+async function loadProvincias() {
+    try {
+        const res = await fetch(apiUrl);
+        allProvincias = await res.json();
+        filtrarTabela(document.getElementById('provinciaSearch').value);
+    } catch (err) {
+        console.error(err);
+        alert('Erro ao carregar províncias');
+    }
+}
+
+/* -------------------- FILTRAR E TABELA -------------------- */
+function filtrarTabela(query) {
+    const tbody = document.getElementById('provinciaTableBody');
+    tbody.innerHTML = '';
+    const termo = query.trim().toLowerCase();
+
+    allProvincias
+        .filter(p => (p.nome || '').toLowerCase().includes(termo))
+        .forEach(p => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${p.id}</td>
+                <td>${p.nome}</td>
+                <td>${p.syncStatus || ''}</td>
+                <td>${p.syncStatusDate ? p.syncStatusDate.slice(0, 16).replace('T', ' ') : ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editarProvincia(${p.id})">Editar</button>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarProvincia(${p.id})">Apagar</button>
+                </td>
+            </tr>`;
+        });
+}
+
+/* -------------------- MODAL -------------------- */
+function abrirModalProvincia() {
+    document.getElementById('provinciaForm').reset();
+    document.getElementById('provinciaId').value = '';
+    new bootstrap.Modal(document.getElementById('provinciaModal')).show();
+}
+
+function editarProvincia(id) {
+    const p = allProvincias.find(p => p.id === id);
+    if (!p) return;
+    document.getElementById('provinciaId').value = p.id;
+    document.getElementById('provinciaNome').value = p.nome || '';
+    document.getElementById('provinciaSyncStatus').value = p.syncStatus || 'Not Syncronized';
+    document.getElementById('provinciaSyncDate').value = p.syncStatusDate ? p.syncStatusDate.slice(0,16) : '';
+    new bootstrap.Modal(document.getElementById('provinciaModal')).show();
+}
+
+/* -------------------- GUARDAR -------------------- */
+document.getElementById('provinciaForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('provinciaId').value;
+    const payload = {
+        nome: document.getElementById('provinciaNome').value,
+        syncStatus: document.getElementById('provinciaSyncStatus').value,
+        syncStatusDate: document.getElementById('provinciaSyncDate').value
+            ? new Date(document.getElementById('provinciaSyncDate').value).toISOString()
+            : null
+    };
+
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw await res.json();
+        bootstrap.Modal.getInstance(document.getElementById('provinciaModal')).hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadProvincias();
+    } catch (err) {
+        alert(err.message || 'Erro ao salvar província');
+    }
+});
+
+/* -------------------- ELIMINAR -------------------- */
+async function eliminarProvincia(id) {
+    if (!confirm('Tem certeza que deseja apagar esta província?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        loadProvincias();
+    } catch (err) {
+        alert(err.message || 'Erro ao apagar província');
+    }
+}
+
+/* -------------------- EXPORTAR EXCEL -------------------- */
+function downloadExcel() {
+    const table = document.getElementById("provinciaTable");
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Provincias" });
+    XLSX.writeFile(wb, "provincias.xlsx");
+}
+</script>
+
+{% endblock %}

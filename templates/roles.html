@@ -17,16 +17,21 @@
         onclick="openModal()">+</button>
 
 <!-- Tabela -->
-<table class="table table-bordered">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Role Description</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody id="rolesTableBody"></tbody>
+<table class="table table-bordered align-middle text-center">
+  <thead class="table-light">
+    <tr>
+      <th>ID</th>
+      <th>Role Description</th>
+      <th>Create</th>
+      <th>Read</th>
+      <th>Update</th>
+      <th>Delete</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="rolesTableBody"></tbody>
 </table>
+
 
 <!-- Modal -->
 <div class="modal fade" id="roleModal" tabindex="-1">
@@ -37,10 +42,30 @@
           <h5 class="modal-title" id="modalTitle">Add Role</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">
-          <input type="hidden" id="roleId">
-          <input type="text" id="roleName" class="form-control" placeholder="Role Name" required>
-        </div>
+            <div class="modal-body">
+                <input type="hidden" id="roleId">
+                <div class="mb-3">
+                    <label for="roleName" class="form-label">Role Name</label>
+                    <input type="text" id="roleName" class="form-control" placeholder="Role Name" required>
+                </div>
+                
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="canCreate">
+                    <label class="form-check-label" for="canCreate">Can Create</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="canRead" checked>
+                    <label class="form-check-label" for="canRead">Can View</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="canUpdate">
+                    <label class="form-check-label" for="canUpdate">Can Edit</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="canDelete">
+                    <label class="form-check-label" for="canDelete">Can Delete</label>
+                </div>
+            </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Save</button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -55,23 +80,36 @@ const apiRoles = '/api/role';
 
 // Carregar tabela
 async function loadRoles() {
-    const res = await fetch(apiRoles);
-    const roles = await res.json();
-    const tbody = document.getElementById('rolesTableBody');
-    tbody.innerHTML = '';
+    try {
+        const res = await fetch(apiRoles);
+        if (!res.ok) throw new Error('Erro ao carregar roles');
+        
+        const roles = await res.json();
+        const tbody = document.getElementById('rolesTableBody');
+        tbody.innerHTML = '';
 
-    roles.forEach(role => {
-        tbody.innerHTML += `
-        <tr>
-            <td>${role.id}</td>
-            <td>${role.description}</td>
-            <td>
-                <button class="btn btn-sm btn-warning" onclick="editRole(${role.id})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteRole(${role.id})">Delete</button>
-            </td>
-        </tr>`;
-    });
+        roles.forEach(role => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${role.id}</td>
+                <td>${role.description}</td>
+                <td>${role.can_create ? '✅' : '❌'}</td>
+                <td>${role.can_read ? '✅' : '❌'}</td>
+                <td>${role.can_update ? '✅' : '❌'}</td>
+                <td>${role.can_delete ? '✅' : '❌'}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editRole(${role.id})">Edit</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteRole(${role.id})">Delete</button>
+                </td>
+            </tr>`;
+        });
+
+    } catch (error) {
+        console.error(error);
+        alert('Erro ao carregar as roles. Verifique o servidor.');
+    }
 }
+
 
 // Abrir modal para criar novo
 function openModal() {
@@ -87,6 +125,10 @@ async function editRole(id) {
     document.getElementById('modalTitle').innerText = 'Edit Role';
     document.getElementById('roleId').value = role.id;
     document.getElementById('roleName').value = role.description;
+    document.getElementById('canCreate').checked = role.can_create;
+    document.getElementById('canRead').checked = role.can_read;
+    document.getElementById('canUpdate').checked = role.can_update;
+    document.getElementById('canDelete').checked = role.can_delete;
     new bootstrap.Modal(document.getElementById('roleModal')).show();
 }
 
@@ -94,7 +136,13 @@ async function editRole(id) {
 document.getElementById('roleForm').addEventListener('submit', async e => {
     e.preventDefault();
     const id = document.getElementById('roleId').value;
-    const data = { description: document.getElementById('roleName').value };
+    const data = {
+        description: document.getElementById('roleName').value,
+        can_create: document.getElementById('canCreate').checked,
+        can_read: document.getElementById('canRead').checked,
+        can_update: document.getElementById('canUpdate').checked,
+        can_delete: document.getElementById('canDelete').checked
+    };
 
     let res;
     if (id) {
@@ -117,13 +165,8 @@ document.getElementById('roleForm').addEventListener('submit', async e => {
         return;
     }
 
-    const modalEl = document.getElementById('roleModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
-    modal.hide();
-
-    // Remove backdrop manualmente (evita bug visual)
+    bootstrap.Modal.getInstance(document.getElementById('roleModal')).hide();
     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-
     loadRoles();
 });
 

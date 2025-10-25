@@ -36,6 +36,11 @@ from .Pais import Pais, SyncStatusEnum
 from .Formacao import Formacao
 from .Licenca import Licenca, EstadoLicencaEnum
 from .Despacho import Despacho, EstadoDespachoEnum
+from .Provincia import Provincia, SyncStatusEnum
+from .Item import Item, SyncStatusEnum
+from .Armazem import Armazem, SyncStatusEnum
+from .Componente import Componente
+from .UserComponente import UserComponente
 
 __all__ = [
     'db', 'Role', 'State', 'Grouptype', 'Group', 'Location', 
@@ -45,5 +50,6 @@ __all__ = [
     'Subunidade', 'Especialidade', 'Subespecialidade', 'SituacaoGeral',
     'Funcao', 'SituacaoPrestacaoServico', 'Afetacao', 'Transferencia',
     'EspecialidadeSaude', 'Candidato', 'CandidatoEdicao', 'TipoLicenca',
-    'Pais', 'Formacao', 'Licenca','EstadoLicencaEnum', 'Despacho','EstadoDespachoEnum'
+    'Pais', 'Formacao', 'Licenca','EstadoLicencaEnum', 'Despacho','EstadoDespachoEnum',
+    'Provincia','Item','Armazem', 'Componente','UserComponente'
 ]

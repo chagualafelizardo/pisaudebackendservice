@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block title %}PI-SAÚDE / Armazéns{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Gestão de Armazéns</h2>
+
+<!-- Campo de pesquisa -->
+<div class="mb-3 position-relative" style="max-width: 400px;">
+    <input type="text" id="armazemSearch" class="form-control" placeholder="Pesquisar armazém..." oninput="filtrarTabela(this.value)">
+</div>
+
+<!-- Botão de exportar Excel -->
+<div class="mb-3">
+    <button class="btn btn-outline-success" onclick="downloadExcel()">📥 Exportar Excel</button>
+</div>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="abrirModalArmazem()">
+    +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered" id="armazemTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Província</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+            <th>Sync Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="armazemTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="armazemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="armazemForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar / Editar Armazém</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="armazemId">
+
+        <div class="mb-3">
+          <label class="form-label">Nome</label>
+          <input type="text" id="armazemNome" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Província</label>
+          <select id="armazemProvincia" class="form-select" required></select>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label class="form-label">Latitude</label>
+            <input type="number" id="armazemLat" step="any" class="form-control">
+          </div>
+          <div class="col">
+            <label class="form-label">Longitude</label>
+            <input type="number" id="armazemLng" step="any" class="form-control">
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label">Sync Status</label>
+          <select id="armazemSyncStatus" class="form-select">
+            <option value="Not Syncronized">Not Syncronized</option>
+            <option value="Syncronized">Syncronized</option>
+            <option value="Updated">Updated</option>
+          </select>
+        </div>
+
+        <div class="mb-3 mt-2">
+          <label class="form-label">Sync Status Date</label>
+          <input type="datetime-local" id="armazemSyncDate" class="form-control">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+let allArmazens = [];
+let allProvincias = [];
+const apiUrl = '/api/armazem';
+const provinciaUrl = '/api/provincia';
+
+/* -------------------- CARREGAMENTO -------------------- */
+window.onload = () => {
+    loadProvincias();
+    loadArmazens();
+};
+
+async function loadProvincias() {
+    const res = await fetch(provinciaUrl);
+    allProvincias = await res.json();
+    const select = document.getElementById('armazemProvincia');
+    select.innerHTML = '<option value="">Selecione a província</option>';
+    allProvincias.forEach(p => select.innerHTML += `<option value="${p.id}">${p.nome}</option>`);
+}
+
+async function loadArmazens() {
+    const res = await fetch(apiUrl);
+    allArmazens = await res.json();
+    filtrarTabela(document.getElementById('armazemSearch').value);
+}
+
+/* -------------------- FILTRO E TABELA -------------------- */
+function filtrarTabela(query) {
+    const tbody = document.getElementById('armazemTableBody');
+    tbody.innerHTML = '';
+    const termo = query.trim().toLowerCase();
+
+    allArmazens
+        .filter(a => (a.nome || '').toLowerCase().includes(termo) || (a.provincia_nome || '').toLowerCase().includes(termo))
+        .forEach(a => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${a.id}</td>
+                <td>${a.nome}</td>
+                <td>${a.provincia_nome || ''}</td>
+                <td>${a.latitude || ''}</td>
+                <td>${a.longitude || ''}</td>
+                <td>${a.syncStatus || ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editarArmazem(${a.id})">Editar</button>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarArmazem(${a.id})">Apagar</button>
+                </td>
+            </tr>`;
+        });
+}
+
+/* -------------------- MODAL -------------------- */
+function abrirModalArmazem() {
+    document.getElementById('armazemForm').reset();
+    document.getElementById('armazemId').value = '';
+    new bootstrap.Modal(document.getElementById('armazemModal')).show();
+}
+
+function editarArmazem(id) {
+    const a = allArmazens.find(a => a.id === id);
+    if (!a) return;
+    document.getElementById('armazemId').value = a.id;
+    document.getElementById('armazemNome').value = a.nome || '';
+    document.getElementById('armazemProvincia').value = a.provincia_id || '';
+    document.getElementById('armazemLat').value = a.latitude || '';
+    document.getElementById('armazemLng').value = a.longitude || '';
+    document.getElementById('armazemSyncStatus').value = a.syncStatus || 'Not Syncronized';
+    document.getElementById('armazemSyncDate').value = a.syncStatusDate ? a.syncStatusDate.slice(0,16) : '';
+    new bootstrap.Modal(document.getElementById('armazemModal')).show();
+}
+
+/* -------------------- GUARDAR -------------------- */
+document.getElementById('armazemForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('armazemId').value;
+    const payload = {
+        nome: document.getElementById('armazemNome').value,
+        provincia_id: parseInt(document.getElementById('armazemProvincia').value),
+        latitude: parseFloat(document.getElementById('armazemLat').value),
+        longitude: parseFloat(document.getElementById('armazemLng').value),
+        syncStatus: document.getElementById('armazemSyncStatus').value,
+        syncStatusDate: document.getElementById('armazemSyncDate').value 
+            ? new Date(document.getElementById('armazemSyncDate').value).toISOString() 
+            : null
+    };
+
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw await res.json();
+        bootstrap.Modal.getInstance(document.getElementById('armazemModal')).hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadArmazens();
+    } catch(err) {
+        alert(err.message || 'Erro ao salvar armazém');
+    }
+});
+
+/* -------------------- ELIMINAR -------------------- */
+async function eliminarArmazem(id) {
+    if (!confirm('Tem certeza que deseja apagar este armazém?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        loadArmazens();
+    } catch(err) {
+        alert(err.message || 'Erro ao apagar armazém');
+    }
+}
+
+/* -------------------- EXPORTAR EXCEL -------------------- */
+function downloadExcel() {
+    const table = document.getElementById("armazemTable");
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Armazens" });
+    XLSX.writeFile(wb, "armazens.xlsx");
+}
+</script>
+
+{% endblock %}

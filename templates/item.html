@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% block title %}PI-SAÚDE / Itens{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Gestão de Itens</h2>
+
+<!-- Campo de pesquisa -->
+<div class="mb-3 position-relative" style="max-width: 400px;">
+    <input type="text" id="itemSearch" class="form-control" placeholder="Pesquisar item..." oninput="filtrarTabela(this.value)">
+</div>
+
+<!-- Botão de exportar Excel -->
+<div class="mb-3">
+    <button class="btn btn-outline-success" onclick="downloadExcel()">📥 Exportar Excel</button>
+</div>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="abrirModalItem()">
+    +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered align-middle" id="itemTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Código</th>
+            <th>Designação</th>
+            <th>Imagem</th>
+            <th>Armazém</th>
+            <th>Sync Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="itemTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="itemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="itemForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar / Editar Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="itemId">
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Código</label>
+            <input type="text" id="itemCodigo" class="form-control" required>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Designação</label>
+            <input type="text" id="itemDesignacao" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Armazém</label>
+          <select id="itemArmazem" class="form-select" required></select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Imagem do Item</label>
+          <input type="file" id="itemImagem" class="form-control" accept="image/*" onchange="previewImagem(event)">
+          <img id="previewImg" src="" alt="Pré-visualização" class="img-thumbnail mt-2" style="max-width: 200px; display:none;">
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label">Sync Status</label>
+            <select id="itemSyncStatus" class="form-select"></select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Sync Status Date</label>
+            <input type="datetime-local" id="itemSyncDate" class="form-control">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+let allItens = [];
+let allArmazens = [];
+const apiUrl = '/api/item';
+const armazemUrl = '/api/armazem';
+
+// Enum do SyncStatus, alinhado com o backend
+const SYNC_STATUS_ENUM = ['Not Syncronized', 'Syncronized', 'Updated'];
+
+/* -------------------- CARREGAMENTO -------------------- */
+window.onload = () => {
+    carregarSyncStatus();
+    loadArmazens();
+    loadItens();
+};
+
+// Popula select de SyncStatus
+function carregarSyncStatus() {
+    const select = document.getElementById('itemSyncStatus');
+    select.innerHTML = '';
+    SYNC_STATUS_ENUM.forEach(status => {
+        const opt = document.createElement('option');
+        opt.value = status;
+        opt.textContent = status;
+        select.appendChild(opt);
+    });
+}
+
+async function loadArmazens() {
+    const res = await fetch(armazemUrl);
+    allArmazens = await res.json();
+    const select = document.getElementById('itemArmazem');
+    select.innerHTML = '<option value="">Selecione o armazém</option>';
+    allArmazens.forEach(a => select.innerHTML += `<option value="${a.id}">${a.nome}</option>`);
+}
+
+async function loadItens() {
+    const res = await fetch(apiUrl);
+    allItens = await res.json();
+    filtrarTabela(document.getElementById('itemSearch').value);
+}
+
+/* -------------------- FILTRO E TABELA -------------------- */
+function filtrarTabela(query) {
+    const tbody = document.getElementById('itemTableBody');
+    tbody.innerHTML = '';
+    const termo = query.trim().toLowerCase();
+
+    allItens
+        .filter(i => 
+            (i.codigo || '').toLowerCase().includes(termo) ||
+            (i.designacao || '').toLowerCase().includes(termo) ||
+            (i.armazem_nome || '').toLowerCase().includes(termo)
+        )
+        .forEach(i => {
+            const imgSrc = i.imagem ? `data:image/jpeg;base64,${i.imagem}` : '/static/no-image.png';
+            tbody.innerHTML += `
+            <tr>
+                <td>${i.id}</td>
+                <td>${i.codigo}</td>
+                <td>${i.designacao}</td>
+                <td><img src="${imgSrc}" style="width: 60px; height: 60px; object-fit: cover;"></td>
+                <td>${i.armazem_nome || ''}</td>
+                <td>${i.syncStatus || ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editarItem(${i.id})">Editar</button>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarItem(${i.id})">Apagar</button>
+                </td>
+            </tr>`;
+        });
+}
+
+/* -------------------- MODAL -------------------- */
+function abrirModalItem() {
+    document.getElementById('itemForm').reset();
+    document.getElementById('itemId').value = '';
+    document.getElementById('previewImg').style.display = 'none';
+    imagemBase64 = null;
+    new bootstrap.Modal(document.getElementById('itemModal')).show();
+}
+
+function editarItem(id) {
+    const i = allItens.find(i => i.id === id);
+    if (!i) return;
+    document.getElementById('itemId').value = i.id;
+    document.getElementById('itemCodigo').value = i.codigo || '';
+    document.getElementById('itemDesignacao').value = i.designacao || '';
+    document.getElementById('itemArmazem').value = i.armazem_id || '';
+    document.getElementById('itemSyncStatus').value = i.syncStatus || 'Not Syncronized';
+    document.getElementById('itemSyncDate').value = i.syncStatusDate ? i.syncStatusDate.slice(0,16) : '';
+
+    if (i.imagem) {
+        document.getElementById('previewImg').src = `data:image/jpeg;base64,${i.imagem}`;
+        document.getElementById('previewImg').style.display = 'block';
+    }
+    new bootstrap.Modal(document.getElementById('itemModal')).show();
+}
+
+/* -------------------- UPLOAD IMAGEM -------------------- */
+let imagemBase64 = null;
+function previewImagem(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        imagemBase64 = e.target.result.split(',')[1];
+        const img = document.getElementById('previewImg');
+        img.src = e.target.result;
+        img.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+/* -------------------- GUARDAR -------------------- */
+document.getElementById('itemForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = document.getElementById('itemId').value;
+    const payload = {
+        codigo: document.getElementById('itemCodigo').value,
+        designacao: document.getElementById('itemDesignacao').value,
+        armazem_id: parseInt(document.getElementById('itemArmazem').value),
+        imagem: imagemBase64,
+        syncStatus: document.getElementById('itemSyncStatus').value,
+        syncStatusDate: document.getElementById('itemSyncDate').value 
+            ? new Date(document.getElementById('itemSyncDate').value).toISOString() 
+            : null
+    };
+
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw await res.json();
+        imagemBase64 = null;
+        bootstrap.Modal.getInstance(document.getElementById('itemModal')).hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadItens();
+    } catch(err) {
+        alert(err.message || 'Erro ao salvar item');
+    }
+});
+
+/* -------------------- ELIMINAR -------------------- */
+async function eliminarItem(id) {
+    if (!confirm('Tem certeza que deseja apagar este item?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        loadItens();
+    } catch(err) {
+        alert(err.message || 'Erro ao apagar item');
+    }
+}
+
+/* -------------------- EXPORTAR EXCEL -------------------- */
+function downloadExcel() {
+    const table = document.getElementById("itemTable");
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Itens" });
+    XLSX.writeFile(wb, "itens.xlsx");
+}
+</script>
+
+{% endblock %}

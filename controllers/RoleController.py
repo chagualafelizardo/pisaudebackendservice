@@ -7,12 +7,7 @@ class RoleController:
     def get_all():
         try:
             roles = Role.query.all()
-            return jsonify([{
-                'id': role.id,
-                'description': role.description,
-                'createAt': role.createAt,
-                'updateAt': role.updateAt
-            } for role in roles]), 200
+            return jsonify([r.to_dict() for r in roles]), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
@@ -20,14 +15,9 @@ class RoleController:
     def get_by_id(id):
         try:
             role = Role.query.get(id)
-            if role:
-                return jsonify({
-                    'id': role.id,
-                    'description': role.description,
-                    'createAt': role.createAt,
-                    'updateAt': role.updateAt
-                }), 200
-            return jsonify({'message': 'Role not found'}), 404
+            if not role:
+                return jsonify({'message': 'Role not found'}), 404
+            return jsonify(role.to_dict()), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
@@ -36,22 +26,23 @@ class RoleController:
         try:
             data = request.get_json()
             if not data or 'description' not in data:
-                return jsonify({'message': 'Missing required data'}), 400
+                return jsonify({'message': 'Missing description'}), 400
 
             if Role.query.filter_by(description=data['description']).first():
                 return jsonify({'message': 'Role already exists'}), 400
 
-            new_role = Role(description=data['description'])
+            new_role = Role(
+                description=data['description'],
+                can_create=data.get('can_create', False),
+                can_read=data.get('can_read', True),
+                can_update=data.get('can_update', False),
+                can_delete=data.get('can_delete', False)
+            )
 
             db.session.add(new_role)
             db.session.commit()
+            return jsonify(new_role.to_dict()), 201
 
-            return jsonify({
-                'id': new_role.id,
-                'description': new_role.description,
-                'createAt': new_role.createAt,
-                'updateAt': new_role.updateAt
-            }), 201
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
@@ -65,7 +56,7 @@ class RoleController:
 
             data = request.get_json()
             if not data or 'description' not in data:
-                return jsonify({'message': 'Missing required data'}), 400
+                return jsonify({'message': 'Missing description'}), 400
 
             existing = Role.query.filter(
                 Role.description == data['description'],
@@ -74,17 +65,17 @@ class RoleController:
             if existing:
                 return jsonify({'message': 'Role with this description already exists'}), 400
 
+            # Atualizar campos
             role.description = data['description']
+            role.can_create = data.get('can_create', role.can_create)
+            role.can_read = data.get('can_read', role.can_read)
+            role.can_update = data.get('can_update', role.can_update)
+            role.can_delete = data.get('can_delete', role.can_delete)
             role.updateAt = datetime.utcnow()
 
             db.session.commit()
+            return jsonify(role.to_dict()), 200
 
-            return jsonify({
-                'id': role.id,
-                'description': role.description,
-                'createAt': role.createAt,
-                'updateAt': role.updateAt
-            }), 200
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
@@ -98,8 +89,8 @@ class RoleController:
 
             db.session.delete(role)
             db.session.commit()
-
             return jsonify({'message': 'Role deleted successfully'}), 200
+
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500

@@ -164,7 +164,8 @@
             <i class="bi bi-people me-1"></i> {{ _('Registo') }}
           </a>
           <ul class="dropdown-menu">
-
+            <li><a class="dropdown-item" href="/content/Provincia">{{ _('Provincia') }}</a></li>
+            <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="/content/location">{{ _('Health Facility') }}</a></li>
             <li><a class="dropdown-item" href="/content/subunidade">{{ _('Subunidade') }}</a></li>
             <li><hr class="dropdown-divider"></li>
@@ -279,7 +280,10 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end">
             <li><a class="dropdown-item" href="/content/user"><i class="bi bi-person me-2"></i> {{ _('Profile') }}</a></li>
-            <li><a class="dropdown-item" href="/content/roles">{{ _('Roles') }}</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/content/roles"><i class="bi bi-person me-2"></i> {{ _('Roles') }}</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="/content/componente"><i class="bi bi-gear me-2"></i> {{ _('Componentes') }}</a></li>
             <li><hr class="dropdown-divider"></li>
             
             <li><a class="dropdown-item" href="/settings"><i class="bi bi-gear me-2"></i> {{ _('Settings') }}</a></li>
@@ -329,6 +333,26 @@
       <a href="/content/candidato" class="submenu">{{ _('Registar Candidatos') }}</a>
       <a href="/content/formacao" class="submenu">{{ _('Militar em Formação') }}</a>
     </div>
+
+    <!-- Item tracking -->
+    <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#trackingMenu" role="button">
+      <span><i class="bi bi-folder2-open me-2"></i> {{ _('Items Tracking') }}</span>
+      <i class="bi bi-chevron-down"></i>
+    </a>
+    <div class="collapse" id="trackingMenu">
+      <a href="/content/armazem" class="submenu">{{ _('Armazem') }}</a>
+      <a href="/content/item" class="submenu">{{ _('Item') }}</a>
+    </div>
+
+    <!-- Item tracking -->
+    <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#alosaudeMenu" role="button">
+      <span><i class="bi bi-folder2-open me-2"></i> {{ _('Alo-Saúde') }}</span>
+      <i class="bi bi-chevron-down"></i>
+    </a>
+    <div class="collapse" id="alosaudeMenu">
+      <a href="/content/alosaude" class="submenu">{{ _('Alosaude') }}</a>
+    </div>
+
   </div>
 
   <!-- Usuário (fixo ao fundo) -->

@@ -56,16 +56,24 @@
         <input type="hidden" id="licencaId">
 
         <div class="row">
+          <!-- COLUNA ESQUERDA -->
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Militar</label>
-              <select id="licencaPerson" class="form-select" required></select>
+              <select id="licencaPerson" class="form-select" required>
+                <option value="">Selecione...</option>
+              </select>
             </div>
+
+            <!-- Detalhes do Militar -->
             <div id="personDetails" class="border rounded p-3 bg-light mt-2" style="display: none;">
               <h6>Detalhes do Militar</h6>
+              <img id="personImage" src="" alt="Foto do Militar" class="img-thumbnail mb-2" style="max-width: 150px;">
               <p><strong>Nome:</strong> <span id="personFullname"></span></p>
               <p><strong>NIM:</strong> <span id="personNim"></span></p>
               <p><strong>Gênero:</strong> <span id="personGender"></span></p>
+              <p><strong>Data de Nascimento:</strong> <span id="personDob"></span></p>
+              <p><strong>Data de Incorporação:</strong> <span id="personIncorp"></span></p>
             </div>
             
             <div class="mb-3">
@@ -85,27 +93,44 @@
             </div>
           </div>
 
+          <!-- COLUNA DIREITA -->
           <div class="col-md-6">
             <div class="mb-3">
               <label class="form-label">Tipo Licença</label>
               <select id="licencaTipo" class="form-select" required></select>
             </div>
+
             <div class="mb-3">
               <label class="form-label">Motivo</label>
               <input type="text" id="licencaMotivo" class="form-control">
             </div>
+
             <div class="mb-3">
               <label class="form-label">Observação</label>
               <textarea id="licencaObs" class="form-control"></textarea>
             </div>
+
+            <!-- CAMPO ESTADO -->
+            <div class="mb-3">
+              <label class="form-label">Estado</label>
+              <select id="licencaEstado" class="form-select" required>
+                <option value="PENDENTE">Pendente</option>
+                <option value="APROVADO">Aprovado</option>
+                <option value="REJEITADO">Rejeitado</option>
+                <option value="CONCLUIDO">Concluído</option>
+                <option value="CANCELADO">Cancelado</option>
+              </select>
+            </div>
+
             <div class="mb-3">
               <label class="form-label">Anexo</label>
               <input type="file" id="licencaAnexo" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+              <div id="licencaAnexoContainer" class="form-text mt-1"></div>
             </div>
           </div>
         </div>
-
       </div>
+
       <div class="modal-footer">
         <button type="submit" class="btn btn-primary">Salvar</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -114,36 +139,55 @@
   </div>
 </div>
 
+<!-- XLSX -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 const apiUrl = '/api/licenca';
 const personApiUrl = '/api/person';
 const tipoLicencaApiUrl = '/api/tipolicenca';
-const despachoApiUrl = '/api/despacho'; // ✅ nova API
+const despachoApiUrl = '/api/despacho';
+
 let allLicencas = [], allPersons = [], allTipos = [], allDespachos = [];
 
+// === Carregar Licenças ===
 async function loadLicencas() {
   const res = await fetch(apiUrl);
   allLicencas = await res.json();
   filtrarTabela('');
 }
 
+// === Filtrar Tabela ===
 function filtrarTabela(query) {
   const tbody = document.getElementById('licencasTableBody');
   tbody.innerHTML = '';
   const termo = query.trim().toLowerCase();
-  allLicencas.filter(l => (l.person?.fullname||'').toLowerCase().includes(termo))
+
+  allLicencas
+    .filter(l => (l.person_name || l.person_fullname || '').toLowerCase().includes(termo))
     .forEach(l => {
       tbody.innerHTML += `
         <tr>
           <td>${l.id}</td>
-          <td>${l.person?.fullname||''}</td>
-          <td>${l.tipo?.description||''}</td>
-          <td>${l.motivo||''}</td>
-          <td>${l.data_inicio||''}</td>
-          <td>${l.data_fim||''}</td>
-          <td>${l.estado||''}</td>
+          <td>
+            <div class="d-flex align-items-center">
+              <img src="${l.person_image ? `data:image/jpeg;base64,${l.person_image}` : '/static/img/default-user.png'}"
+                  class="rounded-circle me-2" alt="Foto" width="40" height="40" style="object-fit: cover;">
+              <span>${l.person_name || l.person_fullname || '-'}</span>
+            </div>
+          </td>
+          <td>${l.tipo_description || ''}</td>
+          <td>${l.motivo || ''}</td>
+          <td>${l.data_inicio || ''}</td>
+          <td>${l.data_fim || ''}</td>
+          <td>
+            <span class="badge bg-${
+              l.estado === 'APROVADO' ? 'success' :
+              l.estado === 'PENDENTE' ? 'warning' :
+              l.estado === 'REJEITADO' ? 'danger' :
+              l.estado === 'CONCLUIDO' ? 'primary' : 'secondary'
+            }">${l.estado || '-'}</span>
+          </td>
           <td>${l.anexo_nome ? `<a href="/api/licenca/${l.id}/anexo" target="_blank">${l.anexo_nome}</a>` : ''}</td>
           <td>
             <button class="btn btn-sm btn-warning" onclick="editLicenca(${l.id})">Editar</button>
@@ -153,31 +197,60 @@ function filtrarTabela(query) {
     });
 }
 
+// === Editar Licença ===
+async function editLicenca(id) {
+  const licenca = allLicencas.find(l => l.id == id);
+  if (!licenca) return alert('Licença não encontrada');
+
+  document.getElementById('licencaForm').reset();
+  document.getElementById('licencaId').value = licenca.id;
+
+  await Promise.all([loadPersons(), loadTipos(), loadDespachos()]);
+
+  document.getElementById('licencaPerson').value = licenca.person_id || '';
+  document.getElementById('licencaTipo').value = licenca.tipo_id || '';
+  document.getElementById('licencaDespacho').value = licenca.despacho_id || '';
+  document.getElementById('licencaMotivo').value = licenca.motivo || '';
+  document.getElementById('licencaObs').value = licenca.observacao || '';
+  document.getElementById('licencaInicio').value = licenca.data_inicio || '';
+  document.getElementById('licencaFim').value = licenca.data_fim || '';
+  
+  const estadoSelect = document.getElementById('licencaEstado');
+  const estadoNormalizado = (licenca.estado || 'PENDENTE').toUpperCase();
+  const estadosValidos = ['PENDENTE', 'APROVADO', 'REJEITADO', 'CONCLUIDO', 'CANCELADO'];
+  estadoSelect.value = estadosValidos.includes(estadoNormalizado) ? estadoNormalizado : 'PENDENTE';
+
+
+  if (licenca.person_id)
+    document.getElementById('licencaPerson').dispatchEvent(new Event('change'));
+
+  const anexoContainer = document.getElementById('licencaAnexoContainer');
+  anexoContainer.innerHTML = licenca.anexo_nome
+    ? `<a href="/api/licenca/${licenca.id}/anexo" target="_blank">${licenca.anexo_nome}</a>`
+    : '';
+
+  new bootstrap.Modal(document.getElementById('licencaModal')).show();
+}
+
+// === Carregar Selects ===
 async function loadDespachos() {
   const res = await fetch(despachoApiUrl);
   allDespachos = await res.json();
   const select = document.getElementById('licencaDespacho');
   select.innerHTML = '<option value="">Sem despacho</option>';
   allDespachos.forEach(d => {
-    select.innerHTML += `<option value="${d.id}">${d.numero || ('Despacho #' + d.id)}</option>`;
+    select.innerHTML += `<option value="${d.id}">${d.numero || d.titulo || ('Despacho #' + d.id)}</option>`;
   });
-}
-
-function openLicencaModal() {
-  document.getElementById('licencaForm').reset();
-  document.getElementById('licencaId').value = '';
-  loadPersons();
-  loadTipos();
-  loadDespachos(); // ✅ carrega despachos
-  new bootstrap.Modal(document.getElementById('licencaModal')).show();
 }
 
 async function loadPersons() {
   const res = await fetch(personApiUrl);
   allPersons = await res.json();
   const select = document.getElementById('licencaPerson');
-  select.innerHTML = '<option value="">Selecione o militar</option>';
-  allPersons.forEach(p => select.innerHTML += `<option value="${p.id}">${p.fullname}</option>`);
+  select.innerHTML = '<option value="">Selecione...</option>';
+  allPersons.forEach(p => {
+    select.innerHTML += `<option value="${p.id}">${p.fullname} (${p.nim || 'Sem NIM'})</option>`;
+  });
 }
 
 async function loadTipos() {
@@ -188,6 +261,32 @@ async function loadTipos() {
   allTipos.forEach(t => select.innerHTML += `<option value="${t.id}">${t.description}</option>`);
 }
 
+// === Novo Modal ===
+function openLicencaModal() {
+  document.getElementById('licencaForm').reset();
+  document.getElementById('licencaId').value = '';
+  document.getElementById('licencaEstado').value = 'PENDENTE';
+  loadPersons();
+  loadTipos();
+  loadDespachos();
+  new bootstrap.Modal(document.getElementById('licencaModal')).show();
+}
+
+// === Eventos ===
+document.getElementById('licencaPerson').addEventListener('change', function() {
+  const person = allPersons.find(p => p.id == this.value);
+  const details = document.getElementById('personDetails');
+  if (!person) return details.style.display = 'none';
+  document.getElementById('personFullname').textContent = person.fullname || '-';
+  document.getElementById('personNim').textContent = person.nim || '-';
+  document.getElementById('personGender').textContent = person.gender || '-';
+  document.getElementById('personDob').textContent = person.dateofbirth || '-';
+  document.getElementById('personIncorp').textContent = person.incorporationdata || '-';
+  document.getElementById('personImage').src = person.image ? `data:image/jpeg;base64,${person.image}` : '/static/img/default-user.png';
+  details.style.display = 'block';
+});
+
+// === Submeter Form ===
 document.getElementById('licencaForm').addEventListener('submit', async e => {
   e.preventDefault();
   const id = document.getElementById('licencaId').value;
@@ -199,17 +298,21 @@ document.getElementById('licencaForm').addEventListener('submit', async e => {
   formData.append('data_inicio', document.getElementById('licencaInicio').value);
   formData.append('data_fim', document.getElementById('licencaFim').value);
   formData.append('observacao', document.getElementById('licencaObs').value);
+  formData.append('estado', document.getElementById('licencaEstado').value);
   if (document.getElementById('licencaAnexo').files[0])
     formData.append('anexo', document.getElementById('licencaAnexo').files[0]);
+
   const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
     method: id ? 'PUT' : 'POST',
     body: formData
   });
+
   if (!res.ok) return alert('Erro ao salvar licença');
   bootstrap.Modal.getInstance(document.getElementById('licencaModal')).hide();
   loadLicencas();
 });
 
+// === Apagar Licença ===
 async function deleteLicenca(id) {
   if (!confirm('Apagar esta licença?')) return;
   const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
@@ -217,6 +320,7 @@ async function deleteLicenca(id) {
   loadLicencas();
 }
 
+// === Exportar Excel ===
 function downloadExcel() {
   const wb = XLSX.utils.table_to_book(document.getElementById("licencasTable"), {sheet:"Licencas"});
   XLSX.writeFile(wb, "licencas.xlsx");

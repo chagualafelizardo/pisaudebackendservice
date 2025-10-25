@@ -1,14 +1,18 @@
 {% extends 'base.html' %}
 
-{% block title %}PI-SAÚDE/ Users{% endblock %}
+{% block title %}PI-SAÚDE / Users{% endblock %}
 
 {% block content %}
 {% include 'navbar.html' %}
 
 <h2>Manage Users</h2>
 
-<!-- Botão para abrir modal de criação -->
-<button id="addUserBtn" class="btn btn-primary rounded-circle" title="Add User" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openUserModal()">+</button>
+<!-- Botão flutuante -->
+<button id="addUserBtn" class="btn btn-success rounded-circle position-fixed" title="Add User" data-bs-toggle="modal"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        data-bs-target="#userModal" onclick="openUserModal()">
+    +
+</button>
 
 <!-- Tabela de Usuários -->
 <table class="table table-bordered">
@@ -21,6 +25,7 @@
             <th>Contact</th>
             <th>Location</th>
             <th>Roles</th>
+            <th>Components</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -71,9 +76,15 @@
                         <option value="">Select Location</option>
                     </select>
                 </div>
-                <div class="col-md-12 mb-2">
+                <div class="col-md-6 mb-2">
                     <label for="rolesSelect">Roles</label>
                     <select id="rolesSelect" class="form-select" multiple>
+                        <!-- Populado via JS -->
+                    </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label for="componentsSelect">Components</label>
+                    <select id="componentsSelect" class="form-select" multiple>
                         <!-- Populado via JS -->
                     </select>
                 </div>
@@ -93,6 +104,8 @@ const apiUsers = '/api/user';
 const apiLocations = '/api/location';
 const apiRoles = '/api/role';
 const apiUserRole = '/api/userrole';
+const apiComponents = '/api/componente';
+const apiUserComponente = '/api/usercomponente';
 
 // Carregar Locations
 async function loadLocations() {
@@ -112,6 +125,15 @@ async function loadRoles() {
     roles.forEach(role => select.innerHTML += `<option value="${role.id}">${role.description}</option>`);
 }
 
+// Carregar Components
+async function loadComponents() {
+    const res = await fetch(apiComponents);
+    const components = await res.json();
+    const select = document.getElementById('componentsSelect');
+    select.innerHTML = '';
+    components.forEach(c => select.innerHTML += `<option value="${c.id}">${c.descricao}</option>`);
+}
+
 // Carregar Users
 async function loadUsers() {
     const res = await fetch(apiUsers);
@@ -120,9 +142,15 @@ async function loadUsers() {
     tbody.innerHTML = '';
 
     for (const user of users) {
+        // Roles
         const urRes = await fetch(`${apiUserRole}?userId=${user.id}`);
         const userRoles = await urRes.json();
         const roleNames = userRoles.map(r => r.role).join(', ');
+
+        // Components
+        const ucRes = await fetch(`${apiUserComponente}?userId=${user.id}`);
+        const userComponents = await ucRes.json();
+        const componentNames = userComponents.map(uc => uc.componente).join(', ');
 
         tbody.innerHTML += `
             <tr>
@@ -133,6 +161,7 @@ async function loadUsers() {
                 <td>${user.contact}</td>
                 <td>${user.location || ''}</td>
                 <td>${roleNames}</td>
+                <td>${componentNames}</td>
                 <td>
                     <button class="btn btn-sm btn-warning" onclick="editUser(${user.id})">Edit</button>
                     <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">Delete</button>
@@ -147,6 +176,8 @@ function openUserModal() {
     document.getElementById('modalTitle').innerText = 'Add User';
     document.getElementById('userForm').reset();
     document.getElementById('userId').value = '';
+    Array.from(document.getElementById('rolesSelect').options).forEach(opt => opt.selected = false);
+    Array.from(document.getElementById('componentsSelect').options).forEach(opt => opt.selected = false);
 }
 
 // Editar User
@@ -165,11 +196,17 @@ async function editUser(id) {
     document.getElementById('contact').value = user.contact;
     document.getElementById('locationSelect').value = user.locationId || '';
 
-    // Selecionar roles do usuário
+    // Selecionar roles
     const urRes = await fetch(`${apiUserRole}?userId=${id}`);
     const userRoles = await urRes.json();
     const rolesSelect = document.getElementById('rolesSelect');
     Array.from(rolesSelect.options).forEach(opt => opt.selected = userRoles.some(r => r.roleId == opt.value));
+
+    // Selecionar components
+    const ucRes = await fetch(`${apiUserComponente}?userId=${id}`);
+    const userComponents = await ucRes.json();
+    const componentsSelect = document.getElementById('componentsSelect');
+    Array.from(componentsSelect.options).forEach(opt => opt.selected = userComponents.some(uc => uc.componente_id == opt.value));
 
     const modal = new bootstrap.Modal(document.getElementById('userModal'));
     modal.show();
@@ -210,10 +247,10 @@ document.getElementById('userForm').addEventListener('submit', async (e) => {
 
         const userId = id || (await res.json()).id;
 
-        // Pegar roles selecionadas
-        const selectedRoles = Array.from(document.getElementById('rolesSelect').selectedOptions).map(o => parseInt(o.value));
+        // --- Roles ---
+        const selectedRoles = Array.from(document.getElementById('rolesSelect').selectedOptions)
+                                    .map(o => parseInt(o.value));
 
-        // Buscar roles atuais do usuário (somente dele)
         const oldRolesRes = await fetch(`${apiUserRole}?userId=${userId}`);
         const oldRoles = await oldRolesRes.json();
 
@@ -221,7 +258,6 @@ document.getElementById('userForm').addEventListener('submit', async (e) => {
             await fetch(`${apiUserRole}/${r.id}`, { method: 'DELETE' });
         }
 
-        // Adicionar roles selecionadas (somente para este usuário)
         for (const roleId of selectedRoles) {
             await fetch(apiUserRole, {
                 method: 'POST',
@@ -230,18 +266,36 @@ document.getElementById('userForm').addEventListener('submit', async (e) => {
             });
         }
 
+        // --- Components ---
+        const selectedComponents = Array.from(document.getElementById('componentsSelect').selectedOptions)
+                                        .map(o => parseInt(o.value));
+
+        const oldComponentsRes = await fetch(`${apiUserComponente}?userId=${userId}`);
+        const oldComponents = await oldComponentsRes.json();
+
+        for (const uc of oldComponents) {
+            await fetch(`${apiUserComponente}/${uc.id}`, { method: 'DELETE' });
+        }
+
+        for (const componenteId of selectedComponents) {
+            await fetch(apiUserComponente, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, componente_id: componenteId })
+            });
+        }
+
+        // Fechar modal
         const modalEl = document.getElementById('userModal');
         const modal = bootstrap.Modal.getInstance(modalEl);
         modal.hide();
-
-        // Remove o backdrop manualmente após esconder o modal
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+
         loadUsers();
     } catch (err) {
         alert(err.message || 'Error saving user');
     }
 });
-
 
 // Deletar User
 async function deleteUser(id) {
@@ -254,7 +308,9 @@ async function deleteUser(id) {
 window.onload = () => {
     loadLocations();
     loadRoles();
+    loadComponents();
     loadUsers();
 };
 </script>
+
 {% endblock %}

@@ -6,12 +6,8 @@ from flask import Flask, request, jsonify
 from models import db ,Observation, State, Textmessage, Grouptype, Group, Location, User, Resource, ResourceType
 import logging
 
-# from flask_babel import Babel
-
 # Flask-Babel para gestao da mudancas de idioma
 from flask_babelex import Babel, gettext as _
-from flask_migrate import Migrate
-
 # -------------------------------
 # Importações dos Blueprints
 # -------------------------------
@@ -47,6 +43,13 @@ from routes.CandidatoRoutes import candidato_bp
 from routes.TipoLicencaRoutes import tipo_licenca_bp
 from routes.PaisRoutes import pais_bp
 from routes.FormacaoRoutes import formacao_bp
+from routes.LicencaRoutes import licenca_bp
+from routes.DespachoRoutes import despacho_bp
+from routes.ProvinciaRoutes import provincia_bp
+from routes.ArmazemRoutes import armazem_bp
+from routes.ItemRoutes import item_bp
+from routes.ComponenteRoutes import componente_bp
+from routes.UserComponenteRoute import usercomponente_bp
 
 # -------------------------------
 # Inicialização da App Flask
@@ -57,7 +60,7 @@ app.secret_key = 'sua_chave_secreta'  # Necessário para sessões
 
 # Inicialização do SQLAlchemy
 db.init_app(app)
-migrate = Migrate(app, db)
+# migrate = Migrate(app, db)
 
 # Inicialização do Babel
 # -------------------------------
@@ -79,7 +82,8 @@ blueprints = [
     ramo_bp, subunidade_bp, especialidade_bp, subespecialidade_bp,
     situacao_geral_bp, funcao_bp, situacao_prestacao_servico_bp, afetacao_bp,
     transferencia_bp, especialidade_saude_bp, candidato_bp, tipo_licenca_bp,
-    pais_bp, formacao_bp
+    pais_bp, formacao_bp,despacho_bp, licenca_bp, provincia_bp, armazem_bp,
+    item_bp, componente_bp, usercomponente_bp
 ]
 
 for bp in blueprints:

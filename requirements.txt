@@ -19,3 +19,4 @@ blinker==1.8.2
 importlib_metadata==8.0.0
 pytz
 Flask-Migrate # ao actualizar o model ele é responsavel por fazer isso na base de dados
+Flask-Babel
