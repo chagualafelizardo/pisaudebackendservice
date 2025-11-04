@@ -1,0 +1,379 @@
+{% extends 'base.html' %}
+{% block title %}Distribuição Management{% endblock %}
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Manage Distribuições</h2>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="openDistribuicaoModal()">
+    +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Item</th>
+            <th>Armazém</th>
+            <th>Unidade Sanitária</th>
+            <th>Quantidade</th>
+            <th>Data Distribuição</th>
+            <th>Observação</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="distribuicaoTableBody">
+        <!-- Populado por JS -->
+    </tbody>
+</table>
+
+<!-- Modal Add/Edit Distribuição -->
+<div class="modal fade" id="distribuicaoModal" tabindex="-1" aria-labelledby="distribuicaoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="distribuicaoForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add/Edit Distribuição</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="distribuicaoId">
+
+        <div class="mb-3 position-relative">
+            <label for="itemSearch" class="form-label fw-bold">Item</label>
+
+            <!-- Campo de pesquisa -->
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" id="itemSearch" class="form-control" placeholder="Digite para procurar o item...">
+            </div>
+
+            <!-- Resultados de pesquisa (dropdown flutuante) -->
+            <div id="itemResults"
+                class="list-group position-absolute w-100 shadow-sm"
+                style="z-index:1050; max-height:250px; overflow-y:auto;">
+            </div>
+
+            <!-- ID oculto para submissão -->
+            <input type="hidden" id="itemId">
+
+            <!-- Preview do item selecionado -->
+            <div id="itemPreview"
+                class="mt-3 border rounded p-2 text-center bg-light"
+                style="display:none;">
+                <!-- Preenchido via JavaScript -->
+            </div>
+        </div>
+
+
+
+
+        <div class="mb-3">
+          <label for="armazemId" class="form-label">Armazém</label>
+          <select id="armazemId" class="form-select" required></select>
+        </div>
+
+        <div class="mb-3">
+          <label for="locationId" class="form-label">Unidade Sanitária</label>
+          <select id="locationId" class="form-select" required></select>
+        </div>
+
+        <div class="mb-3">
+          <label for="quantidade" class="form-label">Quantidade</label>
+          <input type="number" id="quantidade" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="dataDistribuicao" class="form-label">Data Distribuição</label>
+          <input type="datetime-local" id="dataDistribuicao" class="form-control">
+        </div>
+
+        <div class="mb-3">
+          <label for="observacao" class="form-label">Observação</label>
+          <textarea id="observacao" class="form-control" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const apiUrl = '/api/distribuicao';
+let allDistribuicoes = [];
+let allItens = [];
+let allArmazens = [];
+let allLocations = [];
+
+// --- Seletores do item ---
+const itemSearch = document.getElementById('itemSearch');
+const itemResults = document.getElementById('itemResults');
+const itemPreview = document.getElementById('itemPreview');
+const itemIdInput = document.getElementById('itemId');
+
+// --- Carregar todos os itens uma vez ---
+async function loadAllItens() {
+    try {
+        const res = await fetch('/api/item');
+        allItens = await res.json();
+    } catch (err) {
+        console.error('Erro ao carregar itens:', err);
+        allItens = [];
+    }
+}
+
+// --- Filtrar localmente à medida que o usuário digita ---
+itemSearch.addEventListener('input', () => {
+    const term = itemSearch.value.trim().toLowerCase();
+    itemResults.innerHTML = '';
+
+    if (!term) return;
+
+    const filtered = allItens.filter(i =>
+        (i.descricao && i.descricao.toLowerCase().includes(term)) ||
+        (i.designacao && i.designacao.toLowerCase().includes(term)) ||
+        (i.nome && i.nome.toLowerCase().includes(term))
+    );
+
+    if (filtered.length === 0) {
+        itemResults.innerHTML = '<div class="list-group-item text-muted">Nenhum item encontrado</div>';
+        return;
+    }
+
+    filtered.forEach(i => {
+        const div = document.createElement('div');
+        div.className = 'list-group-item list-group-item-action';
+
+        // Preparar src da imagem em base64
+        const imgSrc = i.imagem ? `data:image/*;base64,${i.imagem}` : '';
+
+        div.innerHTML = `
+            <div class="d-flex align-items-center">
+                ${imgSrc ? `<img src="${imgSrc}" alt="img" class="me-2 rounded" style="width:40px; height:40px; object-fit:cover;">` : ''}
+                <div>
+                    <strong>${i.designacao || i.descricao || i.nome || 'Sem nome'}</strong><br>
+                    <small class="text-muted">${i.descricao?.substring(0, 40) || ''}</small>
+                </div>
+            </div>
+        `;
+
+        div.onclick = () => selectItem(i);
+        itemPreview.style.display = 'block';
+        itemResults.appendChild(div);
+    });
+
+
+});
+
+// --- Quando o user escolhe o item ---
+function selectItem(i) {
+    const itemIdInput = document.getElementById('itemId');
+    const itemSearch = document.getElementById('itemSearch');
+    const itemResults = document.getElementById('itemResults');
+    const itemPreview = document.getElementById('itemPreview');
+
+    itemIdInput.value = i.id;
+    itemSearch.value = i.designacao || 'Item sem nome';
+    itemResults.innerHTML = '';
+
+    // Converter imagem em base64 se existir
+    const imgSrc = i.imagem ? `data:image/*;base64,${i.imagem}` : '';
+
+    // Mostrar imagem + detalhes
+    itemPreview.style.display = 'block';
+    itemPreview.innerHTML = `
+        ${imgSrc ? `<img src="${imgSrc}" alt="Imagem do item" class="img-thumbnail mb-2" style="max-height:120px;">` : ''}
+        <div class="text-start px-2">
+            <p><strong>${i.codigo || 'Sem código'}</strong></p>
+            <p class="small text-muted">Designação: ${i.designacao || 'Sem designação'}</p>
+            <p class="small text-muted">HS Code: ${i.hs_code || 'Sem HS Code'}</p>
+            <p class="small text-muted">Quantidade: ${i.quantidade ?? 'Sem quantidade'}</p>
+            <p class="small text-muted">Lote: ${i.batch_no || 'Sem batch_no'}</p>
+            <p class="small text-muted">Data Fabricação: ${i.data_fabricacao || 'Sem data'}</p>
+            <p class="small text-muted">Data Validade: ${i.data_validade || 'Sem data'}</p>
+            <p class="small text-muted">Nº Cartões: ${i.no_cartoes ?? 'Sem nº de cartões'}</p>
+        </div>
+    `;
+}
+
+// Função para carregar dropdowns
+async function loadDropdowns() {
+    const endpoints = {
+        item: '/api/item',
+        armazem: '/api/armazem',
+        location: '/api/location'
+    };
+
+    for (const [key, url] of Object.entries(endpoints)) {
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            const select = document.getElementById(key + 'Id');
+            select.innerHTML = '<option value="">Select...</option>';
+            data.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.nome || d.name || d.description  || d.designacao ||  'Unknown';
+                select.appendChild(opt);
+            });
+        } catch (err) {
+            console.error(`Failed to load ${key}:`, err);
+        }
+    }
+}
+
+// Função para abrir modal
+function openDistribuicaoModal() {
+    document.getElementById('distribuicaoForm').reset();
+    document.getElementById('distribuicaoId').value = '';
+
+    loadDropdowns().then(() => {
+        const modalEl = document.getElementById('distribuicaoModal');
+        let modal = bootstrap.Modal.getInstance(modalEl);
+        if (!modal) modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    });
+}
+
+async function loadItens(selectedId = null) {
+    const res = await fetch('/api/item');
+    const data = await res.json();
+    const select = document.getElementById('itemId');
+    select.innerHTML = '<option value="">Selecione...</option>';
+    data.forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.id;
+        opt.textContent = i.nome || i.name || i.designacao || 'Sem nome';
+        select.appendChild(opt);
+    });
+    if (selectedId) select.value = selectedId;
+}
+
+// Carregar tabela
+async function loadDistribuicoes() {
+    try {
+        // Buscar distribuições
+        const res = await fetch(apiUrl);
+        allDistribuicoes = await res.json();
+
+        // Garantir que temos os caches
+        if (allItens.length === 0) allItens = await (await fetch('/api/item')).json();
+        if (allArmazens.length === 0) allArmazens = await (await fetch('/api/armazem')).json();
+        if (allLocations.length === 0) allLocations = await (await fetch('/api/location')).json();
+
+        // Mapear para nomes
+        const tbody = document.getElementById('distribuicaoTableBody');
+        tbody.innerHTML = '';
+
+        allDistribuicoes.forEach(d => {
+            const item = allItens.find(i => i.id === d.item_id);
+            const armazem = allArmazens.find(a => a.id === d.armazem_id);
+            const location = allLocations.find(l => l.id === d.location_id);
+
+            // Preparar src da imagem do item
+            const imgSrc = item?.imagem ? `data:image/*;base64,${item.imagem}` : '';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${d.id}</td>
+                    <td class="d-flex align-items-center">
+                        ${imgSrc ? `<img src="${imgSrc}" alt="Item" style="width:40px;height:40px;object-fit:cover;margin-right:8px;">` : ''}
+                        <span>${item?.designacao || '-'}</span>
+                    </td>
+                    <td>${armazem?.nome || '-'}</td>
+                    <td>${location?.name || '-'}</td>
+                    <td>${d.quantidade}</td>
+                    <td>${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleString() : '-'}</td>
+                    <td>${d.observacao || '-'}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick='editDistribuicao(${JSON.stringify(d)})'>Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick='deleteDistribuicao(${d.id})'>Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+    } catch (err) {
+        alert('Failed to load distribuições: ' + err);
+    }
+}
+
+// Edit
+async function editDistribuicao(d) {
+    document.getElementById('distribuicaoId').value = d.id;
+    document.getElementById('quantidade').value = d.quantidade;
+    document.getElementById('observacao').value = d.observacao || '';
+    document.getElementById('dataDistribuicao').value = d.data_distribuicao
+        ? new Date(d.data_distribuicao).toISOString().slice(0, 16)
+        : '';
+
+    loadDropdownArmazem(d.armazem_id);
+    loadDropdownLocation(d.location_id);
+
+    const res = await fetch(`/api/item/${d.item_id}`);
+    const item = await res.json();
+    selectItem(item); // preenche o preview e o campo de busca
+
+    const modal = new bootstrap.Modal(document.getElementById('distribuicaoModal'));
+    modal.show();
+}
+
+
+// Submit form
+document.getElementById('distribuicaoForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('distribuicaoId').value;
+    const payload = {
+        item_id: parseInt(document.getElementById('itemId').value),
+        armazem_id: parseInt(document.getElementById('armazemId').value),
+        location_id: parseInt(document.getElementById('locationId').value),
+        quantidade: parseInt(document.getElementById('quantidade').value),
+        data_distribuicao: document.getElementById('dataDistribuicao').value || null,
+        observacao: document.getElementById('observacao').value
+    };
+
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw await res.json();
+        bootstrap.Modal.getInstance(document.getElementById('distribuicaoModal')).hide();
+        loadDistribuicoes();
+    } catch (err) {
+        alert(err.message || 'Failed to save distribuição.');
+    }
+});
+
+// Delete
+async function deleteDistribuicao(id) {
+    if (!confirm('Are you sure you want to delete this distribuição?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, {method: 'DELETE'});
+        if (!res.ok) throw await res.json();
+        loadDistribuicoes();
+    } catch (err) {
+        alert(err.message || 'Failed to delete distribuição.');
+    }
+}
+
+// Inicialização
+window.onload = () => {
+    loadAllItens();        // 🔹 carrega cache local de itens
+    loadDistribuicoes();
+    loadDropdowns();
+};
+</script>
+
+{% endblock %}

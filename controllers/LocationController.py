@@ -2,6 +2,7 @@ import logging
 from flask import jsonify, request
 from models import db, Location, Resource
 from datetime import datetime
+from sqlalchemy import select, text
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +16,14 @@ class LocationController:
             for loc in locations:
                 resources_data = []
                 for resource in loc.resources:
-                    link = db.session.execute(
-                        db.select(db.literal_column('quantity'))
-                        .select_from(Location.resources.property.secondary)
-                        .where(
-                            (Location.resources.property.secondary.c.location_id == loc.id) &
-                            (Location.resources.property.secondary.c.resource_id == resource.id)
-                        )
-                    ).fetchone()
+                    # CORREÇÃO: Usando a sintaxe correta do SQLAlchemy 2.x
+                    stmt = select(text('quantity')).select_from(
+                        Location.resources.property.secondary
+                    ).where(
+                        (Location.resources.property.secondary.c.location_id == loc.id) &
+                        (Location.resources.property.secondary.c.resource_id == resource.id)
+                    )
+                    link = db.session.execute(stmt).fetchone()
                     resources_data.append({
                         'id': resource.id,
                         'name': resource.name,
@@ -56,14 +57,14 @@ class LocationController:
 
             resources_data = []
             for resource in loc.resources:
-                link = db.session.execute(
-                    db.select([db.literal_column('quantity')])
-                    .select_from(Location.resources.property.secondary)
-                    .where(
-                        (Location.resources.property.secondary.c.location_id == loc.id) &
-                        (Location.resources.property.secondary.c.resource_id == resource.id)
-                    )
-                ).fetchone()
+                # CORREÇÃO: Sintaxe atualizada para SQLAlchemy 2.x
+                stmt = select(text('quantity')).select_from(
+                    Location.resources.property.secondary
+                ).where(
+                    (Location.resources.property.secondary.c.location_id == loc.id) &
+                    (Location.resources.property.secondary.c.resource_id == resource.id)
+                )
+                link = db.session.execute(stmt).fetchone()
                 resources_data.append({
                     'id': resource.id,
                     'name': resource.name,

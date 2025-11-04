@@ -1,14 +1,7 @@
 from . import db
-from sqlalchemy import Enum, Float, ForeignKey
+from sqlalchemy import Float, ForeignKey
 from sqlalchemy.orm import relationship
-import enum
 from datetime import datetime
-
-# Enum para syncStatus
-class SyncStatusEnum(enum.Enum):
-    NotSyncronized = "Not Syncronized"
-    Syncronized = "Syncronized"
-    Updated = "Updated"
 
 # -------------------------
 # Modelo: Provincia
@@ -22,8 +15,8 @@ class Provincia(db.Model):
     # Relação com Armazéns
     armazens = relationship('Armazem', back_populates='provincia', cascade="all, delete-orphan")
 
-    # Campos de sincronização
-    syncStatus = db.Column(Enum(SyncStatusEnum), nullable=False, default=SyncStatusEnum.NotSyncronized)
+    # Campo simples de sincronização (string)
+    syncStatus = db.Column(db.String(50), nullable=False, default='Not Syncronized')
     syncStatusDate = db.Column(db.DateTime, nullable=True)
 
     # Timestamps

@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}Gestão de Tipos de Item{% endblock %}
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Gestão de Tipos de Item</h2>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="openTipoItemModal()">
+    +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nome do Tipo</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="tipoItemTableBody">
+        <!-- Preenchido dinamicamente via JS -->
+    </tbody>
+</table>
+
+<!-- Modal Add/Edit -->
+<div class="modal fade" id="tipoItemModal" tabindex="-1" aria-labelledby="tipoItemModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="tipoItemForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar / Editar Tipo de Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="tipoItemId">
+        <div class="mb-3">
+          <label for="tipoItemNome" class="form-label">Nome</label>
+          <input type="text" id="tipoItemNome" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const apiUrl = '/api/tipo_item';  // endpoint definido nas rotas
+
+// 🟢 Abre o modal de adicionar
+function openTipoItemModal() {
+    document.getElementById('tipoItemForm').reset();
+    document.getElementById('tipoItemId').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('tipoItemModal'));
+    modal.show();
+}
+
+// 🟢 Carregar todos os tipos de item
+async function loadTipoItens() {
+    try {
+        const res = await fetch(apiUrl);
+        const text = await res.text();  // lê como texto primeiro
+        console.log("📜 Resposta bruta do servidor:", text);
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("❌ Erro ao converter resposta em JSON:", e);
+            alert("A resposta do servidor não é JSON. Verifique os logs do backend.");
+            return;
+        }
+
+        const tbody = document.getElementById('tipoItemTableBody');
+        tbody.innerHTML = '';
+        data.forEach(t => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${t.id}</td>
+                    <td>${t.nome}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick='editTipoItem(${JSON.stringify(t)})'>Editar</button>
+                        <button class="btn btn-danger btn-sm" onclick='deleteTipoItem(${t.id})'>Apagar</button>
+                    </td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        console.error("🔥 Erro geral ao carregar tipos de item:", err);
+        alert("Erro ao carregar tipos de item: " + err.message);
+    }
+}
+
+
+// 🟢 Editar tipo de item
+function editTipoItem(t) {
+    document.getElementById('tipoItemId').value = t.id;
+    document.getElementById('tipoItemNome').value = t.nome;
+    const modal = new bootstrap.Modal(document.getElementById('tipoItemModal'));
+    modal.show();
+}
+
+// 🟢 Guardar (criar ou atualizar)
+document.getElementById('tipoItemForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('tipoItemId').value;
+    const nome = document.getElementById('tipoItemNome').value;
+
+    try {
+        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+            method: id ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome })
+        });
+
+        if (!res.ok) throw await res.json();
+
+        const modalEl = document.getElementById('tipoItemModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadTipoItens();
+    } catch (err) {
+        alert(err.message || 'Erro ao guardar tipo de item.');
+    }
+});
+
+// 🟢 Apagar tipo de item
+async function deleteTipoItem(id) {
+    if (!confirm('Tem certeza que deseja apagar este tipo de item?')) return;
+
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        loadTipoItens();
+    } catch (err) {
+        alert(err.message || 'Erro ao apagar tipo de item.');
+    }
+}
+
+window.onload = loadTipoItens;
+</script>
+
+{% endblock %}

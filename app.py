@@ -50,6 +50,14 @@ from routes.ArmazemRoutes import armazem_bp
 from routes.ItemRoutes import item_bp
 from routes.ComponenteRoutes import componente_bp
 from routes.UserComponenteRoute import usercomponente_bp
+from routes.PortoRoutes import porto_bp
+from routes.ItemLocationNecessidadeRoutes import necessidade_bp
+from routes.ItemHistoricoController import historico_bp
+from routes.DistribuicaoRoutes import distribuicao_bp
+from routes.TipoItemRoutes import tipo_item_bp
+from routes.NotaEnvioRoutes import nota_envio_bp
+from routes.NotaEnvioItemRoutes import nota_envio_item_bp
+from routes.NotaEnvioDocumentRoutes import nota_envio_document_bp
 
 # -------------------------------
 # Inicialização da App Flask
@@ -83,7 +91,9 @@ blueprints = [
     situacao_geral_bp, funcao_bp, situacao_prestacao_servico_bp, afetacao_bp,
     transferencia_bp, especialidade_saude_bp, candidato_bp, tipo_licenca_bp,
     pais_bp, formacao_bp,despacho_bp, licenca_bp, provincia_bp, armazem_bp,
-    item_bp, componente_bp, usercomponente_bp
+    item_bp, componente_bp, usercomponente_bp, porto_bp, necessidade_bp,
+    historico_bp, distribuicao_bp, tipo_item_bp, nota_envio_bp,
+    nota_envio_item_bp, nota_envio_document_bp
 ]
 
 for bp in blueprints:
@@ -136,6 +146,17 @@ def dashboard():
     location_name = session.get('locationName')
 
     return render_template('dashboard.html', username=username, location_name=location_name)
+
+@app.route('/dashboarddistribuicao')
+def dashboarddistribuicao():
+    if 'userId' not in session:
+        flash('Please login first', 'warning')
+        return redirect(url_for('login'))
+    
+    username = session.get('username')
+    location_name = session.get('locationName')
+
+    return render_template('dashboarddistribuicao.html', username=username, location_name=location_name)
 
 @app.route('/content/<page>')
 def content(page):

@@ -1,23 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}Gestão de Componentes{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-  <h4 class="mb-3">Gestão de Componentes</h4>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Gestão de Componentes</h4>
+    <!-- Botão que abre o modal -->
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addComponenteModal">+</button>
+  </div>
 
-  <form id="addComponenteForm" class="mb-4">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <input type="text" class="form-control" id="componente_id" placeholder="ID do Componente (ex: gestaoAlocacaoMenu)" required>
-      </div>
-      <div class="col-md-6">
-        <input type="text" class="form-control" id="descricao" placeholder="Descrição do componente" required>
-      </div>
-      <div class="col-md-2">
-        <button type="submit" class="btn btn-primary w-100">Adicionar</button>
-      </div>
-    </div>
-  </form>
-
+  <!-- Tabela de componentes -->
   <table class="table table-bordered align-middle text-center">
     <thead class="table-light">
       <tr>
@@ -31,44 +23,91 @@
   </table>
 </div>
 
+<!-- Modal para adicionar componente -->
+<div class="modal fade" id="addComponenteModal" tabindex="-1" aria-labelledby="addComponenteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="addComponenteForm">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addComponenteModalLabel">Adicionar Componente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="componente_id" class="form-label">ID do Componente</label>
+            <input type="text" class="form-control" id="componente_id" placeholder="ex: gestaoAlocacaoMenu" required>
+          </div>
+          <div class="mb-3">
+            <label for="descricao" class="form-label">Descrição</label>
+            <input type="text" class="form-control" id="descricao" placeholder="Descrição do componente" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Adicionar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 const apiComponentes = '/api/componentes';
 
+// Função para carregar componentes existentes
 async function loadComponentes() {
-  const res = await fetch(apiComponentes);
-  const data = await res.json();
-  const tbody = document.getElementById('componentesTableBody');
-  tbody.innerHTML = '';
-  data.forEach(c => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${c.id}</td>
-        <td>${c.componente_id}</td>
-        <td>${c.descricao}</td>
-        <td>${c.is_active ? '✅' : '❌'}</td>
-      </tr>
-    `;
-  });
+  try {
+    const res = await fetch(apiComponentes);
+    const data = await res.json();
+    const tbody = document.getElementById('componentesTableBody');
+    tbody.innerHTML = '';
+    data.forEach(c => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${c.id}</td>
+          <td>${c.componente_id}</td>
+          <td>${c.descricao}</td>
+          <td>${c.is_active ? '✅' : '❌'}</td>
+        </tr>
+      `;
+    });
+  } catch (error) {
+    console.error('Erro ao carregar componentes:', error);
+  }
 }
 
+// Evento de submissão do formulário do modal
 document.getElementById('addComponenteForm').addEventListener('submit', async e => {
   e.preventDefault();
   const componente_id = document.getElementById('componente_id').value;
   const descricao = document.getElementById('descricao').value;
-  
-  const res = await fetch(apiComponentes, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({componente_id, descricao})
-  });
-  
-  if (res.ok) {
-    alert('Componente registado com sucesso!');
-    loadComponentes();
-    e.target.reset();
+
+  try {
+    const res = await fetch(apiComponentes, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({componente_id, descricao})
+    });
+
+    if (res.ok) {
+      alert('Componente registado com sucesso!');
+      loadComponentes();
+      e.target.reset();
+      // Fechar o modal
+      const modalEl = document.getElementById('addComponenteModal');
+      const modal = bootstrap.Modal.getInstance(modalEl);
+      modal.hide();
+    } else {
+      const errorData = await res.json();
+      alert('Erro ao adicionar componente: ' + (errorData.message || JSON.stringify(errorData)));
+    }
+  } catch (err) {
+    console.error('Erro ao adicionar componente:', err);
+    alert('Erro ao adicionar componente.');
   }
 });
 
+// Carregar componentes ao abrir a página
 loadComponentes();
 </script>
 {% endblock %}

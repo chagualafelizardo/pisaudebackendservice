@@ -36,11 +36,19 @@ from .Pais import Pais, SyncStatusEnum
 from .Formacao import Formacao
 from .Licenca import Licenca, EstadoLicencaEnum
 from .Despacho import Despacho, EstadoDespachoEnum
-from .Provincia import Provincia, SyncStatusEnum
-from .Item import Item, SyncStatusEnum
-from .Armazem import Armazem, SyncStatusEnum
+from .Provincia import Provincia
+from .Item import Item
+from .Armazem import Armazem
 from .Componente import Componente
 from .UserComponente import UserComponente
+from .Porto import Porto
+from .ItemHistorico import ItemHistorico
+from .ItemLocationNecessidade import ItemLocationNecessidade
+from .Distribuicao import Distribuicao
+from .TipoItem import TipoItem
+from .NotaEnvio import NotaEnvio, SyncStatusEnum
+from .NotaEnvioItem import NotaEnvioItem
+from .NotaEnvioDocument import NotaEnvioDocument
 
 __all__ = [
     'db', 'Role', 'State', 'Grouptype', 'Group', 'Location', 
@@ -51,5 +59,7 @@ __all__ = [
     'Funcao', 'SituacaoPrestacaoServico', 'Afetacao', 'Transferencia',
     'EspecialidadeSaude', 'Candidato', 'CandidatoEdicao', 'TipoLicenca',
     'Pais', 'Formacao', 'Licenca','EstadoLicencaEnum', 'Despacho','EstadoDespachoEnum',
-    'Provincia','Item','Armazem', 'Componente','UserComponente'
+    'Provincia','Item','Armazem', 'Componente','UserComponente', 'Porto',
+    'ItemHistorico','ItemLocationNecessidade', 'Distribuicao','TipoItem','NotaEnvio',
+    'NotaEnvioItem', 'NotaEnvioDocument'
 ]

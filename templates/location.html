@@ -10,8 +10,6 @@
 <!-- Floating Action Button (FAB) -->
 <button class="btn btn-success rounded-circle position-fixed"
         style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
-        data-bs-toggle="modal"
-        data-bs-target="#locationModal"
         onclick="openLocationModal()">
     +
 </button>
@@ -100,13 +98,18 @@ const apiUrl = '/api/location';
 const apiResources = '/api/resource';
 let availableResources = [];
 
-let map;
-let marker;
-let autocomplete;
+let map, marker, autocomplete;
+
+// Coordenadas de Maputo
+const MAPUTO_CENTER = { lat: -25.9636, lng: 32.5805 };
 
 async function fetchResources() {
-    const res = await fetch(apiResources);
-    availableResources = await res.json();
+    try {
+        const res = await fetch(apiResources);
+        availableResources = await res.json();
+    } catch (error) {
+        console.error('Error fetching resources:', error);
+    }
 }
 
 function addResourceRow(resourceId = '', quantity = '') {
@@ -133,13 +136,18 @@ function addResourceRow(resourceId = '', quantity = '') {
     container.appendChild(row);
 }
 
-function initMap(lat = -25.9636, lng = 32.5805) {
+function initializeMap(lat = -25.9636, lng = 32.5805) {
     const center = { lat: parseFloat(lat), lng: parseFloat(lng) };
 
+    // Limpa o container antes de recriar se necessário
+    if (!document.getElementById("map").innerHTML) {
+        document.getElementById("map").innerHTML = "";
+    }
+
     map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 6,
         center: center,
-        mapTypeId: 'satellite'
+        zoom: 7,
+        mapTypeId: "terrain"
     });
 
     marker = new google.maps.Marker({
@@ -148,79 +156,108 @@ function initMap(lat = -25.9636, lng = 32.5805) {
         draggable: true
     });
 
-    marker.addListener('dragend', () => {
-        const pos = marker.getPosition();
-        document.getElementById('latitude').value = pos.lat();
-        document.getElementById('longitude').value = pos.lng();
-    });
-
-    map.addListener('click', (event) => {
+    // Atualiza coordenadas ao clicar no mapa
+    map.addListener("click", (event) => {
         marker.setPosition(event.latLng);
-        document.getElementById('latitude').value = event.latLng.lat();
-        document.getElementById('longitude').value = event.latLng.lng();
+        document.getElementById("latitude").value = event.latLng.lat().toFixed(6);
+        document.getElementById("longitude").value = event.latLng.lng().toFixed(6);
     });
 
-    const input = document.getElementById('locationSearch');
-    autocomplete = new google.maps.places.Autocomplete(input, {
-        fields: ["geometry", "name"]
+    // Atualiza coordenadas ao arrastar o marcador
+    marker.addListener("dragend", () => {
+        const pos = marker.getPosition();
+        document.getElementById("latitude").value = pos.lat().toFixed(6);
+        document.getElementById("longitude").value = pos.lng().toFixed(6);
     });
+
+    // Configura a pesquisa de lugares
+    const input = document.getElementById("locationSearch");
+    autocomplete = new google.maps.places.Autocomplete(input);
     autocomplete.bindTo("bounds", map);
 
     autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
-        if (!place.geometry || !place.geometry.location) {
-            alert("Please select a place from the suggestions.");
-            input.classList.add("is-invalid");
-            setTimeout(() => input.classList.remove("is-invalid"), 2000);
-            return;
-        }
-
-        input.classList.remove("is-invalid");
+        if (!place.geometry) return;
 
         map.panTo(place.geometry.location);
         map.setZoom(15);
         marker.setPosition(place.geometry.location);
 
-        document.getElementById('latitude').value = place.geometry.location.lat();
-        document.getElementById('longitude').value = place.geometry.location.lng();
+        document.getElementById("latitude").value = place.geometry.location.lat().toFixed(6);
+        document.getElementById("longitude").value = place.geometry.location.lng().toFixed(6);
     });
 
-    // Impede que o Enter envie o formulário sem escolher uma sugestão
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-        }
-    });
-
-    // Alternar tipo de mapa
-    const toggleBtn = document.getElementById('toggleMapTypeBtn');
-    toggleBtn.onclick = () => {
-        const currentType = map.getMapTypeId();
-        const newType = currentType === 'satellite' ? 'terrain' : 'satellite';
+    // Botão para alternar tipo de mapa
+    const btn = document.getElementById("toggleMapTypeBtn");
+    btn.onclick = () => {
+        const current = map.getMapTypeId();
+        const newType = current === "terrain" ? "satellite" : "terrain";
         map.setMapTypeId(newType);
-        toggleBtn.textContent = newType.charAt(0).toUpperCase() + newType.slice(1);
+        btn.textContent = newType === "terrain" ? "Satellite" : "Map";
     };
+
+    // Atualiza coordenadas iniciais
+    document.getElementById("latitude").value = center.lat.toFixed(6);
+    document.getElementById("longitude").value = center.lng.toFixed(6);
 }
 
-function openLocationModal() {
+function openLocationModal(locationData = null) {
+    // Reseta o formulário
     document.getElementById('locationForm').reset();
     document.getElementById('locationId').value = '';
     document.getElementById('resourceRows').innerHTML = '';
-    document.getElementById('latitude').value = '';
-    document.getElementById('longitude').value = '';
     document.getElementById('locationSearch').value = '';
-
+    
+    // Adiciona uma linha de recurso vazia
     addResourceRow();
 
-    const modalEl = document.getElementById('locationModal');
-    const modal = new bootstrap.Modal(modalEl);
+    // Se está editando, preenche os dados
+    if (locationData) {
+        document.getElementById('locationId').value = locationData.id;
+        document.getElementById('locationName').value = locationData.name;
+        document.getElementById('locationDescription').value = locationData.description || '';
+        document.getElementById('latitude').value = locationData.latitude || '';
+        document.getElementById('longitude').value = locationData.longitude || '';
+        
+        // Limpa recursos anteriores e adiciona os novos
+        document.getElementById('resourceRows').innerHTML = '';
+        if (locationData.resources && locationData.resources.length > 0) {
+            locationData.resources.forEach(r => addResourceRow(r.id, r.quantity));
+        } else {
+            addResourceRow();
+        }
+    } else {
+        // Para novo local, reseta as coordenadas
+        document.getElementById('latitude').value = '';
+        document.getElementById('longitude').value = '';
+    }
+
+    // Mostra o modal
+    const modal = new bootstrap.Modal(document.getElementById('locationModal'));
     modal.show();
 
-    modalEl.addEventListener('shown.bs.modal', function () {
-        initMap();
+    // ⚡ Correção crucial para modais Bootstrap - inicializa o mapa quando o modal estiver visível
+    document.getElementById('locationModal').addEventListener('shown.bs.modal', function() {
+        if (locationData && locationData.latitude && locationData.longitude) {
+            initializeMap(locationData.latitude, locationData.longitude);
+        } else {
+            initializeMap();
+        }
+        
+        // Força a atualização do mapa
         setTimeout(() => {
-            document.getElementById('locationSearch').focus();
-        }, 400);
+            google.maps.event.trigger(map, "resize");
+            if (locationData && locationData.latitude && locationData.longitude) {
+                const position = {
+                    lat: parseFloat(locationData.latitude),
+                    lng: parseFloat(locationData.longitude)
+                };
+                map.setCenter(position);
+                map.setZoom(15);
+            } else {
+                map.setCenter(MAPUTO_CENTER);
+            }
+        }, 100);
     }, { once: true });
 }
 
@@ -232,7 +269,10 @@ async function loadLocations() {
         tbody.innerHTML = '';
 
         locations.forEach(loc => {
-            const resourceList = loc.resources.map(r => `${r.name} (${r.quantity})`).join(', ');
+            const resourceList = loc.resources && loc.resources.length > 0 
+                ? loc.resources.map(r => `${r.name} (${r.quantity})`).join(', ')
+                : 'No resources';
+
             tbody.innerHTML += `
                 <tr>
                     <td>${loc.id}</td>
@@ -242,87 +282,126 @@ async function loadLocations() {
                     <td>${loc.longitude || ''}</td>
                     <td>${resourceList}</td>
                     <td>
-                        <button class="btn btn-sm btn-warning" onclick='editLocation(${JSON.stringify(loc)})'>Edit</button>
+                        <button class="btn btn-sm btn-warning" onclick="editLocation(${loc.id})">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteLocation(${loc.id})">Delete</button>
                     </td>
                 </tr>
             `;
         });
     } catch (err) {
-        alert('Error loading locations: ' + err);
+        console.error('Error loading locations:', err);
+        alert('Error loading locations: ' + err.message);
     }
 }
 
-function editLocation(loc) {
-    document.getElementById('locationId').value = loc.id;
-    document.getElementById('locationName').value = loc.name;
-    document.getElementById('locationDescription').value = loc.description;
-    document.getElementById('latitude').value = loc.latitude || '';
-    document.getElementById('longitude').value = loc.longitude || '';
-    document.getElementById('resourceRows').innerHTML = '';
-    document.getElementById('locationSearch').value = '';
-
-    loc.resources.forEach(r => addResourceRow(r.id, r.quantity));
-
-    const modal = new bootstrap.Modal(document.getElementById('locationModal'));
-    modal.show();
-
-    document.getElementById('locationModal').addEventListener('shown.bs.modal', function () {
-        initMap(loc.latitude || -25.9636, loc.longitude || 32.5805);
-    }, { once: true });
+// CORREÇÃO: Esta função estava com problema - agora chama openLocationModal com os dados
+async function editLocation(locationId) {
+    try {
+        console.log('Fetching location data for ID:', locationId);
+        const res = await fetch(`${apiUrl}/${locationId}`);
+        
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const locationData = await res.json();
+        console.log('Location data received:', locationData);
+        
+        // Chama openLocationModal passando os dados do location
+        openLocationModal(locationData);
+    } catch (error) {
+        console.error('Error fetching location:', error);
+        alert('Error loading location data: ' + error.message);
+    }
 }
 
-document.getElementById('locationForm').addEventListener('submit', async (e) => {
+async function deleteLocation(id) {
+    if (!confirm('Are you sure you want to delete this location?')) return;
+    
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { 
+            method: 'DELETE' 
+        });
+        
+        if (res.ok) {
+            loadLocations();
+        } else {
+            throw new Error('Failed to delete location');
+        }
+    } catch (err) {
+        console.error('Error deleting location:', err);
+        alert('Error deleting location: ' + err.message);
+    }
+}
+
+// Event listener para o formulário
+document.getElementById('locationForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    
     const id = document.getElementById('locationId').value;
     const name = document.getElementById('locationName').value;
     const description = document.getElementById('locationDescription').value;
     const latitude = document.getElementById('latitude').value;
     const longitude = document.getElementById('longitude').value;
 
-    const resources = Array.from(document.querySelectorAll('#resourceRows .row')).map(row => ({
-        resourceId: parseInt(row.querySelector('.resource-select').value),
-        quantity: parseInt(row.querySelector('.quantity-input').value)
-    })).filter(r => r.resourceId && !isNaN(r.quantity));
+    // Coleta os recursos
+    const resources = [];
+    document.querySelectorAll('#resourceRows .row').forEach(row => {
+        const resourceSelect = row.querySelector('.resource-select');
+        const quantityInput = row.querySelector('.quantity-input');
+        
+        if (resourceSelect.value && quantityInput.value) {
+            resources.push({
+                resourceId: parseInt(resourceSelect.value),
+                quantity: parseInt(quantityInput.value)
+            });
+        }
+    });
 
-    const payload = { name, description, latitude, longitude, resources };
+    const payload = { 
+        name, 
+        description, 
+        latitude: parseFloat(latitude), 
+        longitude: parseFloat(longitude), 
+        resources 
+    };
 
     try {
-        const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
-            method: id ? 'PUT' : 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        const url = id ? `${apiUrl}/${id}` : apiUrl;
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: { 
+                'Content-Type': 'application/json' 
+            },
             body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw await res.json();
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || 'Failed to save location');
+        }
 
-        const modalEl = document.getElementById('locationModal');
-        const modal = bootstrap.Modal.getInstance(modalEl);
+        // Fecha o modal e recarrega a lista
+        const modal = bootstrap.Modal.getInstance(document.getElementById('locationModal'));
         modal.hide();
-
-        // Remove o backdrop manualmente após esconder o modal
+        
+        // Remove o backdrop manualmente se necessário
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-
+        
         loadLocations();
+
     } catch (err) {
-        alert(err.message || 'Error saving location');
+        console.error('Error saving location:', err);
+        alert('Error saving location: ' + err.message);
     }
 });
 
-async function deleteLocation(id) {
-    if (!confirm('Are you sure you want to delete this location?')) return;
-    try {
-        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
-        if (!res.ok) throw await res.json();
-        loadLocations();
-    } catch (err) {
-        alert(err.message || 'Error deleting location');
-    }
-}
-
-window.onload = async () => {
+// Inicialização quando a página carrega
+window.onload = async function() {
     await fetchResources();
-    loadLocations();
+    await loadLocations();
 };
 </script>
 

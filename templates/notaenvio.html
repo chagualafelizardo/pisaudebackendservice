@@ -1,0 +1,384 @@
+{% extends 'base.html' %}
+{% block title %}PI-SAÚDE / Notas de Envio{% endblock %}
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Gestão de Notas de Envio</h2>
+
+<!-- Campo de pesquisa -->
+<div class="mb-3 position-relative" style="max-width: 400px;">
+  <input type="text" id="notaSearch" class="form-control" placeholder="Pesquisar nota...">
+</div>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1050;"
+        onclick="abrirModalNotaEnvio()">
+  +
+</button>
+
+<!-- Tabela de Notas -->
+<table class="table table-striped table-bordered table-sm align-middle">
+  <thead class="table-dark">
+    <tr>
+      <th>#</th>
+      <th>Número Nota</th>
+      <th>Tipo Item</th>
+      <th>Data Envio</th>
+      <th>Origem</th>
+      <th>Destino</th>
+      <th>observacoes</th>
+      <th>Documentos</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody id="notaTableBody"></tbody>
+</table>
+
+<!-- Modal Nota de Envio -->
+<div class="modal fade" id="notaEnvioModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="notaEnvioForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar / Editar Nota de Envio</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="notaId">
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Número da Nota</label>
+            <input type="text" id="notaNumero" class="form-control" required>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Data de Envio</label>
+            <input type="date" id="notaDataEnvio" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Tipo de Item</label>
+            <select id="notaTipoItem" class="form-select" required></select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Origem</label>
+            <input type="text" id="notaOrigem" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Destino</label>
+            <input type="text" id="notaDestino" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Observações</label>
+          <textarea id="notaObservacoes" class="form-control" rows="3"></textarea>
+        </div>
+
+        <!-- Upload de documentos individual -->
+        <div class="mb-3">
+          <label class="form-label">Adicionar Documento</label>
+          <div class="d-flex gap-2 mb-2">
+            <input type="file" id="fileInput" class="form-control" style="max-width: 400px;">
+            <button type="button" class="btn btn-outline-primary" onclick="adicionarDocumento()">Adicionar</button>
+          </div>
+          <ul id="listaDocs" class="list-group"></ul>
+        </div>
+
+        <!-- Lista de documentos já existentes -->
+        <div id="docsExistentesContainer" class="border-top pt-2" style="display: none;">
+          <h6>📎 Documentos Existentes</h6>
+          <ul id="docsExistentes" class="list-unstyled small"></ul>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let allNotas = [];
+let allTiposItem = [];
+let documentosPendentes = [];
+
+const notaUrl = '/api/notaenvio';
+const tipoItemUrl = '/api/tipo_item';
+const docUrl = '/api/notaenviodocument';
+
+window.onload = () => {
+  loadTiposItem();
+  loadNotas();
+  document.getElementById('notaSearch').addEventListener('input', e => filtrarNotas(e.target.value));
+};
+
+// ==========================
+// 🔹 Carregar Notas
+// ==========================
+async function loadNotas() {
+  const res = await fetch(notaUrl);
+  allNotas = await res.json();
+  filtrarNotas(document.getElementById('notaSearch').value);
+}
+
+function filtrarNotas(query) {
+  const tbody = document.getElementById('notaTableBody');
+  tbody.innerHTML = '';
+  const termo = query?.toLowerCase() || '';
+
+  allNotas.filter(n =>
+    (n.numero_nota || '').toLowerCase().includes(termo) ||
+    (n.origem || '').toLowerCase().includes(termo) ||
+    (n.destino || '').toLowerCase().includes(termo)
+  ).forEach(n => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${n.id}</td>
+        <td>${n.numero_nota}</td>
+        <td>${n.tipo_item_nome || ''}</td>
+        <td>${n.data_envio ? n.data_envio.slice(0,10) : ''}</td>
+        <td>${n.origem}</td>
+        <td>${n.destino}</td>
+        <td>${n.observacoes}</td>
+        <td>
+          ${n.documentos && n.documentos.length > 0
+            ? n.documentos.map(d => `<a href="/api/notaenviodocument/${d.id}/download" target="_blank">📎 ${d.nome_arquivo}</a>`).join('<br>')
+            : 'Nenhum documento'}
+        </td>
+        <td>
+          <button class="btn btn-sm btn-warning" onclick="editarNota(${n.id})"><i class="bi bi-pencil"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="eliminarNota(${n.id})"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>`;
+  });
+}
+
+// ==========================
+// 🔹 Carregar Tipos de Item
+// ==========================
+async function loadTiposItem() {
+  const res = await fetch(tipoItemUrl);
+  allTiposItem = await res.json();
+  const select = document.getElementById('notaTipoItem');
+  select.innerHTML = '<option value="">Selecione o tipo</option>';
+  allTiposItem.forEach(t => select.innerHTML += `<option value="${t.id}">${t.nome}</option>`);
+}
+
+// ==========================
+// 🔹 Abrir Modal
+// ==========================
+function abrirModalNotaEnvio() {
+  document.getElementById('notaEnvioForm').reset();
+  document.getElementById('notaId').value = '';
+  documentosPendentes = [];
+  atualizarListaDocumentos();
+  document.getElementById('docsExistentesContainer').style.display = 'none';
+  document.getElementById('docsExistentes').innerHTML = '';
+  new bootstrap.Modal(document.getElementById('notaEnvioModal')).show();
+}
+
+// ==========================
+// 🔹 Salvar Nota
+// ==========================
+document.getElementById('notaEnvioForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const formData = new FormData();
+  const id = document.getElementById('notaId').value;
+  formData.append('numero_nota', document.getElementById('notaNumero').value);
+  formData.append('tipo_item_id', document.getElementById('notaTipoItem').value);
+  formData.append('data_envio', document.getElementById('notaDataEnvio').value);
+  formData.append('origem', document.getElementById('notaOrigem').value);
+  formData.append('destino', document.getElementById('notaDestino').value);
+  formData.append('observacoes', document.getElementById('notaObservacoes').value || '');
+
+  // 🔹 Adiciona os documentos selecionados
+  documentosPendentes.forEach((doc) => {
+    formData.append('file', doc.file);  // ⚡ nome fixo 'file' para o Flask ler request.files.getlist('file')
+  });
+
+  const method = id ? 'PUT' : 'POST';
+  const url = id ? `${notaUrl}/${id}` : notaUrl;
+
+  const res = await fetch(url, {
+    method,
+    body: formData
+  });
+
+  if (res.ok) {
+    alert('✅ Nota de envio salva com sucesso!');
+    bootstrap.Modal.getInstance(document.getElementById('notaEnvioModal')).hide();
+    loadNotas();
+  } else {
+    const err = await res.json();
+    alert('❌ Erro: ' + (err.error || err.message || 'Erro desconhecido'));
+  }
+});
+
+
+// ==========================
+// 🔹 Editar
+// ==========================
+async function editarNota(id) {
+  const nota = allNotas.find(n => n.id === id);
+  if (!nota) return;
+
+  document.getElementById('notaId').value = nota.id;
+  document.getElementById('notaTipoItem').value = nota.tipo_item_id;
+  document.getElementById('notaNumero').value = nota.numero_nota;
+  document.getElementById('notaDataEnvio').value = nota.data_envio?.slice(0,10);
+  document.getElementById('notaOrigem').value = nota.origem;
+  document.getElementById('notaDestino').value = nota.destino;
+  document.getElementById('notaObservacoes').value = nota.observacoes || '';
+
+  await carregarDocumentosExistentes(id);
+  documentosPendentes = [];
+  atualizarListaDocumentos();
+
+  new bootstrap.Modal(document.getElementById('notaEnvioModal')).show();
+}
+
+// ==========================
+// 🔹 Documentos Pendentes
+// ==========================
+function adicionarDocumento() {
+  const fileInput = document.getElementById('fileInput');
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  documentosPendentes.push({ file });
+  atualizarListaDocumentos();
+  fileInput.value = ''; // limpa input
+}
+
+function atualizarListaDocumentos() {
+  const ul = document.getElementById('listaDocs');
+  ul.innerHTML = '';
+  documentosPendentes.forEach((doc, i) => {
+    ul.innerHTML += `<li class="list-group-item d-flex justify-content-between align-items-center">
+      ${doc.file.name}
+      <button class="btn btn-sm btn-outline-danger" onclick="removerDocumento(${i})">Remover</button>
+    </li>`;
+  });
+}
+
+function removerDocumento(i) {
+  documentosPendentes.splice(i, 1);
+  atualizarListaDocumentos();
+}
+
+
+function atualizarListaDocumentos() {
+  const lista = document.getElementById('listaDocs');
+  if (documentosPendentes.length === 0) {
+    lista.innerHTML = '<li class="list-group-item text-muted">Nenhum documento adicionado</li>';
+    return;
+  }
+
+  lista.innerHTML = documentosPendentes.map(d => `
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <div>
+        📄 ${d.file.name} <small>(${(d.file.size / 1024).toFixed(1)} KB)</small>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-success me-1" onclick="uploadDocumento(${d.id})">
+          <i class="bi bi-upload"></i>
+        </button>
+        <button class="btn btn-sm btn-outline-danger" onclick="removerDocumento(${d.id})">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    </li>
+  `).join('');
+}
+
+// function removerDocumento(idTemp) {
+//   documentosPendentes = documentosPendentes.filter(d => d.id !== idTemp);
+//   atualizarListaDocumentos();
+// }
+
+// ==========================
+// 🔹 Upload individual
+// ==========================
+async function uploadDocumento(idTemp) {
+  const doc = documentosPendentes.find(d => d.id === idTemp);
+  if (!doc) return;
+
+  const notaId = document.getElementById('notaId').value;
+  if (!notaId) return alert('Salve a nota antes de enviar documentos.');
+
+  const formData = new FormData();
+  formData.append('nota_envio_id', notaId);
+  formData.append('file', doc.file);
+
+  const res = await fetch(docUrl, { method: 'POST', body: formData });
+
+  if (res.ok) {
+    alert(`Documento "${doc.file.name}" enviado com sucesso.`);
+    documentosPendentes = documentosPendentes.filter(d => d.id !== idTemp);
+    atualizarListaDocumentos();
+    await carregarDocumentosExistentes(notaId);
+  } else {
+    alert('Erro ao enviar documento.');
+  }
+}
+
+// ==========================
+// 🔹 Carregar documentos existentes
+// ==========================
+async function carregarDocumentosExistentes(notaId) {
+  const res = await fetch(`${docUrl}?nota_envio_id=${notaId}`);
+  if (!res.ok) return;
+
+  const docs = await res.json();
+  const lista = document.getElementById('docsExistentes');
+  const container = document.getElementById('docsExistentesContainer');
+  lista.innerHTML = '';
+
+  if (docs.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+  docs.forEach(d => {
+    lista.innerHTML += `
+      <li>
+        📄 <a href="${docUrl}/${d.id}/download" target="_blank">${d.nome_arquivo}</a>
+        <button class="btn btn-sm btn-outline-danger ms-2" onclick="deleteDocumento(${d.id}, ${notaId})">
+          <i class="bi bi-trash"></i>
+        </button>
+      </li>`;
+  });
+}
+
+// ==========================
+// 🔹 Deletar documento existente
+// ==========================
+async function deleteDocumento(id, notaId) {
+  if (!confirm('Excluir este documento?')) return;
+  const res = await fetch(`${docUrl}/${id}`, { method: 'DELETE' });
+  if (res.ok) await carregarDocumentosExistentes(notaId);
+}
+
+// ==========================
+// 🔹 Excluir nota
+// ==========================
+async function eliminarNota(id) {
+  if (!confirm('Deseja eliminar esta nota?')) return;
+  const res = await fetch(`${notaUrl}/${id}`, { method: 'DELETE' });
+  if (res.ok) loadNotas();
+}
+</script>
+
+{% endblock %}

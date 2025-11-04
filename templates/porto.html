@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% block title %}PI-SAÚDE / Portos{% endblock %}
+
+{% block content %}
+{% include 'navbar.html' %}
+
+<h2>Gestão de Portos</h2>
+
+<!-- Campo de pesquisa -->
+<div class="mb-3 position-relative" style="max-width: 400px;">
+    <input type="text" id="portoSearch" class="form-control" placeholder="Pesquisar porto..." oninput="filtrarTabela(this.value)">
+</div>
+
+<!-- Botão de exportar Excel -->
+<div class="mb-3">
+    <button class="btn btn-outline-success" onclick="downloadExcel()">📥 Exportar Excel</button>
+</div>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="abrirModalPorto()">
+    +
+</button>
+
+<!-- Tabela -->
+<table class="table table-bordered" id="portoTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Província</th>
+            <th>Latitude</th>
+            <th>Longitude</th>
+            <th>Sync Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="portoTableBody"></tbody>
+</table>
+
+<!-- Modal -->
+<div class="modal fade" id="portoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="portoForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Adicionar / Editar Porto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="portoId">
+
+        <div class="mb-3">
+          <label class="form-label">Nome</label>
+          <input type="text" id="portoNome" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Província</label>
+          <select id="portoProvincia" class="form-select" required></select>
+        </div>
+
+        <div class="row">
+          <div class="col">
+            <label class="form-label">Latitude</label>
+            <input type="text" id="portoLat" class="form-control" readonly>
+          </div>
+          <div class="col">
+            <label class="form-label">Longitude</label>
+            <input type="text" id="portoLng" class="form-control" readonly>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <label for="mapSearch" class="form-label">Pesquisar Local</label>
+          <input type="text" id="mapSearch" class="form-control" placeholder="Pesquise um local...">
+        </div>
+
+        <div id="mapContainer" style="position: relative; height: 400px; margin-top: 10px;">
+          <div id="map" style="height: 100%; border-radius: 10px;"></div>
+          <button id="toggleMapTypeBtn" type="button" class="btn btn-info position-absolute" style="top: 10px; left: 10px; z-index: 1000;">
+            Satellite
+          </button>
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label">Sync Status</label>
+          <select id="portoSyncStatus" class="form-select">
+            <option value="Not Syncronized">Not Syncronized</option>
+            <option value="Syncronized">Syncronized</option>
+            <option value="Updated">Updated</option>
+          </select>
+        </div>
+
+        <div class="mb-3 mt-2">
+          <label class="form-label">Sync Status Date</label>
+          <input type="datetime-local" id="portoSyncDate" class="form-control">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- XLSX -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- Google Maps -->
+<script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDw8qHIN9go7Do3aouyR9343opJ33ZdDb0&libraries=places">
+</script>
+
+<script>
+let allPortos = [];
+let allProvincias = [];
+const apiUrl = '/api/porto';
+const provinciaUrl = '/api/provincia';
+
+let map, marker, autocomplete;
+const MAPUTO_CENTER = { lat: -25.9636, lng: 32.5805 };
+
+/* -------------------- CARREGAMENTO -------------------- */
+window.onload = () => {
+    loadProvincias();
+    loadPortos();
+};
+
+/* -------------------- MAPA -------------------- */
+function initializeMap(lat = -25.9636, lng = 32.5805) {
+    const center = { lat: parseFloat(lat), lng: parseFloat(lng) };
+
+    map = new google.maps.Map(document.getElementById("map"), {
+        center: center,
+        zoom: 7,
+        mapTypeId: "terrain"
+    });
+
+    marker = new google.maps.Marker({
+        position: center,
+        map: map,
+        draggable: true
+    });
+
+    map.addListener("click", (event) => {
+        marker.setPosition(event.latLng);
+        document.getElementById("portoLat").value = event.latLng.lat().toFixed(6);
+        document.getElementById("portoLng").value = event.latLng.lng().toFixed(6);
+    });
+
+    marker.addListener("dragend", () => {
+        const pos = marker.getPosition();
+        document.getElementById("portoLat").value = pos.lat().toFixed(6);
+        document.getElementById("portoLng").value = pos.lng().toFixed(6);
+    });
+
+    const input = document.getElementById("mapSearch");
+    autocomplete = new google.maps.places.Autocomplete(input);
+    autocomplete.bindTo("bounds", map);
+
+    autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) return;
+        map.panTo(place.geometry.location);
+        map.setZoom(15);
+        marker.setPosition(place.geometry.location);
+        document.getElementById("portoLat").value = place.geometry.location.lat().toFixed(6);
+        document.getElementById("portoLng").value = place.geometry.location.lng().toFixed(6);
+    });
+
+    const btn = document.getElementById("toggleMapTypeBtn");
+    btn.onclick = () => {
+        const current = map.getMapTypeId();
+        const newType = current === "terrain" ? "satellite" : "terrain";
+        map.setMapTypeId(newType);
+        btn.textContent = newType === "terrain" ? "Satellite" : "Map";
+    };
+}
+
+/* -------------------- MODAL -------------------- */
+function abrirModalPorto() {
+    document.getElementById('portoForm').reset();
+    document.getElementById('portoId').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('portoModal'));
+    modal.show();
+
+    document.getElementById('portoModal').addEventListener('shown.bs.modal', function() {
+        initializeMap();
+    }, { once: true });
+}
+
+/* -------------------- CARREGAR DADOS -------------------- */
+async function loadProvincias() {
+    try {
+        const res = await fetch(provinciaUrl);
+        allProvincias = await res.json();
+        const select = document.getElementById('portoProvincia');
+        select.innerHTML = '<option value="">Selecione a província</option>';
+        allProvincias.forEach(p => select.innerHTML += `<option value="${p.id}">${p.nome}</option>`);
+    } catch (error) {
+        console.error('Erro ao carregar províncias:', error);
+    }
+}
+
+async function loadPortos() {
+    try {
+        const res = await fetch(apiUrl);
+        allPortos = await res.json();
+        filtrarTabela(document.getElementById('portoSearch').value);
+    } catch (error) {
+        console.error('Erro ao carregar portos:', error);
+        alert('Erro ao carregar portos: ' + error.message);
+    }
+}
+
+/* -------------------- FILTRO -------------------- */
+function filtrarTabela(query) {
+    const tbody = document.getElementById('portoTableBody');
+    tbody.innerHTML = '';
+    const termo = query.trim().toLowerCase();
+    allPortos
+        .filter(p => (p.nome || '').toLowerCase().includes(termo) || (p.provincia_nome || '').toLowerCase().includes(termo))
+        .forEach(p => {
+            tbody.innerHTML += `
+            <tr>
+                <td>${p.id}</td>
+                <td>${p.nome}</td>
+                <td>${p.provincia_nome || ''}</td>
+                <td>${p.latitude || ''}</td>
+                <td>${p.longitude || ''}</td>
+                <td>${p.syncStatus || ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editarPorto(${p.id})">Editar</button>
+                    <button class="btn btn-sm btn-danger" onclick="eliminarPorto(${p.id})">Apagar</button>
+                </td>
+            </tr>`;
+        });
+}
+
+/* -------------------- EDITAR -------------------- */
+function editarPorto(id) {
+    const p = allPortos.find(p => p.id === id);
+    if (!p) return;
+
+    document.getElementById('portoId').value = p.id;
+    document.getElementById('portoNome').value = p.nome || '';
+    document.getElementById('portoProvincia').value = p.provincia_id || '';
+    document.getElementById('portoLat').value = p.latitude || '';
+    document.getElementById('portoLng').value = p.longitude || '';
+    document.getElementById('portoSyncStatus').value = p.syncStatus || 'Not Syncronized';
+    document.getElementById('portoSyncDate').value = p.syncStatusDate ? p.syncStatusDate.slice(0,16) : '';
+
+    const modal = new bootstrap.Modal(document.getElementById('portoModal'));
+    modal.show();
+
+    document.getElementById('portoModal').addEventListener('shown.bs.modal', function() {
+        if (p.latitude && p.longitude) initializeMap(p.latitude, p.longitude);
+        else initializeMap();
+    }, { once: true });
+}
+
+/* -------------------- GUARDAR -------------------- */
+document.getElementById('portoForm').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const id = document.getElementById('portoId').value;
+    const nome = document.getElementById('portoNome').value;
+    const provincia_id = document.getElementById('portoProvincia').value;
+    const latitude = document.getElementById('portoLat').value;
+    const longitude = document.getElementById('portoLng').value;
+    const syncStatus = document.getElementById('portoSyncStatus').value;
+    const syncStatusDate = document.getElementById('portoSyncDate').value;
+
+    const payload = {
+        nome: nome,
+        provincia_id: parseInt(provincia_id),
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
+        syncStatus: syncStatus,
+        syncStatusDate: syncStatusDate ? new Date(syncStatusDate).toISOString() : null
+    };
+
+    try {
+        const url = id ? `${apiUrl}/${id}` : apiUrl;
+        const method = id ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || 'Erro ao salvar porto');
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('portoModal')).hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        loadPortos();
+
+    } catch(err) {
+        console.error('Erro ao salvar porto:', err);
+        alert(err.message || 'Erro ao salvar porto');
+    }
+});
+
+/* -------------------- ELIMINAR -------------------- */
+async function eliminarPorto(id) {
+    if (!confirm('Tem certeza que deseja apagar este porto?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || 'Erro ao apagar porto');
+        }
+        loadPortos();
+    } catch(err) {
+        console.error('Erro ao apagar porto:', err);
+        alert(err.message || 'Erro ao apagar porto');
+    }
+}
+
+/* -------------------- EXPORTAR EXCEL -------------------- */
+function downloadExcel() {
+    const table = document.getElementById("portoTable");
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Portos" });
+    XLSX.writeFile(wb, "portos.xlsx");
+}
+</script>
+
+{% endblock %}

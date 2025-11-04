@@ -1,0 +1,153 @@
+import logging
+from flask import jsonify, request, send_file
+from io import BytesIO
+from models import db, NotaEnvioDocument
+
+# 🔹 Configuração global de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+class NotaEnvioDocumentController:
+
+    # ===============================================================
+    # 🔹 Serialização
+    # ===============================================================
+    @staticmethod
+    def serialize(doc: NotaEnvioDocument):
+        return {
+            'id': doc.id,
+            'nota_envio_id': doc.nota_envio_id,
+            'nome_arquivo': doc.nome_arquivo,
+            'tipo_mime': doc.tipo_mime,
+            'data_upload': doc.data_upload.isoformat() if doc.data_upload else None
+        }
+
+    # ===============================================================
+    # 🔹 Listar todos os documentos
+    # ===============================================================
+    @staticmethod
+    def get_all():
+        logger.info("[GET ALL] Iniciando busca de todos os NotaEnvioDocument")
+        try:
+            documentos = NotaEnvioDocument.query.all()
+            logger.info(f"[GET ALL] Encontrados {len(documentos)} documentos")
+            return jsonify([NotaEnvioDocumentController.serialize(d) for d in documentos]), 200
+        except Exception as e:
+            logger.exception("[GET ALL] Erro ao buscar documentos")
+            return jsonify({'error': str(e)}), 500
+
+    # ===============================================================
+    # 🔹 Buscar por ID
+    # ===============================================================
+    @staticmethod
+    def get_by_id(id):
+        logger.info(f"[GET BY ID] Solicitado documento ID={id}")
+        try:
+            doc = NotaEnvioDocument.query.get(id)
+            if not doc:
+                logger.warning(f"[GET BY ID] Documento ID={id} não encontrado")
+                return jsonify({'message': 'Documento não encontrado'}), 404
+
+            logger.info(f"[GET BY ID] Documento ID={id} encontrado")
+            return jsonify(NotaEnvioDocumentController.serialize(doc)), 200
+        except Exception as e:
+            logger.exception(f"[GET BY ID] Erro ao buscar documento ID={id}")
+            return jsonify({'error': str(e)}), 500
+
+    # ===============================================================
+    # 🔹 Download do arquivo (opcional)
+    # ===============================================================
+    @staticmethod
+    def download(id):
+        logger.info(f"[DOWNLOAD] Solicitado download de documento ID={id}")
+        try:
+            doc = NotaEnvioDocument.query.get(id)
+            if not doc:
+                logger.warning(f"[DOWNLOAD] Documento ID={id} não encontrado")
+                return jsonify({'message': 'Documento não encontrado'}), 404
+
+            logger.info(f"[DOWNLOAD] Enviando arquivo '{doc.nome_arquivo}' para download")
+            return send_file(
+                BytesIO(doc.dados_arquivo),
+                mimetype=doc.tipo_mime or 'application/octet-stream',
+                as_attachment=True,
+                download_name=doc.nome_arquivo
+            )
+        except Exception as e:
+            logger.exception(f"[DOWNLOAD] Erro ao fazer download de documento ID={id}")
+            return jsonify({'error': str(e)}), 500
+
+    # ===============================================================
+    # 🔹 Upload / Criar novo documento
+    # ===============================================================
+    @staticmethod
+    def create():
+        logger.info("[CREATE] Solicitado upload de um ou mais documentos")
+        try:
+            # 🔹 Verifica se há arquivos no request
+            if 'file' not in request.files:
+                logger.warning("[CREATE] Nenhum arquivo encontrado no request")
+                return jsonify({'message': 'Nenhum arquivo enviado'}), 400
+
+            nota_envio_id = request.form.get('nota_envio_id')
+            if not nota_envio_id:
+                logger.warning("[CREATE] Campo nota_envio_id ausente")
+                return jsonify({'message': 'nota_envio_id é obrigatório'}), 400
+
+            files = request.files.getlist('file')
+            logger.info(f"[CREATE] Recebidos {len(files)} arquivo(s) para nota_envio_id={nota_envio_id}")
+
+            created_docs = []
+
+            for file in files:
+                if file.filename == '':
+                    logger.warning("[CREATE] Nome de arquivo vazio — ignorado")
+                    continue
+
+                doc = NotaEnvioDocument(
+                    nota_envio_id=nota_envio_id,
+                    nome_arquivo=file.filename,
+                    tipo_mime=file.mimetype,
+                    dados_arquivo=file.read()
+                )
+                db.session.add(doc)
+                created_docs.append(doc)
+
+            db.session.commit()
+            logger.info(f"[CREATE] {len(created_docs)} documento(s) criado(s) com sucesso")
+
+            return jsonify({
+                'message': f'{len(created_docs)} documento(s) carregado(s) com sucesso',
+                'ids': [d.id for d in created_docs]
+            }), 201
+
+        except Exception as e:
+            db.session.rollback()
+            logger.exception("[CREATE] Erro ao criar documentos")
+            return jsonify({'error': str(e)}), 500
+
+    # ===============================================================
+    # 🔹 Deletar documento
+    # ===============================================================
+    @staticmethod
+    def delete(id):
+        logger.info(f"[DELETE] Solicitada exclusão de documento ID={id}")
+        try:
+            doc = NotaEnvioDocument.query.get(id)
+            if not doc:
+                logger.warning(f"[DELETE] Documento ID={id} não encontrado")
+                return jsonify({'message': 'Documento não encontrado'}), 404
+
+            db.session.delete(doc)
+            db.session.commit()
+
+            logger.info(f"[DELETE] Documento ID={id} excluído com sucesso")
+            return jsonify({'message': 'Documento excluído com sucesso'}), 200
+        except Exception as e:
+            db.session.rollback()
+            logger.exception(f"[DELETE] Erro ao excluir documento ID={id}")
+            return jsonify({'error': str(e)}), 500

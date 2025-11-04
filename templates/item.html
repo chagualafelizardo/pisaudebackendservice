@@ -23,15 +23,20 @@
     +
 </button>
 
-<!-- Tabela -->
+<!-- Tabela simplificada -->
 <table class="table table-bordered align-middle" id="itemTable">
     <thead>
         <tr>
             <th>ID</th>
+            <th>Image</th>
             <th>Código</th>
             <th>Designação</th>
-            <th>Imagem</th>
-            <th>Armazém</th>
+            <th>HS Code</th>
+            <th>Qtd</th>
+            <th>Batch No</th>
+            <th>MFG Date</th>
+            <th>Expiry Date</th>
+            <th>No. Cartons</th>
             <th>Sync Status</th>
             <th>Ações</th>
         </tr>
@@ -39,48 +44,163 @@
     <tbody id="itemTableBody"></tbody>
 </table>
 
-<!-- Modal -->
+<!-- Painel lateral de detalhes -->
+<div id="detalhesPanel" style="position:fixed; top:60px; right:-420px; width:420px; height:90%; background:#fff; border-left:1px solid #ccc; box-shadow: -3px 0 5px rgba(0,0,0,0.2); padding:15px; overflow:auto; transition:right 0.3s; z-index:1050;">
+    <button class="btn btn-sm btn-secondary mb-2" onclick="fecharDetalhes()">Fechar</button>
+    <div id="detalhesContent"></div>
+</div>
+
+<div id="historicoStock" class="mt-3"></div>
+
+<!-- Modal Item -->
 <div class="modal fade" id="itemModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-xl">
     <form id="itemForm" class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Adicionar / Editar Item</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-
       <div class="modal-body">
         <input type="hidden" id="itemId">
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs mb-3" id="itemTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">Básico</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="logistics-tab" data-bs-toggle="tab" data-bs-target="#logistics" type="button" role="tab">Datas & Logística</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location" type="button" role="tab">Localização</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab">Arquivos & Observações</button>
+          </li>
+        </ul>
 
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Código</label>
-            <input type="text" id="itemCodigo" class="form-control" required>
+        <!-- Tab panes -->
+        <div class="tab-content">
+          <!-- Básico -->
+          <div class="tab-pane fade show active" id="basic" role="tabpanel">
+            <div class="row">
+              <div class="row">
+                <div class="col-md-12 mb-3">
+                  <label class="form-label">Nota de Envio (opcional)</label>
+                  <select id="itemNotaEnvio" class="form-select">
+                    <option value="">Selecione a nota de envio</option>
+                  </select>
+                </div>
+              </div>
+              
+              <!-- 🔹 Secção para visualizar documentos da Nota de Envio -->
+              <div id="notaEnvioDocumentos" class="mt-3" style="display: none;">
+                <h6>📎 Documentos da Nota de Envio</h6>
+                <ul id="notaEnvioDocsList" class="list-group"></ul>
+              </div>
+
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Código</label>
+                <input type="text" id="itemCodigo" class="form-control" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Designação</label>
+                <input type="text" id="itemDesignacao" class="form-control" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">HS Code</label>
+                <input type="text" id="itemHsCode" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Quantidade</label>
+                <input type="number" id="itemQuantidade" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Batch No</label>
+                <input type="text" id="itemBatchNo" class="form-control">
+              </div>
+            </div>
           </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label">Designação</label>
-            <input type="text" id="itemDesignacao" class="form-control" required>
+
+          <!-- Datas & Logística -->
+          <div class="tab-pane fade" id="logistics" role="tabpanel">
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label class="form-label">MFG Date</label>
+                <input type="date" id="itemDataFabricacao" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Expiry Date</label>
+                <input type="date" id="itemDataValidade" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">No. Cartons</label>
+                <input type="number" id="itemNoCartoes" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Peso Bruto Total</label>
+                <input type="number" step="0.01" id="itemPesoBruto" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Volume CBM</label>
+                <input type="number" step="0.01" id="itemVolumeCBM" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Total Cartons</label>
+                <input type="number" id="itemTotalCartoes" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Total Paletes</label>
+                <input type="number" id="itemTotalPaletes" class="form-control">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Dimensões Palete (CM)</label>
+                <input type="text" id="itemDimensoesPalete" class="form-control">
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div class="mb-3">
-          <label class="form-label">Armazém</label>
-          <select id="itemArmazem" class="form-select" required></select>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Imagem do Item</label>
-          <input type="file" id="itemImagem" class="form-control" accept="image/*" onchange="previewImagem(event)">
-          <img id="previewImg" src="" alt="Pré-visualização" class="img-thumbnail mt-2" style="max-width: 200px; display:none;">
-        </div>
-
-        <div class="row">
-          <div class="col-md-6">
-            <label class="form-label">Sync Status</label>
-            <select id="itemSyncStatus" class="form-select"></select>
+          <!-- Localização -->
+          <div class="tab-pane fade" id="location" role="tabpanel">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Armazém</label>
+                <select id="itemArmazem" class="form-select" required></select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Porto de Chegada</label>
+                <select id="itemPorto" class="form-select">
+                  <option value="">Selecione o porto</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Sync Status Date</label>
-            <input type="datetime-local" id="itemSyncDate" class="form-control">
+
+          <!-- Arquivos & Observações -->
+          <div class="tab-pane fade" id="files" role="tabpanel">
+            <div class="mb-3">
+              <label class="form-label">Imagem do Item</label>
+              <input type="file" id="itemImagem" class="form-control" accept="image/*" onchange="previewImagem(event)">
+              <img id="previewImg" src="" alt="Pré-visualização" class="img-thumbnail mt-2" style="max-width: 200px; display:none;">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Comprovativo PDF</label>
+              <input type="file" id="itemPdf" class="form-control" accept="application/pdf" onchange="previewPDF(event)">
+              <div id="previewPdf" class="mt-2"></div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Observações</label>
+              <textarea id="itemObservacoes" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Sync Status</label>
+                <select id="itemSyncStatus" class="form-select"></select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Sync Status Date</label>
+                <input type="datetime-local" id="itemSyncDate" class="form-control">
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -93,42 +213,381 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Modal Entrada de Stock com Abas -->
+<div class="modal fade" id="entradaStockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <form id="entradaStockForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Gestão de Stock / Necessidades</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="entradaItemId">
+
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs mb-3" id="entradaTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="entrada-tab" data-bs-toggle="tab" data-bs-target="#entrada" type="button" role="tab">Entrada Stock</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="necessidades-tab" data-bs-toggle="tab" data-bs-target="#necessidades" type="button" role="tab">Necessidades</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="historico-tab" data-bs-toggle="tab" data-bs-target="#historico" type="button" role="tab">Histórico</button>
+          </li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+          <!-- Entrada Stock -->
+          <div class="tab-pane fade show active" id="entrada" role="tabpanel">
+            <div class="mb-3">
+              <label class="form-label">Quantidade</label>
+              <input type="number" id="entradaQuantidade" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Observações</label>
+              <textarea id="entradaObservacoes" class="form-control"></textarea>
+            </div>
+          </div>
+
+          <!-- Necessidades -->
+          <div class="tab-pane fade" id="necessidades" role="tabpanel">
+            <div class="mb-3">
+              <h6>Adicionar Necessidade para este item:</h6>
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <input type="number" id="necessidadeQuantidade" class="form-control" placeholder="Quantidade necessária">
+                </div>
+                <div class="col-md-4">
+                  <input type="text" id="necessidadeDescricao" class="form-control" placeholder="Descrição / Observações">
+                </div>
+                <div class="col-md-4">
+                  <select id="necessidadeLocation" class="form-select">
+                    <option value="">Selecione a Location</option>
+                  </select>
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-primary mt-2" onclick="adicionarNecessidade()">Adicionar Necessidade</button>
+            </div>
+            <hr>
+            <div id="listaNecessidadesContainer">
+              <!-- Lista carregada via JS -->
+              <p>Carregando necessidades...</p>
+            </div>
+          </div>
+
+          <!-- Histórico -->
+          <div class="tab-pane fade" id="historico" role="tabpanel">
+            <div id="historicoStockModalContainer">
+              <p>Carregando histórico...</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Registrar Entrada</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Distribuição -->
+<div class="modal fade" id="distribuicaoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="distribuicaoForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Distribuição de Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="distribuicaoItemId">
+
+        <!-- Imagem e descrição do item -->
+        <div class="mb-3 text-center">
+          <img id="distribuicaoItemImg" src="/static/no-image.png" alt="Imagem do Item" class="img-thumbnail mb-2" style="max-width: 200px;">
+          <h5 id="distribuicaoItemDescricao"></h5>
+          <h6 id="distribuicaoItemHSCode"></h6>
+          <!-- <h6 id="distribuicaoItemBatchNo 	"></h6>
+          <h6 id="distribuicaoItemMFGDate"></h6>
+          <h6 id="distribuicaoItemExpiryDate"></h6> -->
+        </div>
+
+        <!-- Campos do formulário -->
+        <div class="mb-3">
+          <label class="form-label">Armazém</label>
+          <select id="distribuicaoArmazem" class="form-select" required>
+            <option value="">Selecione o armazém</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Unidade Sanitária / Location</label>
+          <select id="distribuicaoLocation" class="form-select" required>
+            <option value="">Selecione a unidade sanitária</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Quantidade</label>
+          <input type="number" id="distribuicaoQuantidade" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Data de Distribuição</label>
+          <input type="date" id="distribuicaoData" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Observação</label>
+          <textarea id="distribuicaoObservacao" class="form-control"></textarea>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Registrar Distribuição</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 
 <script>
 let allItens = [];
 let allArmazens = [];
+let allPortos = [];
+let allLocations = []; // <-- lista de locations
+let imagemBase64 = null;
+let pdfBase64 = null;
+let allNotasEnvio = [];
+
 const apiUrl = '/api/item';
 const armazemUrl = '/api/armazem';
-
-// Enum do SyncStatus, alinhado com o backend
+const portoUrl = '/api/porto';
+const locationUrl = '/api/location'; // <-- endpoint para locations
+const notaEnvioUrl = '/api/notaenvio';
 const SYNC_STATUS_ENUM = ['Not Syncronized', 'Syncronized', 'Updated'];
 
-/* -------------------- CARREGAMENTO -------------------- */
+// Inicialização
 window.onload = () => {
     carregarSyncStatus();
     loadArmazens();
+    loadPortos();
+    loadLocations(); // <-- carregar locations
+    loadNotasEnvio(); // <-- novo
     loadItens();
 };
 
-// Popula select de SyncStatus
+function abrirDistribuicao(itemId) {
+    const item = allItens.find(i => i.id === itemId);
+    if (!item) return;
+
+    // Preencher campos ocultos
+    document.getElementById('distribuicaoItemId').value = item.id;
+
+    // Preencher imagem e descrição
+    document.getElementById('distribuicaoItemImg').src = item.imagem 
+        ? `data:image/jpeg;base64,${item.imagem}` 
+        : '/static/no-image.png';
+    document.getElementById('distribuicaoItemDescricao').textContent = item.designacao || '';
+    document.getElementById('distribuicaoItemHSCode').textContent = item.hs_code || '';
+    // document.getElementById('distribuicaoItemBatchNo').textContent = item.batch_no || '';
+    // document.getElementById('distribuicaoItemMFGDate').textContent = item.data_fabricacao || '';
+    // document.getElementById('distribuicaoItemExpiryDate').textContent = item.data_validade || '';
+
+    // Preencher selects
+    const armazemSelect = document.getElementById('distribuicaoArmazem');
+    armazemSelect.innerHTML = '<option value="">Selecione o armazém</option>';
+    allArmazens.forEach(a => armazemSelect.innerHTML += `<option value="${a.id}">${a.nome}</option>`);
+
+    const locationSelect = document.getElementById('distribuicaoLocation');
+    locationSelect.innerHTML = '<option value="">Selecione a unidade sanitária</option>';
+    allLocations.forEach(l => locationSelect.innerHTML += `<option value="${l.id}">${l.nome || l.name || l.designacao}</option>`);
+
+    // Reset outros campos
+    document.getElementById('distribuicaoQuantidade').value = '';
+    document.getElementById('distribuicaoData').value = '';
+    document.getElementById('distribuicaoObservacao').value = '';
+
+    // Abrir modal
+    new bootstrap.Modal(document.getElementById('distribuicaoModal')).show();
+}
+
+// Submissão do formulário
+document.getElementById('distribuicaoForm').addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const payload = {
+        item_id: parseInt(document.getElementById('distribuicaoItemId').value),
+        armazem_id: parseInt(document.getElementById('distribuicaoArmazem').value),
+        location_id: parseInt(document.getElementById('distribuicaoLocation').value),
+        quantidade: parseInt(document.getElementById('distribuicaoQuantidade').value),
+        data_distribuicao: document.getElementById('distribuicaoData').value,
+        observacao: document.getElementById('distribuicaoObservacao').value
+    };
+
+    try {
+        const res = await fetch('/api/distribuicao', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw await res.json();
+
+        bootstrap.Modal.getInstance(document.getElementById('distribuicaoModal')).hide();
+        alert('Distribuição registrada com sucesso!');
+        loadItens(); // Recarregar tabela de itens
+    } catch(err) {
+        alert(err.message || 'Erro ao registrar distribuição');
+        console.error(err);
+    }
+});
+
+async function loadNotasEnvio() {
+    try {
+        const res = await fetch(notaEnvioUrl);
+        allNotasEnvio = await res.json();
+        const select = document.getElementById('itemNotaEnvio');
+        select.innerHTML = '<option value="">Selecione a nota de envio</option>';
+        allNotasEnvio.forEach(n => {
+            select.innerHTML += `<option value="${n.id}">${n.numero_nota} — ${n.origem} ➜ ${n.destino} ➜ ${n.observacoes}</option>`;
+        });
+
+        // Quando o utilizador seleciona uma nota
+        select.addEventListener('change', handleNotaEnvioSelect);
+    } catch (err) {
+        console.error('Erro ao carregar notas de envio', err);
+    }
+}
+
+async function handleNotaEnvioSelect(e) {
+    const notaId = e.target.value;
+    if (!notaId) {
+        document.getElementById('itemCodigo').value = '';
+        document.getElementById('itemDesignacao').value = '';
+        document.getElementById('notaEnvioDocsList').innerHTML = '';
+        document.getElementById('notaEnvioDocumentos').style.display = 'none';
+        return;
+    }
+
+    try {
+        // Buscar detalhes da Nota de Envio
+        const res = await fetch(`${notaEnvioUrl}/${notaId}`);
+        const nota = await res.json();
+
+        // Preenche os campos
+        document.getElementById('itemCodigo').value = nota.numero_nota || '';
+        document.getElementById('itemDesignacao').value = nota.observacoes || '';
+
+        // Container dos documentos
+        const docsContainer = document.getElementById('notaEnvioDocsList');
+        docsContainer.innerHTML = '';
+
+        if (nota.documentos && nota.documentos.length > 0) {
+            nota.documentos.forEach(doc => {
+                const li = document.createElement('li');
+                li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+
+                // Link para ver e baixar
+                li.innerHTML = `
+                    <span>${doc.codigo - doc.observacoes || 'Documento sem nome'}</span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary me-2" onclick="verDocumento(${doc.id})">
+                            <i class="bi bi-eye"></i> Ver
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="baixarDocumento(${doc.id}, '${doc.nome || 'documento'}')">
+                            <i class="bi bi-download"></i> Baixar
+                        </button>
+                    </div>
+                `;
+                docsContainer.appendChild(li);
+            });
+            document.getElementById('notaEnvioDocumentos').style.display = 'block';
+        } else {
+            document.getElementById('notaEnvioDocumentos').style.display = 'none';
+        }
+
+    } catch (err) {
+        console.error('Erro ao buscar detalhes da nota de envio', err);
+    }
+}
+
+// 🔹 Função para visualizar documento em nova aba
+async function verDocumento(id) {
+    try {
+        const res = await fetch(`/api/notaenvio/document/${id}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+    } catch (err) {
+        console.error('Erro ao visualizar documento:', err);
+    }
+}
+
+// 🔹 Função para baixar o documento
+async function baixarDocumento(id, nome) {
+    try {
+        const res = await fetch(`/api/notaenvio/document/${id}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nome;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('Erro ao baixar documento:', err);
+    }
+}
+
 function carregarSyncStatus() {
     const select = document.getElementById('itemSyncStatus');
     select.innerHTML = '';
-    SYNC_STATUS_ENUM.forEach(status => {
-        const opt = document.createElement('option');
-        opt.value = status;
-        opt.textContent = status;
-        select.appendChild(opt);
-    });
+    SYNC_STATUS_ENUM.forEach(status => select.innerHTML += `<option value="${status}">${status}</option>`);
 }
 
 async function loadArmazens() {
-    const res = await fetch(armazemUrl);
-    allArmazens = await res.json();
-    const select = document.getElementById('itemArmazem');
-    select.innerHTML = '<option value="">Selecione o armazém</option>';
-    allArmazens.forEach(a => select.innerHTML += `<option value="${a.id}">${a.nome}</option>`);
+    try {
+        const res = await fetch(armazemUrl);
+        allArmazens = await res.json();
+        const select = document.getElementById('itemArmazem');
+        select.innerHTML = '<option value="">Selecione o armazém</option>';
+        allArmazens.forEach(a => select.innerHTML += `<option value="${a.id}">${a.nome}</option>`);
+    } catch (err) {
+        console.error('Erro ao carregar armazens', err);
+    }
+}
+
+async function loadPortos() {
+    try {
+        const res = await fetch(portoUrl);
+        allPortos = await res.json();
+        const select = document.getElementById('itemPorto');
+        select.innerHTML = '<option value="">Selecione o porto</option>';
+        allPortos.forEach(p => select.innerHTML += `<option value="${p.id}">${p.nome}</option>`);
+    } catch (err) {
+        console.error('Erro ao carregar portos', err);
+    }
+}
+
+async function loadLocations() {
+    try {
+        const res = await fetch(locationUrl);
+        allLocations = await res.json();
+        const select = document.getElementById('necessidadeLocation');
+        if (!select) return;
+        select.innerHTML = '<option value="">Selecione a Location</option>';
+        allLocations.forEach(l => select.innerHTML += `<option value="${l.id}">${l.nome || l.name || l.designacao || ('Location ' + l.id)}</option>`);
+    } catch (err) {
+        console.error('Erro ao carregar locations', err);
+    }
 }
 
 async function loadItens() {
@@ -137,52 +596,309 @@ async function loadItens() {
     filtrarTabela(document.getElementById('itemSearch').value);
 }
 
-/* -------------------- FILTRO E TABELA -------------------- */
+async function carregarHistorico(id) {
+    const res = await fetch(`/api/item/${id}/historico`);
+    const historico = await res.json();
+    let html = '<h6>Histórico de Stock:</h6><ul class="list-group">';
+    historico.forEach(h => {
+        html += `<li class="list-group-item">
+            ${h.tipo_movimento.toUpperCase()} - Qtd: ${h.quantidade} - ${new Date(h.data_movimento).toLocaleString()} - ${h.observacoes || ''}
+        </li>`;
+    });
+    html += '</ul>';
+    document.getElementById('historicoStock').innerHTML = html;
+}
+
+// Abrir modal e carregar histórico + necessidades
+function abrirEntradaStock(id) {
+    document.getElementById('entradaItemId').value = id;
+    document.getElementById('entradaQuantidade').value = '';
+    document.getElementById('entradaObservacoes').value = '';
+    document.getElementById('necessidadeQuantidade').value = '';
+    document.getElementById('necessidadeDescricao').value = '';
+    // garantir que locations estejam atualizadas
+    loadLocations();
+    carregarHistoricoModal(id);
+    carregarNecessidades(id);
+    new bootstrap.Modal(document.getElementById('entradaStockModal')).show();
+}
+
+// Carregar histórico no modal
+async function carregarHistoricoModal(id) {
+    try {
+        const res = await fetch(`/api/item/${id}/historico`);
+        const historico = await res.json();
+
+        if (!historico || !historico.length) {
+            document.getElementById('historicoStockModalContainer').innerHTML = '<p>Nenhum histórico registrado.</p>';
+            return;
+        }
+
+        let html = `<table class="table table-striped table-bordered table-sm align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Tipo Movimento</th>
+                    <th>Quantidade</th>
+                    <th>Data</th>
+                    <th>Observações</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        historico.forEach((h, index) => {
+            html += `<tr>
+                <td>${index + 1}</td>
+                <td>${h.tipo_movimento.toUpperCase()}</td>
+                <td>${h.quantidade}</td>
+                <td>${new Date(h.data_movimento).toLocaleString()}</td>
+                <td>${h.observacoes || ''}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="removerHistorico(${h.id}, ${id})">Remover</button>
+                </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table>`;
+        document.getElementById('historicoStockModalContainer').innerHTML = html;
+    } catch (err) {
+        document.getElementById('historicoStockModalContainer').innerHTML = '<p>Erro ao carregar histórico.</p>';
+        console.error(err);
+    }
+}
+
+// Função para remover um registro do histórico
+async function removerHistorico(historicoId, itemId) {
+    if (!confirm('Deseja realmente remover este movimento de histórico?')) return;
+
+    try {
+        const res = await fetch(`/api/historico/${historicoId}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        // Recarrega o histórico do modal
+        await carregarHistoricoModal(itemId);
+    } catch (err) {
+        alert(err.message || 'Erro ao remover histórico');
+        console.error(err);
+    }
+}
+
+
+// Carregar necessidades existentes (por item)
+async function carregarNecessidades(id) {
+    try {
+        const res = await fetch(`/api/item/${id}/necessidades`);
+        const necessidades = await res.json();
+
+        if (!necessidades || !necessidades.length) {
+            document.getElementById('listaNecessidadesContainer').innerHTML = '<p>Nenhuma necessidade registrada.</p>';
+            return;
+        }
+
+        let html = `<table class="table table-striped table-bordered table-sm align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Quantidade</th>
+                    <th>Descrição</th>
+                    <th>Location</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+      necessidades.forEach((n, index) => {
+          const loc = allLocations.find(l => l.id === n.location_id);
+          const locName = loc ? loc.nome || loc.name || loc.designacao : ('Location ' + (n.location_id || ''));
+          html += `<tr>
+              <td>${index + 1}</td>
+              <td>${n.quantidade}</td>
+              <td>${n.descricao || ''}</td>
+              <td>${locName}</td>
+              <td>${new Date(n.data_registro).toLocaleString()}</td>
+              <td>
+                  <button class="btn btn-sm btn-danger" onclick="removerNecessidade(${n.id}, ${id})">Eliminar</button>
+              </td>
+          </tr>`;
+      });
+
+
+        html += `</tbody></table>`;
+        document.getElementById('listaNecessidadesContainer').innerHTML = html;
+    } catch (err) {
+        document.getElementById('listaNecessidadesContainer').innerHTML = '<p>Erro ao carregar necessidades.</p>';
+        console.error(err);
+    }
+}
+
+// Função para eliminar necessidade
+async function removerNecessidade(necessidadeId, itemId) {
+    if (!confirm('Deseja realmente eliminar esta necessidade?')) return;
+
+    try {
+        const res = await fetch(`/api/necessidade/${necessidadeId}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        await carregarNecessidades(itemId); // recarrega a lista
+    } catch (err) {
+        alert(err.message || 'Erro ao eliminar necessidade');
+        console.error(err);
+    }
+}
+
+
+// Adicionar nova necessidade
+async function adicionarNecessidade() {
+    const id = parseInt(document.getElementById('entradaItemId').value);
+    const quantidade = parseInt(document.getElementById('necessidadeQuantidade').value);
+    const descricao = document.getElementById('necessidadeDescricao').value;
+    const location_id = parseInt(document.getElementById('necessidadeLocation').value);
+
+    if (!quantidade || quantidade <= 0) {
+        alert('Informe uma quantidade válida');
+        return;
+    }
+    if (!location_id) {
+        alert('Selecione a Location para a necessidade');
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/item/${id}/necessidades`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_id: id, location_id, quantidade, descricao })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw err;
+        }
+
+        // Atualiza a lista de necessidades
+        await carregarNecessidades(id);
+
+        // Limpa os campos do formulário
+        document.getElementById('necessidadeQuantidade').value = '';
+        document.getElementById('necessidadeDescricao').value = '';
+        document.getElementById('necessidadeLocation').value = '';
+
+        // Foca novamente na aba "Necessidades"
+        const tabTrigger = document.querySelector('#necessidades-tab');
+        const tab = new bootstrap.Tab(tabTrigger);
+        tab.show();
+
+        // Confirmação visual
+        alert('Necessidade adicionada com sucesso!');
+    } catch (err) {
+        alert(err.message || 'Erro ao adicionar necessidade');
+        console.error(err);
+    }
+}
+
+
+document.getElementById('entradaStockForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const id = parseInt(document.getElementById('entradaItemId').value);
+    const quantidade = parseInt(document.getElementById('entradaQuantidade').value);
+    const observacoes = document.getElementById('entradaObservacoes').value;
+
+    try {
+        const res = await fetch(`/api/item/${id}/entrada`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ quantidade, observacoes })
+        });
+        if (!res.ok) throw await res.json();
+        bootstrap.Modal.getInstance(document.getElementById('entradaStockModal')).hide();
+        loadItens();
+        carregarHistorico(id); // Atualiza histórico automaticamente
+    } catch(err) {
+        alert(err.message || 'Erro ao registrar entrada');
+    }
+});
+
 function filtrarTabela(query) {
     const tbody = document.getElementById('itemTableBody');
     tbody.innerHTML = '';
     const termo = query.trim().toLowerCase();
+    allItens.filter(i => 
+        (i.codigo || '').toLowerCase().includes(termo) ||
+        (i.designacao || '').toLowerCase().includes(termo) ||
+        (i.armazem_nome || '').toLowerCase().includes(termo) ||
+        (i.porto_nome || '').toLowerCase().includes(termo)
+    ).forEach(i => {
+        const imgSrc = i.imagem ? `data:image/jpeg;base64,${i.imagem}` : '/static/no-image.png';
+        tbody.innerHTML += `
+        <tr>
+            <td>${i.id}</td>
+            <td><img src="${imgSrc}" style="width: 60px; height: 60px; object-fit: cover;"></td>
+            <td>${i.codigo}</td>
+            <td>${i.designacao}</td>
+            <td>${i.hs_code || ''}</td>
+            <td>${i.quantidade || ''}</td>
+            <td>${i.batch_no || ''}</td>
+            <td>${i.data_fabricacao ? i.data_fabricacao.slice(0,10) : ''}</td>
+            <td>${i.data_validade ? i.data_validade.slice(0,10) : ''}</td>
+            <td>${i.no_cartoes || ''}</td>
+            <td>${i.syncStatus || ''}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editarItem(${i.id})" data-bs-toggle="tooltip" title="Editar">
+                    <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="eliminarItem(${i.id})" data-bs-toggle="tooltip" title="Apagar">
+                    <i class="bi bi-trash"></i>
+                </button>
+                <button class="btn btn-sm btn-info" onclick="abrirDetalhes(${i.id})" data-bs-toggle="tooltip" title="Detalhes">
+                    <i class="bi bi-info-circle"></i>
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="abrirEntradaStock(${i.id})" data-bs-toggle="tooltip" title="Adicionar Stock e Necessidades">
+                    <i class="bi bi-box-arrow-in-down"></i>
+                </button>
+                <!-- Novo botão Distribuir -->
+                <button class="btn btn-sm btn-success" onclick="abrirDistribuicao(${i.id})" data-bs-toggle="tooltip" title="Distribuir Item">
+                    <i class="bi bi-share"></i>
+                </button>
+            </td>
+        </tr>`;
+    });
 
-    allItens
-        .filter(i => 
-            (i.codigo || '').toLowerCase().includes(termo) ||
-            (i.designacao || '').toLowerCase().includes(termo) ||
-            (i.armazem_nome || '').toLowerCase().includes(termo)
-        )
-        .forEach(i => {
-            const imgSrc = i.imagem ? `data:image/jpeg;base64,${i.imagem}` : '/static/no-image.png';
-            tbody.innerHTML += `
-            <tr>
-                <td>${i.id}</td>
-                <td>${i.codigo}</td>
-                <td>${i.designacao}</td>
-                <td><img src="${imgSrc}" style="width: 60px; height: 60px; object-fit: cover;"></td>
-                <td>${i.armazem_nome || ''}</td>
-                <td>${i.syncStatus || ''}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="editarItem(${i.id})">Editar</button>
-                    <button class="btn btn-sm btn-danger" onclick="eliminarItem(${i.id})">Apagar</button>
-                </td>
-            </tr>`;
-        });
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
 }
 
-/* -------------------- MODAL -------------------- */
+// Modal Item
 function abrirModalItem() {
     document.getElementById('itemForm').reset();
     document.getElementById('itemId').value = '';
     document.getElementById('previewImg').style.display = 'none';
+    document.getElementById('previewPdf').innerHTML = '';
     imagemBase64 = null;
+    pdfBase64 = null;
     new bootstrap.Modal(document.getElementById('itemModal')).show();
 }
 
 function editarItem(id) {
-    const i = allItens.find(i => i.id === id);
+    const i = allItens.find(item => item.id === id);
     if (!i) return;
+
     document.getElementById('itemId').value = i.id;
     document.getElementById('itemCodigo').value = i.codigo || '';
     document.getElementById('itemDesignacao').value = i.designacao || '';
+    document.getElementById('itemHsCode').value = i.hs_code || '';
+    document.getElementById('itemQuantidade').value = i.quantidade || '';
+    document.getElementById('itemBatchNo').value = i.batch_no || '';
+    document.getElementById('itemDataFabricacao').value = i.data_fabricacao ? i.data_fabricacao.slice(0,10) : '';
+    document.getElementById('itemDataValidade').value = i.data_validade ? i.data_validade.slice(0,10) : '';
+    document.getElementById('itemNoCartoes').value = i.no_cartoes || '';
+    document.getElementById('itemPesoBruto').value = i.peso_bruto_total || '';
+    document.getElementById('itemVolumeCBM').value = i.volume_total_cbm || '';
+    document.getElementById('itemTotalCartoes').value = i.total_cartoes || '';
+    document.getElementById('itemTotalPaletes').value = i.total_paletes || '';
+    document.getElementById('itemDimensoesPalete').value = i.dimensoes_palete_cm || '';
     document.getElementById('itemArmazem').value = i.armazem_id || '';
+    document.getElementById('itemPorto').value = i.porto_id || '';
+    document.getElementById('itemObservacoes').value = i.observacoes || '';
     document.getElementById('itemSyncStatus').value = i.syncStatus || 'Not Syncronized';
     document.getElementById('itemSyncDate').value = i.syncStatusDate ? i.syncStatusDate.slice(0,16) : '';
 
@@ -190,11 +906,13 @@ function editarItem(id) {
         document.getElementById('previewImg').src = `data:image/jpeg;base64,${i.imagem}`;
         document.getElementById('previewImg').style.display = 'block';
     }
+    if (i.pdf_dados) {
+        document.getElementById('previewPdf').innerHTML = `<a href="data:application/pdf;base64,${i.pdf_dados}" download="${i.pdf_nome}">📄 ${i.pdf_nome}</a>`;
+    }
     new bootstrap.Modal(document.getElementById('itemModal')).show();
 }
 
-/* -------------------- UPLOAD IMAGEM -------------------- */
-let imagemBase64 = null;
+// Upload de arquivos
 function previewImagem(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -208,15 +926,41 @@ function previewImagem(event) {
     reader.readAsDataURL(file);
 }
 
-/* -------------------- GUARDAR -------------------- */
+function previewPDF(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        pdfBase64 = e.target.result.split(',')[1];
+        document.getElementById('previewPdf').innerHTML = `<a href="${e.target.result}" download="${file.name}">📄 ${file.name}</a>`;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Salvar item
 document.getElementById('itemForm').addEventListener('submit', async e => {
     e.preventDefault();
     const id = document.getElementById('itemId').value;
     const payload = {
         codigo: document.getElementById('itemCodigo').value,
         designacao: document.getElementById('itemDesignacao').value,
+        hs_code: document.getElementById('itemHsCode').value,
+        quantidade: parseInt(document.getElementById('itemQuantidade').value) || null,
+        batch_no: document.getElementById('itemBatchNo').value,
+        data_fabricacao: document.getElementById('itemDataFabricacao').value || null,
+        data_validade: document.getElementById('itemDataValidade').value || null,
+        no_cartoes: parseInt(document.getElementById('itemNoCartoes').value) || null,
+        peso_bruto_total: parseFloat(document.getElementById('itemPesoBruto').value) || null,
+        volume_total_cbm: parseFloat(document.getElementById('itemVolumeCBM').value) || null,
+        total_cartoes: parseInt(document.getElementById('itemTotalCartoes').value) || null,
+        total_paletes: parseInt(document.getElementById('itemTotalPaletes').value) || null,
+        dimensoes_palete_cm: document.getElementById('itemDimensoesPalete').value,
         armazem_id: parseInt(document.getElementById('itemArmazem').value),
+        porto_id: document.getElementById('itemPorto').value ? parseInt(document.getElementById('itemPorto').value) : null,
+        observacoes: document.getElementById('itemObservacoes').value,
         imagem: imagemBase64,
+        pdf_nome: document.getElementById('previewPdf').querySelector('a')?.textContent || null,
+        pdf_dados: pdfBase64,
         syncStatus: document.getElementById('itemSyncStatus').value,
         syncStatusDate: document.getElementById('itemSyncDate').value 
             ? new Date(document.getElementById('itemSyncDate').value).toISOString() 
@@ -231,6 +975,7 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
         });
         if (!res.ok) throw await res.json();
         imagemBase64 = null;
+        pdfBase64 = null;
         bootstrap.Modal.getInstance(document.getElementById('itemModal')).hide();
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         loadItens();
@@ -239,7 +984,7 @@ document.getElementById('itemForm').addEventListener('submit', async e => {
     }
 });
 
-/* -------------------- ELIMINAR -------------------- */
+// Apagar item
 async function eliminarItem(id) {
     if (!confirm('Tem certeza que deseja apagar este item?')) return;
     try {
@@ -251,12 +996,75 @@ async function eliminarItem(id) {
     }
 }
 
-/* -------------------- EXPORTAR EXCEL -------------------- */
-function downloadExcel() {
-    const table = document.getElementById("itemTable");
-    const wb = XLSX.utils.table_to_book(table, { sheet: "Itens" });
-    XLSX.writeFile(wb, "itens.xlsx");
-}
-</script>
+// Abrir detalhes do item e carregar histórico de stock dentro do painel
+async function abrirDetalhes(id) {
+    const i = allItens.find(item => item.id === id);
+    if (!i) return;
 
+    const imgSrc = i.imagem ? `data:image/jpeg;base64,${i.imagem}` : '/static/no-image.png';
+    const pdfLink = i.pdf_dados ? `<a href="data:application/pdf;base64,${i.pdf_dados}" download="${i.pdf_nome}">📄 ${i.pdf_nome}</a>` : '';
+
+    // Conteúdo inicial do painel
+    let html = `
+        <h5>${i.designacao}</h5>
+        <img src="${imgSrc}" style="width:100%; max-height:200px; object-fit:cover; margin-bottom:10px;">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Código:</strong> ${i.codigo}</li>
+            <li class="list-group-item"><strong>HS Code:</strong> ${i.hs_code || ''}</li>
+            <li class="list-group-item"><strong>Quantidade:</strong> ${i.quantidade || ''}</li>
+            <li class="list-group-item"><strong>Batch No:</strong> ${i.batch_no || ''}</li>
+            <li class="list-group-item"><strong>MFG Date:</strong> ${i.data_fabricacao ? i.data_fabricacao.slice(0,10) : ''}</li>
+            <li class="list-group-item"><strong>Expiry Date:</strong> ${i.data_validade ? i.data_validade.slice(0,10) : ''}</li>
+            <li class="list-group-item"><strong>No. Cartons:</strong> ${i.no_cartoes || ''}</li>
+            <li class="list-group-item"><strong>Peso Bruto:</strong> ${i.peso_bruto_total || ''}</li>
+            <li class="list-group-item"><strong>Volume CBM:</strong> ${i.volume_total_cbm || ''}</li>
+            <li class="list-group-item"><strong>Total Cartons:</strong> ${i.total_cartoes || ''}</li>
+            <li class="list-group-item"><strong>Total Paletes:</strong> ${i.total_paletes || ''}</li>
+            <li class="list-group-item"><strong>Dimensões Palete:</strong> ${i.dimensoes_palete_cm || ''}</li>
+            <li class="list-group-item"><strong>Armazém:</strong> ${i.armazem_nome || ''}</li>
+            <li class="list-group-item"><strong>Porto:</strong> ${i.porto_nome || ''}</li>
+            <li class="list-group-item"><strong>Observações:</strong> ${i.observacoes || ''}</li>
+            <li class="list-group-item">${pdfLink}</li>
+            <li class="list-group-item"><strong>Sync Status:</strong> ${i.syncStatus || ''}</li>
+            <li class="list-group-item"><strong>Sync Date:</strong> ${i.syncStatusDate ? i.syncStatusDate.slice(0,16) : ''}</li>
+        </ul>
+        <hr>
+        <div id="historicoStockContent">
+            <h6>Histórico de Movimentações de Stock:</h6>
+            <p>Carregando...</p>
+        </div>
+    `;
+
+    document.getElementById('detalhesContent').innerHTML = html;
+
+    // Mostrar painel lateral
+    document.getElementById('detalhesPanel').style.right = '0';
+
+    // Carregar histórico de stock e inserir dentro do painel
+    const res = await fetch(`/api/item/${id}/historico`);
+    const historico = await res.json();
+    let historicoHtml = '<ul class="list-group">';
+    historico.forEach(h => {
+        historicoHtml += `<li class="list-group-item">
+            ${h.tipo_movimento.toUpperCase()} - Qtd: ${h.quantidade} - ${new Date(h.data_movimento).toLocaleString()} - ${h.observacoes || ''}
+        </li>`;
+    });
+    historicoHtml += '</ul>';
+
+    document.getElementById('historicoStockContent').innerHTML = historicoHtml;
+}
+
+
+function fecharDetalhes() {
+    document.getElementById('detalhesPanel').style.right = '-420px';
+}
+
+// Exportar Excel
+function downloadExcel() {
+    alert('Funcionalidade de exportação em construção.');
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', loadNotasEnvio);
+</script>
 {% endblock %}
