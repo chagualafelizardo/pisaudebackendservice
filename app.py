@@ -1,15 +1,40 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from config import Config
-from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask import Flask, request, jsonify
-from models import db ,Observation, State, Textmessage, Grouptype, Group, Location, User, Resource, ResourceType
 import logging
-
-# Flask-Babel para gestao da mudancas de idioma
+from datetime import datetime
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_babelex import Babel, gettext as _
+from config import Config
+from models import db, Observation, User
+from models import User, UserComponente
+from werkzeug.security import check_password_hash
+import os
+
 # -------------------------------
-# Importações dos Blueprints
+# Configuração de Logging
+# -------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s:%(name)s:%(message)s'
+)
+
+logger = logging.getLogger(__name__)
+
+# -------------------------------
+# Inicialização da App Flask
+# -------------------------------
+app = Flask(__name__)
+app.config.from_object(Config)
+app.secret_key = 'sua_chave_secreta'
+
+# Inicialização do SQLAlchemy
+db.init_app(app)
+
+# Inicialização do Babel (idiomas)
+app.config['BABEL_DEFAULT_LOCALE'] = 'pt'
+app.config['BABEL_SUPPORTED_LOCALES'] = ['pt', 'en']
+babel = Babel(app)
+
+# -------------------------------
+# Importação de Blueprints
 # -------------------------------
 from routes.ContactLinkRoutes import contactlink_bp
 from routes.DailyRecordRoutes import dailyrecord_bp
@@ -60,26 +85,6 @@ from routes.NotaEnvioItemRoutes import nota_envio_item_bp
 from routes.NotaEnvioDocumentRoutes import nota_envio_document_bp
 
 # -------------------------------
-# Inicialização da App Flask
-# -------------------------------
-app = Flask(__name__)
-app.config.from_object(Config)
-app.secret_key = 'sua_chave_secreta'  # Necessário para sessões
-
-# Inicialização do SQLAlchemy
-db.init_app(app)
-# migrate = Migrate(app, db)
-
-# Inicialização do Babel
-# -------------------------------
-app.config['BABEL_DEFAULT_LOCALE'] = 'pt'  # idioma padrão
-app.config['BABEL_SUPPORTED_LOCALES'] = ['pt', 'en']  # idiomas suportados
-babel = Babel(app)
-
-# Definicao de constantes
-state_default_id = 9  # ID default para State "inicial"
-
-# -------------------------------
 # Registro de Blueprints (API)
 # -------------------------------
 blueprints = [
@@ -90,7 +95,7 @@ blueprints = [
     ramo_bp, subunidade_bp, especialidade_bp, subespecialidade_bp,
     situacao_geral_bp, funcao_bp, situacao_prestacao_servico_bp, afetacao_bp,
     transferencia_bp, especialidade_saude_bp, candidato_bp, tipo_licenca_bp,
-    pais_bp, formacao_bp,despacho_bp, licenca_bp, provincia_bp, armazem_bp,
+    pais_bp, formacao_bp, despacho_bp, licenca_bp, provincia_bp, armazem_bp,
     item_bp, componente_bp, usercomponente_bp, porto_bp, necessidade_bp,
     historico_bp, distribuicao_bp, tipo_item_bp, nota_envio_bp,
     nota_envio_item_bp, nota_envio_document_bp
@@ -100,25 +105,16 @@ for bp in blueprints:
     app.register_blueprint(bp, url_prefix='/api')
 
 # -------------------------------
-# Função para selecionar idioma manualmente
+# Idioma (Babel)
 # -------------------------------
 @babel.localeselector
 def get_locale():
-    # Se o idioma estiver guardado na sessão, usa-o
-    if 'lang' in session:
-        return session['lang']
-
-    # Caso contrário, tenta detectar automaticamente (browser)
-    return request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES'])
-
+    return session.get('lang') or request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES'])
 
 @app.context_processor
 def inject_get_locale():
     return dict(get_locale=get_locale)
 
-# -------------------------------
-# Rota para trocar o idioma
-# -------------------------------
 @app.route('/set_language/<lang>')
 def set_language(lang):
     if lang in app.config['BABEL_SUPPORTED_LOCALES']:
@@ -126,151 +122,148 @@ def set_language(lang):
     return redirect(request.referrer or url_for('dashboard'))
 
 # -------------------------------
-# Rotas do Frontend (Renderização)
+# Context Processor — info do usuário
+# -------------------------------
+@app.context_processor
+def inject_user_components():
+    user_id = session.get('user_id')
+    user_components = []
+    username = ''
+    location_name = ''
+
+    if user_id:
+        user = User.query.get(user_id)
+        if user:
+            username = getattr(user, 'fullname', user.username)
+            location_name = getattr(user.location, 'name', '') if getattr(user, 'location', None) else ''
+
+            componentes = UserComponente.query.filter_by(user_id=user_id).all()
+            user_components = [uc.componente.descricao for uc in componentes if uc.componente]
+
+    return dict(
+        username=username,
+        location_name=location_name,
+        user_components=user_components,
+        current_year=datetime.now().year
+    )
+
+# -------------------------------
+# Rotas Frontend (HTML)
 # -------------------------------
 @app.route('/')
-@app.route('/api')
-def api():
-    try:
-        return render_template('api.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
+def index():
+    return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
 def dashboard():
-    if 'userId' not in session:
-        flash('Please login first', 'warning')
+    if 'user_id' not in session:
+        flash('Por favor, faça login primeiro.', 'warning')
         return redirect(url_for('login'))
-    
-    username = session.get('username')
-    location_name = session.get('locationName')
-
-    return render_template('dashboard.html', username=username, location_name=location_name)
+    return render_template('dashboard.html')
 
 @app.route('/dashboarddistribuicao')
-def dashboarddistribuicao():
-    if 'userId' not in session:
-        flash('Please login first', 'warning')
+def dashboard_distribuicao():
+    if 'user_id' not in session:
+        flash('Por favor, faça login primeiro.', 'warning')
         return redirect(url_for('login'))
-    
-    username = session.get('username')
-    location_name = session.get('locationName')
-
-    return render_template('dashboarddistribuicao.html', username=username, location_name=location_name)
+    return render_template('dashboarddistribuicao.html')
 
 @app.route('/content/<page>')
 def content(page):
+    # Converter para minúsculas para evitar problemas de case sensitivity
+    page = page.lower()
+    
+    # Verificar autenticação
+    if 'user_id' not in session:
+        flash('Por favor, faça login primeiro.', 'warning')
+        return redirect(url_for('login'))
+    
+    # Lista de páginas permitidas
+    allowed_pages = [
+        # Dashboard
+        'dashboard', 'dashboarddistribuicao',
+        
+        # Menu Registo
+        'provincia', 'location', 'subunidade', 'portatestagem', 'keypopulation',
+        'grouptypes', 'group', 'states', 'textmessage', 'ramo', 'funcao',
+        'especialidade', 'subespecialidade', 'pais',
+        
+        # Recursos Humanos
+        'patent', 'person', 'formaprestacaoservico', 'situacaogeral', 
+        'situacaoprestacaoservico', 'tipolicenca', 'licenca', 'despacho',
+        
+        # Gestão de Alocação
+        'afetacao', 'transferencia',
+        
+        # Gestão de Formações
+        'especialidadesaude', 'formacao', 'candidato',
+        
+        # Items Tracking
+        'porto', 'tipoitem', 'notaenvio', 'armazem', 'item', 'distribuicao',
+        
+        # Alo-Saúde
+        'alosaude',
+        
+        # Resources Mapping
+        'resource', 'resourcetype', 'mapping',
+        
+        # Grupos Alo-Saúde
+        'iniciotarv', 'adesaotarv', 'cargaviral', 'faltosos', 'abandonos', 'observations',
+        
+        # User Management
+        'user', 'roles', 'componente',
+        
+        # Configurações
+        'register', 'settings'
+    ]
+    
+    if page not in allowed_pages:
+        flash(f'A página "{page}" não existe ou não está disponível.', 'danger')
+        return redirect(url_for('dashboard'))
+    
     try:
         return render_template(f'{page}.html')
     except Exception as e:
-        return f"Erro ao carregar a página '{page}': {str(e)}", 404
+        logger.error(f"Erro ao carregar template '{page}.html': {str(e)}")
+        flash(f'Erro ao carregar a página {page}.', 'danger')
+        return redirect(url_for('dashboard'))
 
 # -------------------------------
-# Rotas de Login/Logout
+# Login / Logout
 # -------------------------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-
-        # Aqui você busca o usuário no banco
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
-            # Salva informações do usuário na sessão
-            session['userId'] = user.id
-            session['username'] = user.username
-            session['locationId'] = user.locationId  # assumindo que User tem location_id
-            session['locationName'] = user.location.name  # se quiser exibir nome da unidade
 
-            flash('Login successful', 'success')
+        if user and check_password_hash(user.password, password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['location_name'] = user.location.name if user.location else ''
+            flash('Login efetuado com sucesso!', 'success')
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid username or password', 'danger')
-    
+            flash('Usuário ou senha inválidos.', 'danger')
+
     return render_template('login.html')
-
-@app.route('/mapping')
-def resourcemapping():
-    return render_template('mapping.html')
-
-@app.route('/register')
-def register():
-    return render_template('register.html')
-
-@app.route('/settings')
-def settings():
-    try:
-        return render_template('settings.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
 
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('You have been logged out.', 'info')
+    flash('Sessão terminada com sucesso.', 'info')
     return redirect(url_for('login'))
 
-# ------- Seccao para importacao dos ficheiros excel -------------
-# Rotas para upload de Excel: Pacientes Inicio ao TARV
-@app.route('/iniciotarv')
-def iniciotarv():
-    try:
-        return render_template('iniciotarv.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
-    
-# Rotas para upload de Excel: Pacientes Adesao ao TARV
-@app.route('/adesaotarv')
-def adesaotarv():
-    try:
-        return render_template('adesaotarv.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
-
-# Rotas para upload de Excel: Pacientes Como Carva Viral
-@app.route('/cargaviral')
-def cargaviral():
-    try:
-        return render_template('cargaviral.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
-
-# Rotas para upload de Excel: Pacientes faltosos
-@app.route('/faltosos')
-def faltosos():
-    try:
-        return render_template('faltosos.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
-
-# Rotas para upload de Excel: Pacientes abandonos
-@app.route('/abandonos')
-def abandonos():
-    try:
-        return render_template('abandonos.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
-        
-# Rotas para upload de Excel: Pacientes Marcados para o Levantamento de ARVs
-@app.route('/marcadoslevantamento')
-def marcadoslevantamento():
-    try:
-        return render_template('marcadoslevantamento.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
-
-# Rotas para upload de Excel: Pacientes outros
-@app.route('/outros')
-def outros():
-    try:
-        return render_template('outros.html')
-    except Exception as e:
-        return f"Erro ao carregar dashboard: {str(e)}", 500
-    
-# Codigo para importar dados vindo do excel ou csv
+# -------------------------------
+# Rota de importação de Observações (API)
+# -------------------------------
 @app.route('/api/observations/import', methods=['POST'])
 def import_observations():
+    if not request.is_json:
+        return jsonify({'error': 'Content-Type must be application/json'}), 415
+        
     data = request.get_json()
     if not data:
         return jsonify({'error': 'Invalid JSON or empty payload'}), 400
@@ -279,22 +272,18 @@ def import_observations():
     grouptypeId = data.get("groupTypeID")
     observations = data.get("observations", [])
 
-    logging.info(f"Received observations sample: {observations[:3]}... total rows: {len(observations)}")
-
-    imported_count = 0
-    errors = []
+    batch, imported_count, errors = [], 0, []
     BATCH_SIZE = 50
-    batch = []
 
     for idx, row in enumerate(observations):
         try:
-            observation = Observation(
+            obs = Observation(
                 nid=row.get('nid', ''),
                 fullname=row.get('fullname', ''),
                 gender=row.get('gender', ''),
                 age=row.get('age', 0),
-                contact=row.get('contact', '0'),
-                occupation=row.get('occupation', ''),  # se estiver vazio, ok
+                contact=row.get('contact', ''),
+                occupation=row.get('occupation', ''),
                 datainiciotarv=datetime.now(),
                 datalevantamento=datetime.now(),
                 dataproximolevantamento=datetime.now(),
@@ -317,16 +306,13 @@ def import_observations():
                 locationId=1,
                 userId=1
             )
-            batch.append(observation)
+            batch.append(obs)
             imported_count += 1
-
             if len(batch) >= BATCH_SIZE:
                 db.session.add_all(batch)
                 db.session.flush()
                 batch = []
-
         except Exception as e:
-            logging.error(f"Error in row {idx}: {str(e)}")
             errors.append({'row': idx, 'error': str(e)})
 
     if batch:
@@ -336,27 +322,68 @@ def import_observations():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Database commit failed: {str(e)}")
         return jsonify({'error': 'Database commit failed', 'details': str(e)}), 500
 
-    return jsonify({
-        'message': 'Import completed successfully',
-        'imported_count': imported_count,
-        'errors': errors
-    }), 200
-
+    return jsonify({'message': 'Import completed', 'imported_count': imported_count, 'errors': errors}), 200
 
 # -------------------------------
-# Context Processor
+# Error Handlers
 # -------------------------------
-@app.context_processor
-def inject_year():
-    return {'current_year': datetime.now().year}
+@app.errorhandler(404)
+def not_found_error(error):
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Página Não Encontrada</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <div class="alert alert-warning text-center">
+                <h1>🔍 404 - Página Não Encontrada</h1>
+                <p>A página solicitada não existe.</p>
+                <a href="/dashboard" class="btn btn-primary">Voltar ao Dashboard</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """, 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Erro Interno</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <div class="alert alert-danger text-center">
+                <h1>🚨 500 - Erro Interno do Servidor</h1>
+                <p>Ocorreu um erro interno. Tente novamente mais tarde.</p>
+                <a href="/dashboard" class="btn btn-primary">Voltar ao Dashboard</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """, 500
+
+# Rota para favicon
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
 
 # -------------------------------
 # Inicialização da App
 # -------------------------------
 if __name__ == '__main__':
+    logger.info("🚀 Iniciando aplicação PI-SAÚDE...")
+    
     with app.app_context():
-        db.create_all()  # Cria tabelas
+        db.create_all()
+    
     app.run(debug=True, host="0.0.0.0", port=5000)
