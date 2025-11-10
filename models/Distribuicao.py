@@ -12,6 +12,9 @@ class Distribuicao(db.Model):
     data_distribuicao = db.Column(db.DateTime, default=datetime.utcnow)
     observacao = db.Column(db.String(255), nullable=True)
 
+    # 🔹 Novo campo para armazenar o nome do utilizador que adicionou a distribuição
+    user = db.Column(db.String(150), nullable=True)
+
     # Relações opcionais
     item = db.relationship("Item", backref="distribuicoes")
     armazem = db.relationship("Armazem", backref="distribuicoes")

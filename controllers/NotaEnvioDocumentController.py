@@ -85,51 +85,36 @@ class NotaEnvioDocumentController:
     # 🔹 Upload / Criar novo documento
     # ===============================================================
     @staticmethod
-    def create():
-        logger.info("[CREATE] Solicitado upload de um ou mais documentos")
+    def download(id):
         try:
-            # 🔹 Verifica se há arquivos no request
-            if 'file' not in request.files:
-                logger.warning("[CREATE] Nenhum arquivo encontrado no request")
-                return jsonify({'message': 'Nenhum arquivo enviado'}), 400
-
-            nota_envio_id = request.form.get('nota_envio_id')
-            if not nota_envio_id:
-                logger.warning("[CREATE] Campo nota_envio_id ausente")
-                return jsonify({'message': 'nota_envio_id é obrigatório'}), 400
-
-            files = request.files.getlist('file')
-            logger.info(f"[CREATE] Recebidos {len(files)} arquivo(s) para nota_envio_id={nota_envio_id}")
-
-            created_docs = []
-
-            for file in files:
-                if file.filename == '':
-                    logger.warning("[CREATE] Nome de arquivo vazio — ignorado")
-                    continue
-
-                doc = NotaEnvioDocument(
-                    nota_envio_id=nota_envio_id,
-                    nome_arquivo=file.filename,
-                    tipo_mime=file.mimetype,
-                    dados_arquivo=file.read()
+            documento = NotaEnvioDocument.query.get(id)
+            if not documento:
+                return jsonify({'message': 'Documento not found'}), 404
+            
+            from flask import send_file, request
+            import io
+            
+            # Se for visualização (não download)
+            if request.args.get('view') == 'true':
+                return send_file(
+                    io.BytesIO(documento.dados_arquivo),
+                    mimetype=documento.tipo_mime,
+                    as_attachment=False,  # Abre no browser
+                    download_name=documento.nome_arquivo
                 )
-                db.session.add(doc)
-                created_docs.append(doc)
-
-            db.session.commit()
-            logger.info(f"[CREATE] {len(created_docs)} documento(s) criado(s) com sucesso")
-
-            return jsonify({
-                'message': f'{len(created_docs)} documento(s) carregado(s) com sucesso',
-                'ids': [d.id for d in created_docs]
-            }), 201
-
+            else:
+                # Download normal
+                return send_file(
+                    io.BytesIO(documento.dados_arquivo),
+                    as_attachment=True,  # Força download
+                    download_name=documento.nome_arquivo,
+                    mimetype=documento.tipo_mime
+                )
+                
         except Exception as e:
-            db.session.rollback()
-            logger.exception("[CREATE] Erro ao criar documentos")
+            logger.exception(f"Erro ao baixar documento {id}")
             return jsonify({'error': str(e)}), 500
-
+        
     # ===============================================================
     # 🔹 Deletar documento
     # ===============================================================

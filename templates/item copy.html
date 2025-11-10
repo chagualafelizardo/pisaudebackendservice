@@ -6,206 +6,80 @@
 
 <h2>Gestão de Itens</h2>
 
-<!-- Tabs principais -->
-<ul class="nav nav-tabs mb-3" id="mainTab" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="inventario-tab" data-bs-toggle="tab" data-bs-target="#inventario" type="button" role="tab">
-            <i class="bi bi-grid-3x3"></i> Inventário
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="pendentes-tab" data-bs-toggle="tab" data-bs-target="#pendentes" type="button" role="tab">
-            <i class="bi bi-clock-history"></i> Itens Pendentes
-        </button>
-    </li>
-</ul>
-
-<!-- Conteúdo das tabs -->
-<div class="tab-content">
-    <!-- Tab 1: Inventário -->
-    <div class="tab-pane fade show active" id="inventario" role="tabpanel">
-        <!-- Controles de visualização e pesquisa -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="d-flex align-items-center">
-                <!-- Campo de pesquisa -->
-                <div class="position-relative me-3" style="max-width: 400px;">
-                    <input type="text" id="itemSearch" class="form-control" placeholder="Pesquisar item..." oninput="filtrarItens(this.value)">
-                </div>
-                
-                <!-- Botão de exportar Excel -->
-                <button class="btn btn-outline-success me-2" onclick="downloadExcel()">📥 Exportar Excel</button>
-            </div>
-            
-            <!-- Botões de visualização -->
-            <div class="btn-group" role="group">
-                <input type="radio" class="btn-check" name="viewType" id="blockView" autocomplete="off" checked onchange="toggleView('block')">
-                <label class="btn btn-outline-primary" for="blockView">
-                    <i class="bi bi-grid-3x3-gap"></i> Blocos
-                </label>
-                
-                <input type="radio" class="btn-check" name="viewType" id="tableView" autocomplete="off" onchange="toggleView('table')">
-                <label class="btn btn-outline-primary" for="tableView">
-                    <i class="bi bi-table"></i> Tabela
-                </label>
-            </div>
+<!-- Controles de visualização e pesquisa -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex align-items-center">
+        <!-- Campo de pesquisa -->
+        <div class="position-relative me-3" style="max-width: 400px;">
+            <input type="text" id="itemSearch" class="form-control" placeholder="Pesquisar item..." oninput="filtrarItens(this.value)">
         </div>
-
-      <!-- Substituir o elemento de animação existente por este: -->
-      <div id="distribuicaoAnimation" style="position: fixed; bottom: 20px; left: 20px; z-index: 999; display: block;">
-          <div class="hospital-container">
-              <div class="hospital-icon">
-                  <i class="bi bi-hospital-fill"></i>
-                  <div class="hospital-pulse"></div>
-              </div>
-              
-              <!-- Linhas de animação serão injetadas aqui -->
-              <div id="animationLines" style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none;"></div>
-          </div>
-      </div>
-
-      <!-- Adicionar controles de animação -->
-      <div class="animation-controls">
-          <small class="text-muted d-block mb-1">Animação Distribuição</small>
-          <button class="btn btn-sm btn-outline-primary" onclick="iniciarAnimacaoDistribuicao()" title="Reiniciar Animação">
-              <i class="bi bi-arrow-repeat"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="pausarAnimacao()" title="Pausar Animação">
-              <i class="bi bi-pause"></i>
-          </button>
-          <button class="btn btn-sm btn-outline-info" onclick="animarTodosItens()" title="Animar Todos os Itens">
-              <i class="bi bi-play-circle"></i>
-          </button>
-      </div>
-
-        <!-- Botão flutuante -->
-        <button class="btn btn-success rounded-circle position-fixed"
-                style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
-                onclick="abrirModalItem()">
-            +
-        </button>
-
-        <!-- Visualização em Blocos (PADRÃO) -->
-        <div id="blockViewContainer" style="display: block;">
-            <div class="row g-3" id="itemBlocksContainer"></div>
-        </div>
-
-        <!-- Visualização em Tabela -->
-        <div id="tableViewContainer" style="display: none;">
-            <table class="table table-bordered align-middle" id="itemTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Image</th>
-                        <th>Código</th>
-                        <th>Designação</th>
-                        <th>HS Code</th>
-                        <th>Qtd</th>
-                        <th>Batch No</th>
-                        <th>MFG Date</th>
-                        <th>Expiry Date</th>
-                        <th>No. Cartons</th>
-                        <th>Sync Status</th>
-                        <th>Distribuído</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="itemTableBody"></tbody>
-            </table>
-        </div>
+        
+        <!-- Botão de exportar Excel -->
+        <button class="btn btn-outline-success me-2" onclick="downloadExcel()">📥 Exportar Excel</button>
     </div>
-
-    <!-- Tab 2: Itens Pendentes -->
-    <div class="tab-pane fade" id="pendentes" role="tabpanel">
-        <div class="row">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-clock-history text-warning"></i>
-                            Registrar Item Pendente
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <form id="itemPendenteForm">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Nome do Item *</label>
-                                    <input type="text" id="itemPendenteNome" class="form-control" placeholder="Ex: Paracetamol 500mg, Seringas 10ml..." required>
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Quantidade Esperada</label>
-                                    <input type="number" id="itemPendenteQuantidade" class="form-control" placeholder="0" min="0">
-                                </div>
-                                <div class="col-md-3 mb-3">
-                                    <label class="form-label">Prioridade</label>
-                                    <select id="itemPendentePrioridade" class="form-select">
-                                        <option value="baixa">Baixa</option>
-                                        <option value="media" selected>Média</option>
-                                        <option value="alta">Alta</option>
-                                        <option value="urgente">Urgente</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Categoria</label>
-                                    <select id="itemPendenteCategoria" class="form-select">
-                                        <option value="">Selecione a categoria</option>
-                                        <option value="medicamentos">Medicamentos</option>
-                                        <option value="material_cirurgico">Material Cirúrgico</option>
-                                        <option value="equipamentos">Equipamentos</option>
-                                        <option value="consumiveis">Consumíveis</option>
-                                        <option value="testes_diagnosticos">Testes Diagnósticos</option>
-                                        <option value="outros">Outros</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Data Esperada de Entrega</label>
-                                    <input type="date" id="itemPendenteDataEntrega" class="form-control">
-                                </div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Observações</label>
-                                <textarea id="itemPendenteObservacoes" class="form-control" rows="3" placeholder="Detalhes adicionais sobre o item pendente..."></textarea>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">Fornecedor/Origem</label>
-                                <input type="text" id="itemPendenteFornecedor" class="form-control" placeholder="Nome do fornecedor ou origem do item">
-                            </div>
-                            
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-plus-circle"></i> Registrar Item Pendente
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="limparFormPendente()">
-                                    <i class="bi bi-arrow-clockwise"></i> Limpar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-list-check text-info"></i>
-                            Lista de Itens Pendentes
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div id="listaItensPendentes">
-                            <p class="text-muted">Nenhum item pendente registrado.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    
+    <!-- Botões de visualização -->
+    <div class="btn-group" role="group">
+        <input type="radio" class="btn-check" name="viewType" id="blockView" autocomplete="off" checked onchange="toggleView('block')">
+        <label class="btn btn-outline-primary" for="blockView">
+            <i class="bi bi-grid-3x3-gap"></i> Blocos
+        </label>
+        
+        <input type="radio" class="btn-check" name="viewType" id="tableView" autocomplete="off" onchange="toggleView('table')">
+        <label class="btn btn-outline-primary" for="tableView">
+            <i class="bi bi-table"></i> Tabela
+        </label>
     </div>
+</div>
+
+<!-- Elemento de animação de distribuição -->
+<div id="distribuicaoAnimation" style="position: fixed; bottom: 20px; left: 20px; z-index: 999; display: none;">
+    <div class="d-flex align-items-center">
+        <!-- Ícone do hospital/unidade sanitária -->
+        <div class="hospital-icon" style="position: relative;">
+            <i class="bi bi-hospital-fill text-primary" style="font-size: 3rem;"></i>
+            <div class="hospital-pulse"></div>
+        </div>
+        
+        <!-- Linhas de animação -->
+        <div id="animationLines" style="position: absolute; top: 0; left: 60px; width: calc(100vw - 100px); height: 100px; pointer-events: none;"></div>
+    </div>
+</div>
+
+<!-- Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1000;"
+        onclick="abrirModalItem()">
+    +
+</button>
+
+<!-- Visualização em Blocos (PADRÃO) -->
+<div id="blockViewContainer" style="display: block;">
+    <div class="row g-3" id="itemBlocksContainer"></div>
+</div>
+
+<!-- Visualização em Tabela -->
+<div id="tableViewContainer" style="display: none;">
+    <table class="table table-bordered align-middle" id="itemTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Image</th>
+                <th>Código</th>
+                <th>Designação</th>
+                <th>HS Code</th>
+                <th>Qtd</th>
+                <th>Batch No</th>
+                <th>MFG Date</th>
+                <th>Expiry Date</th>
+                <th>No. Cartons</th>
+                <th>Sync Status</th>
+                <th>Distribuído</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="itemTableBody"></tbody>
+    </table>
 </div>
 
 <!-- Painel lateral de detalhes -->
@@ -214,7 +88,6 @@
     <div id="detalhesContent"></div>
 </div>
 
-<!-- Resto dos modais permanecem iguais -->
 <!-- Modal Item -->
 <div class="modal fade" id="itemModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl">
@@ -435,6 +308,7 @@
             </div>
             <hr>
             <div id="listaNecessidadesContainer">
+              <!-- Lista carregada via JS -->
               <p>Carregando necessidades...</p>
             </div>
           </div>
@@ -445,6 +319,7 @@
               <p>Carregando histórico...</p>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -503,6 +378,7 @@
           <label class="form-label">Observação</label>
           <textarea id="distribuicaoObservacao" class="form-control"></textarea>
         </div>
+
       </div>
       <div class="modal-footer">
         <button type="submit" class="btn btn-primary">Registrar Distribuição</button>
@@ -513,7 +389,6 @@
 </div>
 
 <style>
-/* Estilos existentes mantidos */
 .card-item {
     transition: transform 0.2s, box-shadow 0.2s;
     height: 100%;
@@ -689,6 +564,8 @@
     font-weight: 600;
 }
 
+/* Estilos específicos para os modais de stock e necessidades */
+/* Melhorias gerais para tabelas */
 .table {
     border-collapse: separate;
     border-spacing: 0;
@@ -704,12 +581,14 @@
     letter-spacing: 0.5px;
 }
 
+/* Garantir contraste adequado */
 .table-dark th {
     background-color: #000000 !important;
     color: #ffffff !important;
     border-bottom: 2px solid #444444 !important;
 }
 
+/* Estilo para badges nos tipos de movimento */
 .badge.bg-success {
     background-color: #198754 !important;
 }
@@ -719,35 +598,14 @@
     color: #000 !important;
 }
 
+/* Melhorar a aparência dos botões nas tabelas */
 .table .btn-sm {
     padding: 0.2rem 0.4rem;
     font-size: 0.75rem;
     border-radius: 4px;
 }
 
-/* Novos estilos para itens pendentes */
-.item-pendente-card {
-    border-left: 4px solid #ffc107;
-    margin-bottom: 10px;
-}
-
-.item-pendente-card.alta {
-    border-left-color: #fd7e14;
-}
-
-.item-pendente-card.urgente {
-    border-left-color: #dc3545;
-}
-
-.item-pendente-card.concluido {
-    border-left-color: #198754;
-    opacity: 0.7;
-}
-
-.prioridade-badge {
-    font-size: 0.7rem;
-}
-
+/* Responsividade para tabelas */
 @media (max-width: 768px) {
     .table {
         font-size: 0.8rem;
@@ -759,181 +617,9 @@
     }
 }
 
-
-/* 🔹 NOVOS ESTILOS PARA ANIMAÇÃO DE DISTRIBUIÇÃO */
-.hospital-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 120px;
-    height: 120px;
-}
-
-.hospital-icon {
-    position: relative;
-    z-index: 2;
-    font-size: 4rem;
-    color: #0d6efd;
-    background: white;
-    border-radius: 50%;
-    padding: 10px;
-    box-shadow: 0 0 20px rgba(13, 110, 253, 0.5);
-}
-
-.hospital-pulse {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 80px;
-    height: 80px;
-    border: 3px solid #0d6efd;
-    border-radius: 50%;
-    animation: hospitalPulse 3s infinite;
-    pointer-events: none;
-}
-
-@keyframes hospitalPulse {
-    0% {
-        transform: translate(-50%, -50%) scale(0.8);
-        opacity: 1;
-        border-color: #0d6efd;
-    }
-    50% {
-        border-color: #4dabf7;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(1.5);
-        opacity: 0;
-        border-color: #a5d8ff;
-    }
-}
-
-.distribution-line {
-    position: absolute;
-    height: 3px;
-    background: linear-gradient(90deg, #0d6efd, #4dabf7, #a5d8ff);
-    animation: distributeLine 4s ease-in-out;
-    transform-origin: left center;
-    pointer-events: none;
-    z-index: 1;
-    box-shadow: 0 0 10px rgba(13, 110, 253, 0.7);
-}
-
-.distribution-line::before {
-    content: '';
-    position: absolute;
-    right: -8px;
-    top: -6px;
-    width: 0;
-    height: 0;
-    border-left: 8px solid #0d6efd;
-    border-top: 6px solid transparent;
-    border-bottom: 6px solid transparent;
-    animation: arrowPulse 1s infinite;
-}
-
-.distribution-line::after {
-    content: '';
-    position: absolute;
-    right: -12px;
-    top: -10px;
-    width: 16px;
-    height: 16px;
-    background: #0d6efd;
-    border-radius: 50%;
-    animation: arrowGlow 2s infinite;
-    box-shadow: 0 0 10px rgba(13, 110, 253, 0.8);
-}
-
-@keyframes distributeLine {
-    0% {
-        transform: scaleX(0);
-        opacity: 1;
-        background: linear-gradient(90deg, #0d6efd, #4dabf7);
-    }
-    70% {
-        transform: scaleX(1);
-        opacity: 1;
-        background: linear-gradient(90deg, #0d6efd, #4dabf7, #a5d8ff);
-    }
-    100% {
-        transform: scaleX(1);
-        opacity: 0;
-        background: linear-gradient(90deg, #0d6efd, #a5d8ff);
-    }
-}
-
-@keyframes arrowPulse {
-    0%, 100% {
-        transform: translateX(0);
-        border-left-color: #0d6efd;
-    }
-    50% {
-        transform: translateX(3px);
-        border-left-color: #4dabf7;
-    }
-}
-
-@keyframes arrowGlow {
-    0%, 100% {
-        transform: scale(1);
-        background: #0d6efd;
-        box-shadow: 0 0 10px rgba(13, 110, 253, 0.8);
-    }
-    50% {
-        transform: scale(1.2);
-        background: #4dabf7;
-        box-shadow: 0 0 20px rgba(13, 110, 253, 1);
-    }
-}
-
-.item-connection-point {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background: #0d6efd;
-    border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 0 10px rgba(13, 110, 253, 0.8);
-    z-index: 3;
-    animation: connectionPoint 2s infinite;
-}
-
-@keyframes connectionPoint {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 0 10px rgba(13, 110, 253, 0.8);
-    }
-    50% {
-        transform: scale(1.3);
-        box-shadow: 0 0 20px rgba(13, 110, 253, 1);
-    }
-}
-
-.animation-controls {
-    position: fixed;
-    bottom: 100px;
-    left: 20px;
-    z-index: 1000;
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.animation-controls button {
-    margin: 2px;
-    padding: 4px 8px;
-    font-size: 0.8rem;
-}
-
-
 </style>
 
 <script>
-// Variáveis globais existentes
 let allItens = [];
 let allArmazens = [];
 let allPortos = [];
@@ -942,14 +628,8 @@ let imagemBase64 = null;
 let pdfBase64 = null;
 let allNotasEnvio = [];
 let currentView = 'block';
-let distribuicoes = [];
+let distribuicoes = []; // Para armazenar as distribuições
 let animationTimeout = null;
-let itensPendentes = []; // Nova variável para itens pendentes
-
-// 🔹 VARIÁVEIS PARA CONTROLE DA ANIMAÇÃO
-let animationInterval = null;
-let isAnimationPaused = false;
-let currentAnimationIndex = 0;
 
 const apiUrl = '/api/item';
 const armazemUrl = '/api/armazem';
@@ -957,10 +637,9 @@ const portoUrl = '/api/porto';
 const locationUrl = '/api/location';
 const notaEnvioUrl = '/api/notaenvio';
 const distribuicaoUrl = '/api/distribuicao';
-const itensPendentesUrl = '/api/itenspendentes'; // Nova URL para itens pendentes
 const SYNC_STATUS_ENUM = ['Not Syncronized', 'Syncronized', 'Updated'];
 
-// 🔹 INICIAR ANIMAÇÃO QUANDO A PÁGINA CARREGAR
+// Inicialização
 window.onload = () => {
     carregarSyncStatus();
     loadArmazens();
@@ -969,186 +648,8 @@ window.onload = () => {
     loadNotasEnvio();
     loadDistribuicoes();
     loadItens();
-    carregarItensPendentes();
-    
-    // Iniciar animação após um breve delay
-    setTimeout(() => {
-        iniciarAnimacaoDistribuicao();
-    }, 2000);
+    iniciarAnimacaoDistribuicao();
 };
-
-// ==========================
-// 🔹 NOVAS FUNÇÕES PARA ITENS PENDENTES
-// ==========================
-
-// Carregar itens pendentes
-async function carregarItensPendentes() {
-    try {
-        const res = await fetch(itensPendentesUrl);
-        itensPendentes = await res.json();
-        atualizarListaItensPendentes();
-    } catch (err) {
-        console.error('Erro ao carregar itens pendentes:', err);
-        document.getElementById('listaItensPendentes').innerHTML = '<p class="text-danger">Erro ao carregar itens pendentes.</p>';
-    }
-}
-
-// Atualizar lista de itens pendentes
-function atualizarListaItensPendentes() {
-    const container = document.getElementById('listaItensPendentes');
-    
-    if (!itensPendentes || itensPendentes.length === 0) {
-        container.innerHTML = '<p class="text-muted">Nenhum item pendente registrado.</p>';
-        return;
-    }
-
-    let html = '';
-    itensPendentes.forEach(item => {
-        const dataEntrega = item.data_esperada_entrega ? new Date(item.data_esperada_entrega).toLocaleDateString('pt-BR') : 'Não definida'; // ✅ CORRIGIDO
-        const statusClass = item.status === 'concluido' ? 'concluido' : '';
-        const prioridadeClass = item.prioridade;
-        
-        html += `
-            <div class="card item-pendente-card ${statusClass} ${prioridadeClass} mb-2">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <h6 class="card-title mb-1">${item.nome_item}</h6> <!-- ✅ CORRIGIDO: item.nome → item.nome_item -->
-                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                <span class="badge prioridade-badge ${getPrioridadeBadgeClass(item.prioridade)}">
-                                    ${getPrioridadeTexto(item.prioridade)}
-                                </span>
-                                ${item.categoria ? `<span class="badge bg-secondary prioridade-badge">${item.categoria}</span>` : ''}
-                                ${item.quantidade_esperada ? `<span class="badge bg-info prioridade-badge">Qtd: ${item.quantidade_esperada}</span>` : ''}
-                            </div>
-                            ${item.observacoes ? `<p class="card-text small mb-1">${item.observacoes}</p>` : ''}
-                            <div class="text-muted small">
-                                ${item.fornecedor_origem ? `<div>Fornecedor: ${item.fornecedor_origem}</div>` : ''} <!-- ✅ CORRIGIDO -->
-                                <div>Entrega: ${dataEntrega}</div>
-                                <div>Registrado em: ${new Date(item.data_registro).toLocaleDateString('pt-BR')}</div>
-                            </div>
-                        </div>
-                        <div class="btn-group btn-group-sm">
-                            ${item.status !== 'concluido' ? `
-                                <button class="btn btn-outline-success" onclick="marcarComoRecebido(${item.id})" title="Marcar como recebido">
-                                    <i class="bi bi-check-lg"></i>
-                                </button>
-                            ` : ''}
-                            <button class="btn btn-outline-danger" onclick="removerItemPendente(${item.id})" title="Remover">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    container.innerHTML = html;
-}
-
-// Funções auxiliares para itens pendentes
-function getPrioridadeBadgeClass(prioridade) {
-    const classes = {
-        'baixa': 'bg-secondary',
-        'media': 'bg-primary',
-        'alta': 'bg-warning',
-        'urgente': 'bg-danger'
-    };
-    return classes[prioridade] || 'bg-secondary';
-}
-
-function getPrioridadeTexto(prioridade) {
-    const textos = {
-        'baixa': 'Baixa',
-        'media': 'Média',
-        'alta': 'Alta',
-        'urgente': 'Urgente'
-    };
-    return textos[prioridade] || 'Média';
-}
-
-// Formulário de itens pendentes
-document.getElementById('itemPendenteForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const payload = {
-        nome_item: document.getElementById('itemPendenteNome').value, // ✅ CORRIGIDO: 'nome' → 'nome_item'
-        quantidade_esperada: parseInt(document.getElementById('itemPendenteQuantidade').value) || null,
-        prioridade: document.getElementById('itemPendentePrioridade').value,
-        categoria: document.getElementById('itemPendenteCategoria').value || null,
-        data_esperada_entrega: document.getElementById('itemPendenteDataEntrega').value || null, // ✅ CORRIGIDO: 'data_entrega_esperada' → 'data_esperada_entrega'
-        observacoes: document.getElementById('itemPendenteObservacoes').value || null,
-        fornecedor_origem: document.getElementById('itemPendenteFornecedor').value || null, // ✅ CORRIGIDO: 'fornecedor' → 'fornecedor_origem'
-        user: "{{ username }}"
-    };
-
-    try {
-        const res = await fetch(itensPendentesUrl, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) throw await res.json();
-
-        // Limpar formulário e recarregar lista
-        limparFormPendente();
-        await carregarItensPendentes();
-        alert('Item pendente registrado com sucesso!');
-        
-    } catch (err) {
-        alert('Erro ao registrar item pendente: ' + (err.message || 'Erro desconhecido'));
-        console.error(err);
-    }
-});
-
-
-// Limpar formulário de itens pendentes
-function limparFormPendente() {
-    document.getElementById('itemPendenteForm').reset();
-    document.getElementById('itemPendentePrioridade').value = 'media';
-}
-
-// Marcar item como recebido
-async function marcarComoRecebido(id) {
-    if (!confirm('Deseja marcar este item como recebido?')) return;
-    
-    try {
-        const res = await fetch(`${itensPendentesUrl}/${id}/concluir`, {
-            method: 'PUT'
-        });
-
-        if (!res.ok) throw await res.json();
-        
-        await carregarItensPendentes();
-        alert('Item marcado como recebido!');
-        
-    } catch (err) {
-        alert('Erro ao marcar item como recebido: ' + (err.message || 'Erro desconhecido'));
-        console.error(err);
-    }
-}
-
-// Remover item pendente
-async function removerItemPendente(id) {
-    if (!confirm('Deseja remover este item pendente?')) return;
-    
-    try {
-        const res = await fetch(`${itensPendentesUrl}/${id}`, {
-            method: 'DELETE'
-        });
-
-        if (!res.ok) throw await res.json();
-        
-        await carregarItensPendentes();
-        alert('Item pendente removido!');
-        
-    } catch (err) {
-        alert('Erro ao remover item pendente: ' + (err.message || 'Erro desconhecido'));
-        console.error(err);
-    }
-}
 
 
 // ==========================
@@ -1367,49 +868,19 @@ function mostrarDocumentosNota(documentos) {
 }
 
 
-// 🔹 FUNÇÃO MELHORADA PARA INICIAR ANIMAÇÃO
+// Iniciar animação de distribuição
 function iniciarAnimacaoDistribuicao() {
     const distribuicaoAnimation = document.getElementById('distribuicaoAnimation');
     distribuicaoAnimation.style.display = 'block';
-    
-    // Parar animação anterior se existir
-    if (animationInterval) {
-        clearInterval(animationInterval);
-    }
-    
-    // Iniciar nova animação
-    currentAnimationIndex = 0;
-    isAnimationPaused = false;
     
     // Verificar se há itens distribuídos e iniciar animação
     setTimeout(() => {
         const itensDistribuidos = allItens.filter(item => isItemDistribuido(item.id));
         if (itensDistribuidos.length > 0) {
-            iniciarAnimacaoSequencial(itensDistribuidos);
+            animarDistribuicoes(itensDistribuidos);
         }
     }, 1000);
 }
-
-// 🔹 FUNÇÃO PARA ANIMAÇÃO SEQUENCIAL AUTOMÁTICA
-function iniciarAnimacaoSequencial(itens) {
-    if (animationInterval) {
-        clearInterval(animationInterval);
-    }
-    
-    animationInterval = setInterval(() => {
-        if (!isAnimationPaused && currentAnimationIndex < itens.length) {
-            const item = itens[currentAnimationIndex];
-            criarAnimacaoDistribuicao(item, currentAnimationIndex);
-            currentAnimationIndex++;
-            
-            // Reiniciar quando chegar ao final
-            if (currentAnimationIndex >= itens.length) {
-                currentAnimationIndex = 0;
-            }
-        }
-    }, 3000); // Animação a cada 3 segundos
-}
-
 
 // Animação das distribuições
 function animarDistribuicoes(itens) {
@@ -1430,16 +901,9 @@ function animarDistribuicoes(itens) {
 }
 
 // Criar animação de distribuição individual
-// 🔹 FUNÇÃO MELHORADA PARA CRIAR ANIMAÇÃO INDIVIDUAL
-function criarAnimacaoDistribuicao(item, index) {
+function criarAnimacaoDistribuicao(cardElement, item, index) {
     const animationLines = document.getElementById('animationLines');
     const hospitalIcon = document.querySelector('.hospital-icon');
-    
-    // Encontrar o elemento do card/item
-    const cardElement = document.querySelector(`.card-item[data-item-id="${item.id}"]`);
-    
-    if (!cardElement || !hospitalIcon) return;
-
     const cardRect = cardElement.getBoundingClientRect();
     const hospitalRect = hospitalIcon.getBoundingClientRect();
     
@@ -1453,15 +917,6 @@ function criarAnimacaoDistribuicao(item, index) {
     const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
     const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
     
-    // Criar ponto de conexão no item
-    const connectionPoint = document.createElement('div');
-    connectionPoint.className = 'item-connection-point';
-    connectionPoint.style.cssText = `
-        top: ${endY - 6}px;
-        left: ${endX - 6}px;
-    `;
-    animationLines.appendChild(connectionPoint);
-    
     // Criar linha de animação
     const line = document.createElement('div');
     line.className = 'distribution-line';
@@ -1471,7 +926,6 @@ function criarAnimacaoDistribuicao(item, index) {
         width: ${distance}px;
         transform: rotate(${angle}deg);
         z-index: ${999 - index};
-        animation-delay: ${index * 100}ms;
     `;
     
     animationLines.appendChild(line);
@@ -1484,49 +938,11 @@ function criarAnimacaoDistribuicao(item, index) {
         if (line.parentNode) {
             line.parentNode.removeChild(line);
         }
-        if (connectionPoint.parentNode) {
-            connectionPoint.parentNode.removeChild(connectionPoint);
-        }
         cardElement.classList.remove('item-distributed');
-    }, 4000);
+    }, 3000);
 }
 
-// 🔹 FUNÇÃO PARA ANIMAR TODOS OS ITENS DE UMA VEZ
-function animarTodosItens() {
-    const itensDistribuidos = allItens.filter(item => isItemDistribuido(item.id));
-    const animationLines = document.getElementById('animationLines');
-    
-    // Limpar animações anteriores
-    animationLines.innerHTML = '';
-    
-    // Animar todos os itens simultaneamente
-    itensDistribuidos.forEach((item, index) => {
-        setTimeout(() => {
-            criarAnimacaoDistribuicao(item, index);
-        }, index * 200); // Pequeno delay entre cada animação
-    });
-}
-
-
-// 🔹 FUNÇÃO PARA PAUSAR/RETOMAR ANIMAÇÃO
-function pausarAnimacao() {
-    isAnimationPaused = !isAnimationPaused;
-    
-    const pauseButton = document.querySelector('[onclick="pausarAnimacao()"]');
-    if (isAnimationPaused) {
-        pauseButton.innerHTML = '<i class="bi bi-play"></i>';
-        pauseButton.classList.remove('btn-outline-secondary');
-        pauseButton.classList.add('btn-outline-success');
-    } else {
-        pauseButton.innerHTML = '<i class="bi bi-pause"></i>';
-        pauseButton.classList.remove('btn-outline-success');
-        pauseButton.classList.add('btn-outline-secondary');
-    }
-}
-
-
-
-// 🔹 ATUALIZAR A FUNÇÃO existente de atualizar animações
+// Atualizar animações quando os itens são carregados
 function atualizarAnimacoesDistribuicao() {
     if (animationTimeout) {
         clearTimeout(animationTimeout);
@@ -1534,12 +950,9 @@ function atualizarAnimacoesDistribuicao() {
     
     animationTimeout = setTimeout(() => {
         const itensDistribuidos = allItens.filter(item => isItemDistribuido(item.id));
-        if (itensDistribuidos.length > 0 && !animationInterval) {
-            iniciarAnimacaoSequencial(itensDistribuidos);
-        }
+        animarDistribuicoes(itensDistribuidos);
     }, 1000);
 }
-
 
 // Carregar distribuições
 async function loadDistribuicoes() {
@@ -1685,7 +1098,7 @@ function abrirDistribuicao(itemId) {
     new bootstrap.Modal(document.getElementById('distribuicaoModal')).show();
 }
 
-// 🔹 MODIFICAR a função de distribuição para iniciar animação
+// Submissão do formulário
 document.getElementById('distribuicaoForm').addEventListener('submit', async e => {
     e.preventDefault();
 
@@ -1708,20 +1121,16 @@ document.getElementById('distribuicaoForm').addEventListener('submit', async e =
 
         bootstrap.Modal.getInstance(document.getElementById('distribuicaoModal')).hide();
         alert('Distribuição registrada com sucesso!');
-        
-        await loadDistribuicoes();
-        renderizarBlocos(allItens);
+        // await loadDistribuicoes(); // Recarregar distribuições
+        // loadItens(); // Recarregar itens
+        await loadDistribuicoes(); // atualiza distribuicoes
+        renderizarBlocos(allItens); // re-renderiza cards
 
-        // 🔹 ANIMAR o item distribuído
+        // Animar o item distribuído
         const itemId = parseInt(document.getElementById('distribuicaoItemId').value);
         const item = allItens.find(i => i.id === itemId);
         if (item) {
-            criarAnimacaoDistribuicao(item, 0);
-            
-            // Reiniciar animação sequencial se estiver pausada
-            if (isAnimationPaused) {
-                pausarAnimacao();
-            }
+            animarDistribuicoes([item]);
         }
     } catch(err) {
         alert(err.message || 'Erro ao registrar distribuição');

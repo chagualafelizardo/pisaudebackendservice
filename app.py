@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_babelex import Babel, gettext as _
 from config import Config
-from models import db, Observation, User
+from models import db, Observation, User, Location
 from models import User, UserComponente
 from werkzeug.security import check_password_hash
 import os
@@ -83,6 +83,7 @@ from routes.TipoItemRoutes import tipo_item_bp
 from routes.NotaEnvioRoutes import nota_envio_bp
 from routes.NotaEnvioItemRoutes import nota_envio_item_bp
 from routes.NotaEnvioDocumentRoutes import nota_envio_document_bp
+from routes.ItensPendentesRoutes import itens_pendentes_bp
 
 # -------------------------------
 # Registro de Blueprints (API)
@@ -98,7 +99,7 @@ blueprints = [
     pais_bp, formacao_bp, despacho_bp, licenca_bp, provincia_bp, armazem_bp,
     item_bp, componente_bp, usercomponente_bp, porto_bp, necessidade_bp,
     historico_bp, distribuicao_bp, tipo_item_bp, nota_envio_bp,
-    nota_envio_item_bp, nota_envio_document_bp
+    nota_envio_item_bp, nota_envio_document_bp, itens_pendentes_bp
 ]
 
 for bp in blueprints:
@@ -124,12 +125,16 @@ def set_language(lang):
 # -------------------------------
 # Context Processor — info do usuário
 # -------------------------------
+# app.py
 @app.context_processor
 def inject_user_components():
     user_id = session.get('user_id')
-    user_components = []
     username = ''
     location_name = ''
+    
+    # SEMPRE inicializar as variáveis
+    user_menus = []
+    user_component_names = []
 
     if user_id:
         user = User.query.get(user_id)
@@ -137,13 +142,16 @@ def inject_user_components():
             username = getattr(user, 'fullname', user.username)
             location_name = getattr(user.location, 'name', '') if getattr(user, 'location', None) else ''
 
+            # Buscar componentes e menus do usuário
             componentes = UserComponente.query.filter_by(user_id=user_id).all()
-            user_components = [uc.componente.descricao for uc in componentes if uc.componente]
+            user_component_names = [uc.componente.descricao for uc in componentes if uc.componente]
+            user_menus = get_user_menus(user_id)
 
     return dict(
         username=username,
         location_name=location_name,
-        user_components=user_components,
+        user_components=user_component_names,  # Para exibição
+        user_menus=user_menus,  # Para controle de acesso
         current_year=datetime.now().year
     )
 
@@ -156,10 +164,17 @@ def index():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
-        flash('Por favor, faça login primeiro.', 'warning')
-        return redirect(url_for('login'))
-    return render_template('dashboard.html')
+    # Estatísticas básicas (exemplo - adapte conforme seus modelos)
+    total_users = User.query.count()
+    total_locations = Location.query.count()
+    # Adicione outras estatísticas conforme necessário
+    
+    return render_template('dashboard.html', 
+                         total_users=total_users,
+                         total_locations=total_locations,
+                         total_records=0,  # Adapte conforme necessário
+                         system_activity='Online')
+
 
 @app.route('/dashboarddistribuicao')
 def dashboard_distribuicao():
@@ -168,9 +183,10 @@ def dashboard_distribuicao():
         return redirect(url_for('login'))
     return render_template('dashboarddistribuicao.html')
 
+# app.py
 @app.route('/content/<page>')
 def content(page):
-    # Converter para minúsculas para evitar problemas de case sensitivity
+    # Converter para minúsculas
     page = page.lower()
     
     # Verificar autenticação
@@ -178,48 +194,100 @@ def content(page):
         flash('Por favor, faça login primeiro.', 'warning')
         return redirect(url_for('login'))
     
-    # Lista de páginas permitidas
-    allowed_pages = [
-        # Dashboard
-        'dashboard', 'dashboarddistribuicao',
-        
-        # Menu Registo
-        'provincia', 'location', 'subunidade', 'portatestagem', 'keypopulation',
-        'grouptypes', 'group', 'states', 'textmessage', 'ramo', 'funcao',
-        'especialidade', 'subespecialidade', 'pais',
-        
-        # Recursos Humanos
-        'patent', 'person', 'formaprestacaoservico', 'situacaogeral', 
-        'situacaoprestacaoservico', 'tipolicenca', 'licenca', 'despacho',
-        
-        # Gestão de Alocação
-        'afetacao', 'transferencia',
-        
-        # Gestão de Formações
-        'especialidadesaude', 'formacao', 'candidato',
-        
-        # Items Tracking
-        'porto', 'tipoitem', 'notaenvio', 'armazem', 'item', 'distribuicao',
-        
-        # Alo-Saúde
-        'alosaude',
-        
-        # Resources Mapping
-        'resource', 'resourcetype', 'mapping',
-        
-        # Grupos Alo-Saúde
-        'iniciotarv', 'adesaotarv', 'cargaviral', 'faltosos', 'abandonos', 'observations',
-        
-        # User Management
-        'user', 'roles', 'componente',
-        
-        # Configurações
-        'register', 'settings'
-    ]
+    # Páginas básicas sempre permitidas
+    if page in ['dashboard', 'dashboarddistribuicao']:
+        try:
+            return render_template(f'{page}.html')
+        except Exception as e:
+            logger.error(f"Erro ao carregar template '{page}.html': {str(e)}")
+            flash(f'Erro ao carregar a página {page}.', 'danger')
+            return redirect(url_for('dashboard'))
     
-    if page not in allowed_pages:
-        flash(f'A página "{page}" não existe ou não está disponível.', 'danger')
-        return redirect(url_for('dashboard'))
+    # Verificar se a página é permitida para o usuário
+    user_id = session.get('user_id')
+    user = User.query.get(user_id)
+    
+    if user:
+        # Buscar menus permitidos para o usuário
+        user_menus = get_user_menus(user_id)
+        
+        # Mapeamento de páginas para menus principais
+        page_to_menu = {
+            # Gestão de Formações
+            'especialidadesaude': 'gestaoFormacaoMenu',
+            'formacao': 'gestaoFormacaoMenu', 
+            'candidato': 'gestaoFormacaoMenu',
+            
+            # Resources Mapping
+            'resource': 'mappingMenu',
+            'resourcetype': 'mappingMenu',
+            'mapping': 'mappingMenu',
+            
+            # Gestão de Alocação
+            'afetacao': 'gestaoAlocacaoMenu',
+            'transferencia': 'gestaoAlocacaoMenu',
+            
+            # Items Tracking
+            'porto': 'trackingMenu',
+            'tipoitem': 'trackingMenu',
+            'notaenvio': 'trackingMenu',
+            'armazem': 'trackingMenu',
+            'item': 'trackingMenu',
+            'distribuicao': 'trackingMenu',
+            
+            # Alo-Saúde
+            'alosaude': 'alosaudeMenu',
+            
+            # Menu Registo
+            'provincia': 'registoMenu',
+            'location': 'registoMenu',
+            'subunidade': 'registoMenu',
+            'portatestagem': 'registoMenu',
+            'keypopulation': 'registoMenu',
+            'grouptypes': 'registoMenu',
+            'group': 'registoMenu',
+            'states': 'registoMenu',
+            'textmessage': 'registoMenu',
+            'ramo': 'registoMenu',
+            'funcao': 'registoMenu',
+            'especialidade': 'registoMenu',
+            'subespecialidade': 'registoMenu',
+            'pais': 'registoMenu',
+            
+            # Recursos Humanos
+            'patent': 'rhMenu',
+            'person': 'rhMenu',
+            'formaprestacaoservico': 'rhMenu',
+            'situacaogeral': 'rhMenu',
+            'situacaoprestacaoservico': 'rhMenu',
+            'tipolicenca': 'rhMenu',
+            'licenca': 'rhMenu',
+            'despacho': 'rhMenu',
+            
+            # Grupos Alo-Saúde
+            'iniciotarv': 'gruposAlosaudeMenus',
+            'adesaotarv': 'gruposAlosaudeMenus',
+            'cargaviral': 'gruposAlosaudeMenus',
+            'faltosos': 'gruposAlosaudeMenus',
+            'abandonos': 'gruposAlosaudeMenus',
+            'observations': 'gruposAlosaudeMenus',
+            
+            # User Management
+            'user': 'userMenu',
+            'roles': 'userMenu',
+            'componente': 'userMenu',
+            'register': 'userMenu',
+            'settings': 'userMenu'
+        }
+        
+        # Verificar se a página é permitida
+        if page in page_to_menu:
+            required_menu = page_to_menu[page]
+            
+            # Verificar se o usuário tem o menu necessário
+            if required_menu not in user_menus:
+                flash('Você não tem permissão para acessar esta página.', 'danger')
+                return redirect(url_for('dashboard'))
     
     try:
         return render_template(f'{page}.html')
@@ -227,7 +295,7 @@ def content(page):
         logger.error(f"Erro ao carregar template '{page}.html': {str(e)}")
         flash(f'Erro ao carregar a página {page}.', 'danger')
         return redirect(url_for('dashboard'))
-
+    
 # -------------------------------
 # Login / Logout
 # -------------------------------
@@ -255,6 +323,38 @@ def logout():
     session.clear()
     flash('Sessão terminada com sucesso.', 'info')
     return redirect(url_for('login'))
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+def get_user_menus(user_id):
+    """Retorna lista de IDs de menus permitidos para o usuário"""
+    user_menus = []
+    
+    # Buscar componentes do usuário
+    componentes = UserComponente.query.filter_by(user_id=user_id).all()
+    user_component_names = [uc.componente.descricao for uc in componentes if uc.componente]
+    
+    # Mapeamento de componentes para menus
+    componente_to_menu = {
+        'Formação': 'gestaoFormacaoMenu',
+        'Mapeamento de recursos': 'mappingMenu', 
+        'Afetação / Alocação': 'gestaoAlocacaoMenu',
+        'Itens Traking': 'trackingMenu',
+        'Alo-Saúde': 'alosaudeMenu',
+        'Menu de registos': 'registoMenu',
+        'Menu de Recursos Humanos': 'rhMenu',
+        'Manus do usuário': 'userMenu',
+        'Menus de grupos de alo saúde': 'gruposAlosaudeMenus'
+    }
+    
+    # Converter componentes para menus
+    for component_name in user_component_names:
+        if component_name in componente_to_menu:
+            user_menus.append(componente_to_menu[component_name])
+    
+    return user_menus
 
 # -------------------------------
 # Rota de importação de Observações (API)

@@ -12,6 +12,9 @@ class ItemLocationNecessidade(db.Model):
     descricao = db.Column(db.String(255))
     data_registro = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # 🔹 Novo campo para armazenar o nome do usuário que adicionou a necessidade
+    user = db.Column(db.String(150), nullable=True)
+
     # relacionamentos
     item = db.relationship('Item', backref=db.backref('item_location_necessidades', lazy=True))
     location = db.relationship('Location', backref=db.backref('item_location_necessidades', lazy=True))

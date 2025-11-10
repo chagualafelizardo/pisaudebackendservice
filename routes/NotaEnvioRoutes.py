@@ -3,6 +3,10 @@ from controllers.NotaEnvioController import NotaEnvioController
 
 nota_envio_bp = Blueprint('nota_envio', __name__)
 
+# ===============================================================
+# 🔹 ROTAS CRUD BÁSICAS
+# ===============================================================
+
 @nota_envio_bp.route('/notaenvio', methods=['GET'])
 def get_notas_envio():
     return NotaEnvioController.get_all()
@@ -22,3 +26,15 @@ def update_nota_envio(id):
 @nota_envio_bp.route('/notaenvio/<int:id>', methods=['DELETE'])
 def delete_nota_envio(id):
     return NotaEnvioController.delete(id)
+
+# ===============================================================
+# 🔹 ROTAS PARA DOCUMENTOS (ADICIONE ESTAS)
+# ===============================================================
+
+@nota_envio_bp.route('/notaenvio/<int:nota_id>/documentos/<int:documento_id>/view')
+def view_documento(nota_id, documento_id):
+    return NotaEnvioController.view_documento(nota_id, documento_id)
+
+@nota_envio_bp.route('/notaenvio/<int:nota_id>/documentos/<int:documento_id>/download')
+def download_documento(nota_id, documento_id):
+    return NotaEnvioController.download_documento(nota_id, documento_id)

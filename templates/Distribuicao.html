@@ -1,9 +1,40 @@
 {% extends 'base.html' %}
 {% block title %}Distribuição Management{% endblock %}
 {% block content %}
-{% include 'navbar.html' %}
+<!-- {% include 'navbar.html' %} -->
 
-<h2>Manage Distribuições</h2>
+<h2>Gestão de Distribuições</h2>
+
+<!-- Controles de visualização e pesquisa -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex align-items-center">
+        <!-- Campo de pesquisa -->
+        <div class="position-relative me-3" style="max-width: 400px;">
+            <input type="text" id="distribuicaoSearch" class="form-control" placeholder="Pesquisar distribuição..." oninput="filtrarDistribuicoes(this.value)">
+        </div>
+        
+        <!-- Botão de exportar Excel -->
+        <button class="btn btn-outline-success me-2" onclick="downloadExcel()">📥 Exportar Excel</button>
+        
+        <!-- Botão para ver gráfico -->
+        <button class="btn btn-outline-info" onclick="abrirGraficoDistribuicao()">
+            <i class="bi bi-bar-chart-fill"></i> Ver Gráfico de Distribuição
+        </button>
+    </div>
+    
+    <!-- Botões de visualização -->
+    <div class="btn-group" role="group">
+        <input type="radio" class="btn-check" name="viewType" id="blockView" autocomplete="off" checked onchange="toggleView('block')">
+        <label class="btn btn-outline-primary" for="blockView">
+            <i class="bi bi-grid-3x3-gap"></i> Blocos
+        </label>
+        
+        <input type="radio" class="btn-check" name="viewType" id="tableView" autocomplete="off" onchange="toggleView('table')">
+        <label class="btn btn-outline-primary" for="tableView">
+            <i class="bi bi-table"></i> Tabela
+        </label>
+    </div>
+</div>
 
 <!-- Botão flutuante -->
 <button class="btn btn-success rounded-circle position-fixed"
@@ -12,101 +43,267 @@
     +
 </button>
 
-<!-- Tabela -->
-<table class="table table-bordered mt-3">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Item</th>
-            <th>Armazém</th>
-            <th>Unidade Sanitária</th>
-            <th>Quantidade</th>
-            <th>Data Distribuição</th>
-            <th>Observação</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody id="distribuicaoTableBody">
-        <!-- Populado por JS -->
-    </tbody>
-</table>
+<!-- Visualização em Blocos (PADRÃO) -->
+<div id="blockViewContainer" style="display: block;">
+    <div class="row g-3" id="distribuicaoBlocksContainer"></div>
+</div>
+
+<!-- Visualização em Tabela -->
+<div id="tableViewContainer" style="display: none;">
+    <table class="table table-bordered align-middle" id="distribuicaoTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Item</th>
+                <th>Armazém</th>
+                <th>Unidade Sanitária</th>
+                <th>Quantidade</th>
+                <th>Data Distribuição</th>
+                <th>Observação</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="distribuicaoTableBody"></tbody>
+    </table>
+</div>
+
+<!-- Painel lateral de detalhes -->
+<div id="detalhesPanel" style="position:fixed; top:60px; right:-420px; width:420px; height:90%; background:#fff; border-left:1px solid #ccc; box-shadow: -3px 0 5px rgba(0,0,0,0.2); padding:15px; overflow:auto; transition:right 0.3s; z-index:1050;">
+    <button class="btn btn-sm btn-secondary mb-2" onclick="fecharDetalhes()">Fechar</button>
+    <div id="detalhesContent"></div>
+</div>
 
 <!-- Modal Add/Edit Distribuição -->
 <div class="modal fade" id="distribuicaoModal" tabindex="-1" aria-labelledby="distribuicaoModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-xl">
     <form id="distribuicaoForm" class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Add/Edit Distribuição</h5>
+        <h5 class="modal-title">Adicionar / Editar Distribuição</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body">
         <input type="hidden" id="distribuicaoId">
 
-        <div class="mb-3 position-relative">
-            <label for="itemSearch" class="form-label fw-bold">Item</label>
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs mb-3" id="distribuicaoTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="item-tab" data-bs-toggle="tab" data-bs-target="#item" type="button" role="tab">Item</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="destino-tab" data-bs-toggle="tab" data-bs-target="#destino" type="button" role="tab">Destino</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="detalhes-tab" data-bs-toggle="tab" data-bs-target="#detalhes" type="button" role="tab">Detalhes</button>
+          </li>
+        </ul>
 
-            <!-- Campo de pesquisa -->
-            <div class="input-group">
-                <span class="input-group-text">
-                    <i class="bi bi-search"></i>
-                </span>
-                <input type="text" id="itemSearch" class="form-control" placeholder="Digite para procurar o item...">
+        <!-- Tab panes -->
+        <div class="tab-content">
+          <!-- Tab Item -->
+          <div class="tab-pane fade show active" id="item" role="tabpanel">
+            <div class="mb-3 position-relative">
+                <label for="itemSearch" class="form-label fw-bold">Pesquisar Item</label>
+
+                <!-- Campo de pesquisa -->
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="itemSearch" class="form-control" placeholder="Digite para procurar o item...">
+                </div>
+
+                <!-- Resultados de pesquisa (dropdown flutuante) -->
+                <div id="itemResults"
+                    class="list-group position-absolute w-100 shadow-sm"
+                    style="z-index:1050; max-height:250px; overflow-y:auto; display:none;">
+                </div>
+
+                <!-- ID oculto para submissão -->
+                <input type="hidden" id="itemId">
+
+                <!-- Preview do item selecionado -->
+                <div id="itemPreview"
+                    class="mt-3 border rounded p-3 bg-light"
+                    style="display:none;">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            <img id="itemPreviewImg" src="" alt="Imagem do item" class="img-thumbnail" style="max-height:120px;">
+                        </div>
+                        <div class="col-md-9">
+                            <h6 id="itemPreviewNome" class="mb-1"></h6>
+                            <p class="small text-muted mb-1" id="itemPreviewCodigo"></p>
+                            <p class="small text-muted mb-1" id="itemPreviewHsCode"></p>
+                            <p class="small text-muted mb-1" id="itemPreviewQuantidade"></p>
+                            <p class="small text-muted mb-1" id="itemPreviewBatch"></p>
+                            <p class="small text-muted mb-0" id="itemPreviewValidade"></p>
+                        </div>
+                    </div>
+                </div>
             </div>
+          </div>
 
-            <!-- Resultados de pesquisa (dropdown flutuante) -->
-            <div id="itemResults"
-                class="list-group position-absolute w-100 shadow-sm"
-                style="z-index:1050; max-height:250px; overflow-y:auto;">
+          <!-- Tab Destino -->
+          <div class="tab-pane fade" id="destino" role="tabpanel">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="armazemId" class="form-label fw-bold">Armazém de Origem</label>
+                <select id="armazemId" class="form-select" required>
+                  <option value="">Selecione o armazém...</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="locationId" class="form-label fw-bold">Unidade Sanitária de Destino</label>
+                <select id="locationId" class="form-select" required>
+                  <option value="">Selecione a unidade...</option>
+                </select>
+              </div>
             </div>
+          </div>
 
-            <!-- ID oculto para submissão -->
-            <input type="hidden" id="itemId">
+          <!-- Tab Detalhes -->
+          <div class="tab-pane fade" id="detalhes" role="tabpanel">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="quantidade" class="form-label fw-bold">Quantidade</label>
+                <input type="number" id="quantidade" class="form-control" required min="1">
+              </div>
 
-            <!-- Preview do item selecionado -->
-            <div id="itemPreview"
-                class="mt-3 border rounded p-2 text-center bg-light"
-                style="display:none;">
-                <!-- Preenchido via JavaScript -->
+              <div class="col-md-6 mb-3">
+                <label for="dataDistribuicao" class="form-label fw-bold">Data Distribuição</label>
+                <input type="datetime-local" id="dataDistribuicao" class="form-control">
+              </div>
+
+              <div class="col-12 mb-3">
+                <label for="observacao" class="form-label fw-bold">Observação</label>
+                <textarea id="observacao" class="form-control" rows="4" placeholder="Adicione observações sobre esta distribuição..."></textarea>
+              </div>
             </div>
-        </div>
-
-
-
-
-        <div class="mb-3">
-          <label for="armazemId" class="form-label">Armazém</label>
-          <select id="armazemId" class="form-select" required></select>
-        </div>
-
-        <div class="mb-3">
-          <label for="locationId" class="form-label">Unidade Sanitária</label>
-          <select id="locationId" class="form-select" required></select>
-        </div>
-
-        <div class="mb-3">
-          <label for="quantidade" class="form-label">Quantidade</label>
-          <input type="number" id="quantidade" class="form-control" required>
-        </div>
-
-        <div class="mb-3">
-          <label for="dataDistribuicao" class="form-label">Data Distribuição</label>
-          <input type="datetime-local" id="dataDistribuicao" class="form-control">
-        </div>
-
-        <div class="mb-3">
-          <label for="observacao" class="form-label">Observação</label>
-          <textarea id="observacao" class="form-control" rows="3"></textarea>
+          </div>
         </div>
       </div>
 
       <div class="modal-footer">
-        <button type="submit" class="btn btn-primary">Save</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Salvar Distribuição</button>
       </div>
     </form>
   </div>
 </div>
+
+<!-- Modal Gráfico de Distribuição -->
+<div class="modal fade" id="graficoDistribuicaoModal" tabindex="-1" aria-labelledby="graficoDistribuicaoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-bar-chart-fill me-2"></i>Gráfico de Distribuição
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Nav tabs para diferentes gráficos -->
+        <ul class="nav nav-tabs mb-3" id="graficoTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="distribuicao-mensal-tab" data-bs-toggle="tab" data-bs-target="#distribuicao-mensal" type="button" role="tab">
+              Distribuição Mensal
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="necessidades-vs-distribuido-tab" data-bs-toggle="tab" data-bs-target="#necessidades-vs-distribuido" type="button" role="tab">
+              Necessidades vs Distribuído
+            </button>
+          </li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div class="tab-content">
+          <!-- Gráfico de Distribuição Mensal -->
+          <div class="tab-pane fade show active" id="distribuicao-mensal" role="tabpanel">
+            <div class="chart-container" style="position: relative; height: 400px;">
+              <canvas id="graficoDistribuicaoMensal"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico Necessidades vs Distribuído -->
+          <div class="tab-pane fade" id="necessidades-vs-distribuido" role="tabpanel">
+            <div class="chart-container" style="position: relative; height: 500px;">
+              <canvas id="graficoNecessidadesVsDistribuido"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.card-distribuicao {
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+}
+.card-distribuicao:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.card-img-container {
+    height: 180px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+}
+.card-img-container img {
+    max-height: 100%;
+    width: auto;
+    object-fit: contain;
+}
+.card-body {
+    display: flex;
+    flex-direction: column;
+}
+.card-actions {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.card-actions .btn {
+    flex: 1;
+    min-width: 60px;
+}
+.status-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+.recent-badge {
+    background-color: #0dcaf0;
+    color: #000;
+}
+.old-badge {
+    background-color: #6c757d;
+}
+
+/* Estilos para o modal de gráfico */
+.chart-container {
+    position: relative;
+    width: 100%;
+}
+
+#graficoDistribuicaoModal .modal-xl {
+    max-width: 95%;
+}
+
+#graficoDistribuicaoModal .modal-body {
+    min-height: 600px;
+}
+</style>
 
 <script>
 const apiUrl = '/api/distribuicao';
@@ -114,17 +311,490 @@ let allDistribuicoes = [];
 let allItens = [];
 let allArmazens = [];
 let allLocations = [];
+let currentView = 'block';
 
-// --- Seletores do item ---
-const itemSearch = document.getElementById('itemSearch');
-const itemResults = document.getElementById('itemResults');
-const itemPreview = document.getElementById('itemPreview');
-const itemIdInput = document.getElementById('itemId');
+// --- Inicialização ---
+window.onload = async () => {
+    await loadAllData();
+};
+
+// --- Abrir modal do gráfico ---
+function abrirGraficoDistribuicao() {
+    const modal = new bootstrap.Modal(document.getElementById('graficoDistribuicaoModal'));
+    modal.show();
+    
+    // Carregar gráficos quando o modal abrir
+    setTimeout(() => {
+        carregarGraficoDistribuicaoMensal();
+        carregarGraficoNecessidadesVsDistribuido();
+    }, 500);
+}
+
+// --- Carregar Gráfico de Distribuição Mensal ---
+async function carregarGraficoDistribuicaoMensal() {
+    try {
+        const res = await fetch('/api/distribuicao');
+        const distrib = await res.json();
+
+        const itemRes = await fetch('/api/item');
+        const allItens = await itemRes.json();
+
+        const itemMap = {};
+        allItens.forEach(i => {
+            itemMap[i.id] = i.designacao || i.nome || i.codigo || `Item ${i.id}`;
+        });
+
+        const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+        const distribPorItemEMes = {};
+        distrib.forEach(d => {
+            if (!d.data_distribuicao || !d.item_id) return;
+
+            const dt = new Date(d.data_distribuicao);
+            if (isNaN(dt)) return;
+
+            const month = dt.getMonth();
+            if (!distribPorItemEMes[d.item_id]) distribPorItemEMes[d.item_id] = Array(12).fill(0);
+            distribPorItemEMes[d.item_id][month] += Number(d.quantidade) || 0;
+        });
+
+        const itensComValor = Object.keys(distribPorItemEMes).filter(itemId => {
+            const sum = distribPorItemEMes[itemId].reduce((a,b) => a + b, 0);
+            return sum > 0;
+        });
+
+        if (itensComValor.length === 0) {
+            const ctxEmpty = document.getElementById('graficoDistribuicaoMensal').getContext('2d');
+            if (window._graficoDistribMensal) window._graficoDistribMensal.destroy();
+            window._graficoDistribMensal = new Chart(ctxEmpty, {
+                type: 'bar',
+                data: { labels: months, datasets: [] },
+                options: { 
+                    plugins: { 
+                        legend: { display: false },
+                        title: {
+                            display: true,
+                            text: 'Nenhum dado de distribuição disponível'
+                        }
+                    }, 
+                    scales: { y: { beginAtZero: true } } 
+                }
+            });
+            return;
+        }
+
+        const generateColor = (i, total) => {
+            const hue = Math.round((i * 360) / Math.max(1, total));
+            return `hsl(${hue}, 65%, 55%)`;
+        };
+
+        const datasets = itensComValor.map((itemId, index) => {
+            const color = generateColor(index, itensComValor.length);
+            return {
+                label: itemMap[itemId] || `Item ${itemId}`,
+                data: distribPorItemEMes[itemId],
+                backgroundColor: color,
+                borderColor: color,
+                borderWidth: 1
+            };
+        });
+
+        // Destruir gráfico anterior se existir
+        if (window._graficoDistribMensal) window._graficoDistribMensal.destroy();
+
+        const ctx = document.getElementById('graficoDistribuicaoMensal').getContext('2d');
+        window._graficoDistribMensal = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Distribuição de Itens por Mês'
+                    },
+                    legend: { 
+                        position: 'bottom', 
+                        labels: { 
+                            boxWidth: 12,
+                            font: {
+                                size: 11
+                            }
+                        } 
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: (tooltipItems) => `Mês: ${tooltipItems[0].label}`,
+                            label: (context) => `${context.dataset.label}: ${context.parsed.y} unidades`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Mês'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Quantidade Distribuída'
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao carregar gráfico de distribuição mensal:', error);
+        const ctx = document.getElementById('graficoDistribuicaoMensal').getContext('2d');
+        if (window._graficoDistribMensal) window._graficoDistribMensal.destroy();
+        window._graficoDistribMensal = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: ['Erro'], datasets: [] },
+            options: { 
+                plugins: { 
+                    title: { 
+                        display: true, 
+                        text: 'Erro ao carregar dados do gráfico' 
+                    },
+                    legend: { display: false }
+                } 
+            }
+        });
+    }
+}
+
+// --- Carregar Gráfico Necessidades vs Distribuído ---
+async function carregarGraficoNecessidadesVsDistribuido() {
+    try {
+        const [necRes, distribRes, itemRes, locRes] = await Promise.all([
+            fetch('/api/item/necessidades'),
+            fetch('/api/distribuicao'),
+            fetch('/api/item'),
+            fetch('/api/location')
+        ]);
+
+        const necessidades = await necRes.json();
+        const distribuicoes = await distribRes.json();
+        const allItens = await itemRes.json();
+        const allLocations = await locRes.json();
+
+        // Criar estrutura para agrupar por Item × Location
+        const dadosPorItemLocation = {};
+
+        // Processar necessidades
+        necessidades.forEach(n => {
+            if (!n.item_id || !n.location_id) return;
+            
+            const key = `${n.item_id}-${n.location_id}`;
+            if (!dadosPorItemLocation[key]) {
+                dadosPorItemLocation[key] = {
+                    item_id: n.item_id,
+                    location_id: n.location_id,
+                    necessidade: 0,
+                    distribuido: 0,
+                    item_nome: '',
+                    location_nome: ''
+                };
+            }
+            dadosPorItemLocation[key].necessidade += Number(n.quantidade || 0);
+            
+            // Guardar nomes
+            if (!dadosPorItemLocation[key].item_nome) {
+                const item = allItens.find(i => i.id === n.item_id);
+                dadosPorItemLocation[key].item_nome = item?.designacao || item?.nome || item?.codigo || `Item ${n.item_id}`;
+            }
+            if (!dadosPorItemLocation[key].location_nome) {
+                const location = allLocations.find(l => l.id === n.location_id);
+                dadosPorItemLocation[key].location_nome = location?.nome || location?.name || location?.designacao || `Location ${n.location_id}`;
+            }
+        });
+
+        // Processar distribuições
+        distribuicoes.forEach(d => {
+            if (!d.item_id || !d.location_id) return;
+            
+            const key = `${d.item_id}-${d.location_id}`;
+            if (!dadosPorItemLocation[key]) {
+                dadosPorItemLocation[key] = {
+                    item_id: d.item_id,
+                    location_id: d.location_id,
+                    necessidade: 0,
+                    distribuido: 0,
+                    item_nome: '',
+                    location_nome: ''
+                };
+            }
+            dadosPorItemLocation[key].distribuido += Number(d.quantidade || 0);
+            
+            // Guardar nomes se ainda não existirem
+            if (!dadosPorItemLocation[key].item_nome) {
+                const item = allItens.find(i => i.id === d.item_id);
+                dadosPorItemLocation[key].item_nome = item?.designacao || item?.nome || item?.codigo || `Item ${d.item_id}`;
+            }
+            if (!dadosPorItemLocation[key].location_nome) {
+                const location = allLocations.find(l => l.id === d.location_id);
+                dadosPorItemLocation[key].location_nome = location?.nome || location?.name || location?.designacao || `Location ${d.location_id}`;
+            }
+        });
+
+        // Preparar dados para o gráfico
+        const labels = [];
+        const necessidadesData = [];
+        const distribuicoesData = [];
+        const percentualAtendimento = [];
+        const tooltipData = [];
+
+        // Processar cada combinação Item × Location
+        Object.values(dadosPorItemLocation).forEach(dado => {
+            const necessidade = dado.necessidade || 0;
+            const distribuido = dado.distribuido || 0;
+            
+            // Só incluir se houver necessidade OU distribuição
+            if (necessidade > 0 || distribuido > 0) {
+                // Usar apenas o nome da location no eixo X
+                labels.push(dado.location_nome);
+                
+                necessidadesData.push(necessidade);
+                distribuicoesData.push(distribuido);
+                
+                // Calcular percentual de atendimento
+                const percentual = necessidade > 0 ? Math.min(100, (distribuido / necessidade) * 100) : 0;
+                percentualAtendimento.push(percentual.toFixed(1));
+                
+                // Guardar dados para o tooltip
+                tooltipData.push({
+                    item_nome: dado.item_nome,
+                    location_nome: dado.location_nome,
+                    necessidade: necessidade,
+                    distribuido: distribuido,
+                    percentual: percentual.toFixed(1)
+                });
+            }
+        });
+
+        // Se não houver dados, mostrar gráfico vazio
+        if (labels.length === 0) {
+            const ctxEmpty = document.getElementById('graficoNecessidadesVsDistribuido').getContext('2d');
+            if (window._graficoNecVsDist) window._graficoNecVsDist.destroy();
+            window._graficoNecVsDist = new Chart(ctxEmpty, {
+                type: 'bar',
+                data: { labels: ['Sem dados'], datasets: [] },
+                options: { 
+                    plugins: { 
+                        title: { 
+                            display: true, 
+                            text: 'Nenhum dado disponível para comparação' 
+                        },
+                        legend: { display: false }
+                    } 
+                }
+            });
+            return;
+        }
+
+        // Destruir gráfico anterior se existir
+        if (window._graficoNecVsDist) window._graficoNecVsDist.destroy();
+
+        const ctx = document.getElementById('graficoNecessidadesVsDistribuido').getContext('2d');
+        window._graficoNecVsDist = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Necessidades',
+                        data: necessidadesData,
+                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        order: 2
+                    },
+                    {
+                        label: 'Distribuído',
+                        data: distribuicoesData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                        order: 1
+                    },
+                    {
+                        label: '% Atendimento',
+                        data: percentualAtendimento,
+                        type: 'line',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                        pointBorderColor: '#fff',
+                        pointRadius: 4,
+                        yAxisID: 'y1',
+                        order: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Comparação: Necessidades vs Distribuído por Unidade Sanitária'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const index = tooltipItems[0].dataIndex;
+                                return tooltipData[index].location_nome;
+                            },
+                            beforeBody: function(tooltipItems) {
+                                const index = tooltipItems[0].dataIndex;
+                                return `Item: ${tooltipData[index].item_nome}`;
+                            },
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y;
+                                
+                                if (context.dataset.label === '% Atendimento') {
+                                    return `${label}: ${value}%`;
+                                }
+                                return `${label}: ${value} unidades`;
+                            },
+                            afterBody: function(tooltipItems) {
+                                const index = tooltipItems[0].dataIndex;
+                                const data = tooltipData[index];
+                                return [
+                                    `---`,
+                                    `Necessidade: ${data.necessidade} unidades`,
+                                    `Distribuído: ${data.distribuido} unidades`,
+                                    `Atendimento: ${data.percentual}%`
+                                ];
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Quantidade (unidades)'
+                        },
+                        stacked: false
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Unidade Sanitária'
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        min: 0,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: '% Atendimento'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Erro ao carregar gráfico de necessidades vs distribuído:', error);
+        const ctx = document.getElementById('graficoNecessidadesVsDistribuido').getContext('2d');
+        if (window._graficoNecVsDist) window._graficoNecVsDist.destroy();
+        window._graficoNecVsDist = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: ['Erro'], datasets: [] },
+            options: { 
+                plugins: { 
+                    title: { 
+                        display: true, 
+                        text: 'Erro ao carregar dados do gráfico' 
+                    },
+                    legend: { display: false }
+                } 
+            }
+        });
+    }
+}
+
+// ... (o resto do código JavaScript permanece igual - desde loadAllData() até downloadExcel())
+
+// --- Carregar todos os dados antes de renderizar ---
+async function loadAllData() {
+    try {
+        console.log('🔄 Iniciando carregamento de dados...');
+        
+        // Carregar todos os dados em paralelo
+        await Promise.all([
+            loadAllItens(),
+            loadArmazens(),
+            loadLocations(),
+            loadDistribuicoes()
+        ]);
+        
+        console.log('✅ Todos os dados carregados com sucesso!');
+        console.log('📦 Itens:', allItens.length);
+        console.log('🏭 Armazéns:', allArmazens.length);
+        console.log('🏥 Locations:', allLocations.length);
+        console.log('📤 Distribuições:', allDistribuicoes.length);
+        
+        // Agora renderizar as distribuições
+        filtrarDistribuicoes('');
+    } catch (err) {
+        console.error('❌ Erro ao carregar dados:', err);
+        alert('Erro ao carregar dados. Verifique o console para mais detalhes.');
+    }
+}
+
+// --- Alternar entre visualizações ---
+function toggleView(viewType) {
+    currentView = viewType;
+    
+    if (viewType === 'table') {
+        document.getElementById('tableViewContainer').style.display = 'block';
+        document.getElementById('blockViewContainer').style.display = 'none';
+    } else {
+        document.getElementById('tableViewContainer').style.display = 'none';
+        document.getElementById('blockViewContainer').style.display = 'block';
+    }
+    
+    // Reaplicar o filtro atual para a visualização selecionada
+    filtrarDistribuicoes(document.getElementById('distribuicaoSearch').value);
+}
 
 // --- Carregar todos os itens uma vez ---
 async function loadAllItens() {
     try {
         const res = await fetch('/api/item');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         allItens = await res.json();
     } catch (err) {
         console.error('Erro ao carregar itens:', err);
@@ -132,21 +802,49 @@ async function loadAllItens() {
     }
 }
 
-// --- Filtrar localmente à medida que o usuário digita ---
-itemSearch.addEventListener('input', () => {
-    const term = itemSearch.value.trim().toLowerCase();
-    itemResults.innerHTML = '';
+// --- Carregar armazéns ---
+async function loadArmazens() {
+    try {
+        const res = await fetch('/api/armazem');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        allArmazens = await res.json();
+    } catch (err) {
+        console.error('Erro ao carregar armazéns:', err);
+        allArmazens = [];
+    }
+}
+
+// --- Carregar locations ---
+async function loadLocations() {
+    try {
+        const res = await fetch('/api/location');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        allLocations = await res.json();
+    } catch (err) {
+        console.error('Erro ao carregar locations:', err);
+        allLocations = [];
+    }
+}
+
+// --- Filtrar itens localmente ---
+document.getElementById('itemSearch').addEventListener('input', function() {
+    const term = this.value.trim().toLowerCase();
+    const results = document.getElementById('itemResults');
+    results.innerHTML = '';
+    results.style.display = 'none';
 
     if (!term) return;
 
     const filtered = allItens.filter(i =>
         (i.descricao && i.descricao.toLowerCase().includes(term)) ||
         (i.designacao && i.designacao.toLowerCase().includes(term)) ||
-        (i.nome && i.nome.toLowerCase().includes(term))
+        (i.nome && i.nome.toLowerCase().includes(term)) ||
+        (i.codigo && i.codigo.toLowerCase().includes(term))
     );
 
     if (filtered.length === 0) {
-        itemResults.innerHTML = '<div class="list-group-item text-muted">Nenhum item encontrado</div>';
+        results.innerHTML = '<div class="list-group-item text-muted">Nenhum item encontrado</div>';
+        results.style.display = 'block';
         return;
     }
 
@@ -154,25 +852,23 @@ itemSearch.addEventListener('input', () => {
         const div = document.createElement('div');
         div.className = 'list-group-item list-group-item-action';
 
-        // Preparar src da imagem em base64
-        const imgSrc = i.imagem ? `data:image/*;base64,${i.imagem}` : '';
+        const imgSrc = i.imagem ? `data:image/*;base64,${i.imagem}` : '/static/no-image.png';
 
         div.innerHTML = `
             <div class="d-flex align-items-center">
-                ${imgSrc ? `<img src="${imgSrc}" alt="img" class="me-2 rounded" style="width:40px; height:40px; object-fit:cover;">` : ''}
+                <img src="${imgSrc}" alt="img" class="me-2 rounded" style="width:40px; height:40px; object-fit:cover;" onerror="this.src='/static/no-image.png'">
                 <div>
                     <strong>${i.designacao || i.descricao || i.nome || 'Sem nome'}</strong><br>
-                    <small class="text-muted">${i.descricao?.substring(0, 40) || ''}</small>
+                    <small class="text-muted">Código: ${i.codigo || 'N/A'} | Qtd: ${i.quantidade || 0}</small>
                 </div>
             </div>
         `;
 
         div.onclick = () => selectItem(i);
-        itemPreview.style.display = 'block';
-        itemResults.appendChild(div);
+        results.appendChild(div);
     });
 
-
+    results.style.display = 'block';
 });
 
 // --- Quando o user escolhe o item ---
@@ -184,58 +880,47 @@ function selectItem(i) {
 
     itemIdInput.value = i.id;
     itemSearch.value = i.designacao || 'Item sem nome';
-    itemResults.innerHTML = '';
+    itemResults.style.display = 'none';
 
-    // Converter imagem em base64 se existir
-    const imgSrc = i.imagem ? `data:image/*;base64,${i.imagem}` : '';
+    // Preparar dados do preview
+    const imgSrc = i.imagem ? `data:image/*;base64,${i.imagem}` : '/static/no-image.png';
+    
+    document.getElementById('itemPreviewImg').src = imgSrc;
+    document.getElementById('itemPreviewNome').textContent = i.designacao || 'Sem designação';
+    document.getElementById('itemPreviewCodigo').textContent = `Código: ${i.codigo || 'Sem código'}`;
+    document.getElementById('itemPreviewHsCode').textContent = `HS Code: ${i.hs_code || 'N/A'}`;
+    document.getElementById('itemPreviewQuantidade').textContent = `Quantidade disponível: ${i.quantidade || 0}`;
+    document.getElementById('itemPreviewBatch').textContent = `Batch: ${i.batch_no || 'N/A'}`;
+    document.getElementById('itemPreviewValidade').textContent = `Validade: ${i.data_validade ? new Date(i.data_validade).toLocaleDateString() : 'N/A'}`;
 
-    // Mostrar imagem + detalhes
     itemPreview.style.display = 'block';
-    itemPreview.innerHTML = `
-        ${imgSrc ? `<img src="${imgSrc}" alt="Imagem do item" class="img-thumbnail mb-2" style="max-height:120px;">` : ''}
-        <div class="text-start px-2">
-            <p><strong>${i.codigo || 'Sem código'}</strong></p>
-            <p class="small text-muted">Designação: ${i.designacao || 'Sem designação'}</p>
-            <p class="small text-muted">HS Code: ${i.hs_code || 'Sem HS Code'}</p>
-            <p class="small text-muted">Quantidade: ${i.quantidade ?? 'Sem quantidade'}</p>
-            <p class="small text-muted">Lote: ${i.batch_no || 'Sem batch_no'}</p>
-            <p class="small text-muted">Data Fabricação: ${i.data_fabricacao || 'Sem data'}</p>
-            <p class="small text-muted">Data Validade: ${i.data_validade || 'Sem data'}</p>
-            <p class="small text-muted">Nº Cartões: ${i.no_cartoes ?? 'Sem nº de cartões'}</p>
-        </div>
-    `;
 }
 
-// Função para carregar dropdowns
+// --- Carregar dropdowns no modal ---
 async function loadDropdowns() {
-    const endpoints = {
-        item: '/api/item',
-        armazem: '/api/armazem',
-        location: '/api/location'
-    };
+    const armazemSelect = document.getElementById('armazemId');
+    armazemSelect.innerHTML = '<option value="">Selecione o armazém...</option>';
+    allArmazens.forEach(a => {
+        armazemSelect.innerHTML += `<option value="${a.id}">${a.nome}</option>`;
+    });
 
-    for (const [key, url] of Object.entries(endpoints)) {
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-            const select = document.getElementById(key + 'Id');
-            select.innerHTML = '<option value="">Select...</option>';
-            data.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.id;
-                opt.textContent = d.nome || d.name || d.description  || d.designacao ||  'Unknown';
-                select.appendChild(opt);
-            });
-        } catch (err) {
-            console.error(`Failed to load ${key}:`, err);
-        }
-    }
+    const locationSelect = document.getElementById('locationId');
+    locationSelect.innerHTML = '<option value="">Selecione a unidade...</option>';
+    allLocations.forEach(l => {
+        locationSelect.innerHTML += `<option value="${l.id}">${l.nome || l.name || l.designacao || 'Unidade sem nome'}</option>`;
+    });
 }
 
-// Função para abrir modal
+// --- Abrir modal ---
 function openDistribuicaoModal() {
     document.getElementById('distribuicaoForm').reset();
     document.getElementById('distribuicaoId').value = '';
+    document.getElementById('itemPreview').style.display = 'none';
+    document.getElementById('itemResults').style.display = 'none';
+
+    // Reset tabs para a primeira
+    const firstTab = new bootstrap.Tab(document.getElementById('item-tab'));
+    firstTab.show();
 
     loadDropdowns().then(() => {
         const modalEl = document.getElementById('distribuicaoModal');
@@ -245,70 +930,188 @@ function openDistribuicaoModal() {
     });
 }
 
-async function loadItens(selectedId = null) {
-    const res = await fetch('/api/item');
-    const data = await res.json();
-    const select = document.getElementById('itemId');
-    select.innerHTML = '<option value="">Selecione...</option>';
-    data.forEach(i => {
-        const opt = document.createElement('option');
-        opt.value = i.id;
-        opt.textContent = i.nome || i.name || i.designacao || 'Sem nome';
-        select.appendChild(opt);
-    });
-    if (selectedId) select.value = selectedId;
-}
-
-// Carregar tabela
+// --- Carregar distribuições ---
 async function loadDistribuicoes() {
     try {
-        // Buscar distribuições
         const res = await fetch(apiUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         allDistribuicoes = await res.json();
-
-        // Garantir que temos os caches
-        if (allItens.length === 0) allItens = await (await fetch('/api/item')).json();
-        if (allArmazens.length === 0) allArmazens = await (await fetch('/api/armazem')).json();
-        if (allLocations.length === 0) allLocations = await (await fetch('/api/location')).json();
-
-        // Mapear para nomes
-        const tbody = document.getElementById('distribuicaoTableBody');
-        tbody.innerHTML = '';
-
-        allDistribuicoes.forEach(d => {
-            const item = allItens.find(i => i.id === d.item_id);
-            const armazem = allArmazens.find(a => a.id === d.armazem_id);
-            const location = allLocations.find(l => l.id === d.location_id);
-
-            // Preparar src da imagem do item
-            const imgSrc = item?.imagem ? `data:image/*;base64,${item.imagem}` : '';
-
-            tbody.innerHTML += `
-                <tr>
-                    <td>${d.id}</td>
-                    <td class="d-flex align-items-center">
-                        ${imgSrc ? `<img src="${imgSrc}" alt="Item" style="width:40px;height:40px;object-fit:cover;margin-right:8px;">` : ''}
-                        <span>${item?.designacao || '-'}</span>
-                    </td>
-                    <td>${armazem?.nome || '-'}</td>
-                    <td>${location?.name || '-'}</td>
-                    <td>${d.quantidade}</td>
-                    <td>${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleString() : '-'}</td>
-                    <td>${d.observacao || '-'}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm" onclick='editDistribuicao(${JSON.stringify(d)})'>Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick='deleteDistribuicao(${d.id})'>Delete</button>
-                    </td>
-                </tr>
-            `;
-        });
-
     } catch (err) {
-        alert('Failed to load distribuições: ' + err);
+        console.error('Erro ao carregar distribuições:', err);
+        allDistribuicoes = [];
+        throw err;
     }
 }
 
-// Edit
+// --- Filtrar distribuições ---
+function filtrarDistribuicoes(query) {
+    const termo = query.trim().toLowerCase();
+    const distribuicoesFiltradas = allDistribuicoes.filter(d => {
+        const item = allItens.find(i => i.id === d.item_id);
+        const armazem = allArmazens.find(a => a.id === d.armazem_id);
+        const location = allLocations.find(l => l.id === d.location_id);
+        
+        return (
+            (item?.designacao || '').toLowerCase().includes(termo) ||
+            (item?.codigo || '').toLowerCase().includes(termo) ||
+            (armazem?.nome || '').toLowerCase().includes(termo) ||
+            (location?.nome || location?.name || '').toLowerCase().includes(termo) ||
+            (d.observacao || '').toLowerCase().includes(termo)
+        );
+    });
+    
+    if (currentView === 'table') {
+        renderizarTabela(distribuicoesFiltradas);
+    } else {
+        renderizarBlocos(distribuicoesFiltradas);
+    }
+}
+
+// --- Renderizar visualização em tabela ---
+function renderizarTabela(distribuicoes) {
+    const tbody = document.getElementById('distribuicaoTableBody');
+    tbody.innerHTML = '';
+    
+    if (distribuicoes.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-4">
+                    <i class="bi bi-inbox display-4 text-muted"></i>
+                    <h5 class="text-muted mt-2">Nenhuma distribuição encontrada</h5>
+                    <p class="text-muted">Clique no botão "+" para adicionar uma nova distribuição</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    distribuicoes.forEach(d => {
+        const item = allItens.find(i => i.id === d.item_id);
+        const armazem = allArmazens.find(a => a.id === d.armazem_id);
+        const location = allLocations.find(l => l.id === d.location_id);
+        
+        // Fallbacks para dados não encontrados
+        const itemDesignacao = item?.designacao || item?.nome || item?.descricao || 'Item não encontrado';
+        const itemCodigo = item?.codigo || 'N/A';
+        const armazemNome = armazem?.nome || 'Armazém não encontrado';
+        const locationNome = location?.nome || location?.name || location?.designacao || 'Unidade não encontrada';
+        const imgSrc = item?.imagem ? `data:image/*;base64,${item.imagem}` : '/static/no-image.png';
+        
+        tbody.innerHTML += `
+        <tr>
+            <td>${d.id}</td>
+            <td class="d-flex align-items-center">
+                <img src="${imgSrc}" alt="Item" style="width:40px;height:40px;object-fit:cover;margin-right:8px;" onerror="this.src='/static/no-image.png'">
+                <div>
+                    <strong>${itemDesignacao}</strong><br>
+                    <small class="text-muted">${itemCodigo}</small>
+                </div>
+            </td>
+            <td>${armazemNome}</td>
+            <td>${locationNome}</td>
+            <td><span class="badge bg-primary">${d.quantidade}</span></td>
+            <td>${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleString() : '-'}</td>
+            <td>${d.observacao || '-'}</td>
+            <td>
+                <button class="btn btn-warning btn-sm" onclick='editDistribuicao(${JSON.stringify(d).replace(/'/g, "\\'")})' data-bs-toggle="tooltip" title="Editar">
+                    <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick='deleteDistribuicao(${d.id})' data-bs-toggle="tooltip" title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                </button>
+                <button class="btn btn-info btn-sm" onclick='abrirDetalhesDistribuicao(${d.id})' data-bs-toggle="tooltip" title="Detalhes">
+                    <i class="bi bi-info-circle"></i>
+                </button>
+            </td>
+        </tr>`;
+    });
+
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+}
+
+// --- Renderizar visualização em blocos ---
+function renderizarBlocos(distribuicoes) {
+    const container = document.getElementById('distribuicaoBlocksContainer');
+    container.innerHTML = '';
+    
+    if (distribuicoes.length === 0) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">Nenhuma distribuição encontrada</h4>
+                <p class="text-muted">Clique no botão "+" para adicionar uma nova distribuição</p>
+            </div>
+        `;
+        return;
+    }
+    
+    distribuicoes.forEach(d => {
+        const item = allItens.find(i => i.id === d.item_id);
+        const armazem = allArmazens.find(a => a.id === d.armazem_id);
+        const location = allLocations.find(l => l.id === d.location_id);
+        
+        // Fallbacks para dados não encontrados
+        const itemDesignacao = item?.designacao || item?.nome || item?.descricao || 'Item não encontrado';
+        const itemCodigo = item?.codigo || 'N/A';
+        const armazemNome = armazem?.nome || 'Armazém não encontrado';
+        const locationNome = location?.nome || location?.name || location?.designacao || 'Unidade não encontrada';
+        const imgSrc = item?.imagem ? `data:image/*;base64,${item.imagem}` : '/static/no-image.png';
+        
+        // Badge de data (recente/antiga)
+        let dataBadge = '';
+        if (d.data_distribuicao) {
+            const dataDist = new Date(d.data_distribuicao);
+            const hoje = new Date();
+            const diffDias = Math.floor((hoje - dataDist) / (1000 * 60 * 60 * 24));
+            
+            if (diffDias <= 7) {
+                dataBadge = `<span class="badge recent-badge status-badge">Recente</span>`;
+            } else if (diffDias > 30) {
+                dataBadge = `<span class="badge old-badge status-badge">Antiga</span>`;
+            }
+        }
+        
+        container.innerHTML += `
+        <div class="col-md-6 col-lg-4 col-xl-3">
+            <div class="card card-distribuicao">
+                ${dataBadge}
+                <div class="card-img-container">
+                    <img src="${imgSrc}" class="card-img-top" alt="${itemDesignacao}" onerror="this.src='/static/no-image.png'">
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">${itemDesignacao}</h5>
+                    <p class="card-text">
+                        <small class="text-muted">Código: ${itemCodigo}</small><br>
+                        <small class="text-muted"><strong>Quantidade:</strong> <span class="badge bg-primary">${d.quantidade}</span></small><br>
+                        <small class="text-muted"><strong>Armazém:</strong> ${armazemNome}</small><br>
+                        <small class="text-muted"><strong>Destino:</strong> ${locationNome}</small><br>
+                        <small class="text-muted"><strong>Data:</strong> ${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleDateString() : 'N/A'}</small><br>
+                        <small class="text-muted"><strong>Observação:</strong> ${d.observacao || 'Nenhuma'}</small>
+                    </p>
+                    <div class="card-actions">
+                        <button class="btn btn-sm btn-warning" onclick='editDistribuicao(${JSON.stringify(d).replace(/'/g, "\\'")})' data-bs-toggle="tooltip" title="Editar">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick='deleteDistribuicao(${d.id})' data-bs-toggle="tooltip" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick='abrirDetalhesDistribuicao(${d.id})' data-bs-toggle="tooltip" title="Detalhes">
+                            <i class="bi bi-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    });
+
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(el => new bootstrap.Tooltip(el));
+}
+
+// --- Editar distribuição ---
 async function editDistribuicao(d) {
     document.getElementById('distribuicaoId').value = d.id;
     document.getElementById('quantidade').value = d.quantidade;
@@ -317,19 +1120,23 @@ async function editDistribuicao(d) {
         ? new Date(d.data_distribuicao).toISOString().slice(0, 16)
         : '';
 
-    loadDropdownArmazem(d.armazem_id);
-    loadDropdownLocation(d.location_id);
+    // Carregar dropdowns
+    await loadDropdowns();
+    
+    // Preencher selects
+    document.getElementById('armazemId').value = d.armazem_id;
+    document.getElementById('locationId').value = d.location_id;
 
+    // Buscar e preencher item
     const res = await fetch(`/api/item/${d.item_id}`);
     const item = await res.json();
-    selectItem(item); // preenche o preview e o campo de busca
+    selectItem(item);
 
     const modal = new bootstrap.Modal(document.getElementById('distribuicaoModal'));
     modal.show();
 }
 
-
-// Submit form
+// --- Submit form ---
 document.getElementById('distribuicaoForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = document.getElementById('distribuicaoId').value;
@@ -349,31 +1156,75 @@ document.getElementById('distribuicaoForm').addEventListener('submit', async (e)
             body: JSON.stringify(payload)
         });
         if (!res.ok) throw await res.json();
+        
         bootstrap.Modal.getInstance(document.getElementById('distribuicaoModal')).hide();
-        loadDistribuicoes();
+        loadAllData(); // Recarregar todos os dados
     } catch (err) {
-        alert(err.message || 'Failed to save distribuição.');
+        alert(err.message || 'Erro ao salvar distribuição.');
     }
 });
 
-// Delete
+// --- Eliminar distribuição ---
 async function deleteDistribuicao(id) {
-    if (!confirm('Are you sure you want to delete this distribuição?')) return;
+    if (!confirm('Tem certeza que deseja eliminar esta distribuição?')) return;
     try {
         const res = await fetch(`${apiUrl}/${id}`, {method: 'DELETE'});
         if (!res.ok) throw await res.json();
-        loadDistribuicoes();
+        loadAllData(); // Recarregar todos os dados
     } catch (err) {
-        alert(err.message || 'Failed to delete distribuição.');
+        alert(err.message || 'Erro ao eliminar distribuição.');
     }
 }
 
-// Inicialização
-window.onload = () => {
-    loadAllItens();        // 🔹 carrega cache local de itens
-    loadDistribuicoes();
-    loadDropdowns();
-};
+// --- Abrir detalhes da distribuição ---
+async function abrirDetalhesDistribuicao(id) {
+    const d = allDistribuicoes.find(dist => dist.id === id);
+    if (!d) return;
+
+    const item = allItens.find(i => i.id === d.item_id);
+    const armazem = allArmazens.find(a => a.id === d.armazem_id);
+    const location = allLocations.find(l => l.id === d.location_id);
+    
+    // Fallbacks para dados não encontrados
+    const itemDesignacao = item?.designacao || item?.nome || item?.descricao || 'Item não encontrado';
+    const itemCodigo = item?.codigo || 'N/A';
+    const armazemNome = armazem?.nome || 'Armazém não encontrado';
+    const locationNome = location?.nome || location?.name || location?.designacao || 'Unidade não encontrada';
+    const imgSrc = item?.imagem ? `data:image/*;base64,${item.imagem}` : '/static/no-image.png';
+
+    let html = `
+        <h5>Detalhes da Distribuição</h5>
+        <div class="text-center mb-3">
+            <img src="${imgSrc}" style="width:100%; max-height:200px; object-fit:cover; margin-bottom:10px;" onerror="this.src='/static/no-image.png'">
+            <h6>${itemDesignacao}</h6>
+        </div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>ID Distribuição:</strong> ${d.id}</li>
+            <li class="list-group-item"><strong>Código Item:</strong> ${itemCodigo}</li>
+            <li class="list-group-item"><strong>HS Code:</strong> ${item?.hs_code || 'N/A'}</li>
+            <li class="list-group-item"><strong>Quantidade:</strong> <span class="badge bg-primary">${d.quantidade}</span></li>
+            <li class="list-group-item"><strong>Armazém:</strong> ${armazemNome}</li>
+            <li class="list-group-item"><strong>Unidade Sanitária:</strong> ${locationNome}</li>
+            <li class="list-group-item"><strong>Data Distribuição:</strong> ${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleString() : 'N/A'}</li>
+            <li class="list-group-item"><strong>Observação:</strong> ${d.observacao || 'Nenhuma'}</li>
+            <li class="list-group-item"><strong>Data Criação:</strong> ${new Date(d.created_at).toLocaleString()}</li>
+            <li class="list-group-item"><strong>Última Atualização:</strong> ${new Date(d.updated_at).toLocaleString()}</li>
+        </ul>
+    `;
+
+    document.getElementById('detalhesContent').innerHTML = html;
+    document.getElementById('detalhesPanel').style.right = '0';
+}
+
+// --- Fechar detalhes ---
+function fecharDetalhes() {
+    document.getElementById('detalhesPanel').style.right = '-420px';
+}
+
+// --- Exportar Excel ---
+function downloadExcel() {
+    alert('Funcionalidade de exportação em construção.');
+}
 </script>
 
 {% endblock %}

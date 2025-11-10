@@ -34,9 +34,11 @@ class NotaEnvio(db.Model):
     syncStatus = db.Column(Enum(SyncStatusEnum), nullable=False, default=SyncStatusEnum.NotSyncronized)
     syncStatusDate = db.Column(db.DateTime, nullable=True)
 
+    # 🔹 Novo campo para armazenar o nome do utilizador que adicionou a nota
+    user = db.Column(String(150), nullable=True)
+
     createAt = db.Column(db.DateTime, default=db.func.current_timestamp())
     updateAt = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
     def __repr__(self):
         return f'<NotaEnvio {self.numero_nota}>'
-

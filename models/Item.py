@@ -51,6 +51,9 @@ class Item(db.Model):
     syncStatus = db.Column(String(50), nullable=False, default='NotSyncronized')
     syncStatusDate = db.Column(DateTime, nullable=True)
 
+    # 🔹 Novo campo para armazenar o nome do utilizador que adicionou o item
+    user = db.Column(String(150), nullable=True)
+
     # 🔹 Timestamps
     createAt = db.Column(DateTime, default=db.func.current_timestamp())
     updateAt = db.Column(DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())

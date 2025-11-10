@@ -9,6 +9,9 @@ logging.basicConfig(level=logging.INFO)
 
 class DistribuicaoController:
 
+    # ======================================================
+    # 🔹 Serialização
+    # ======================================================
     @staticmethod
     def serialize(d: Distribuicao):
         return {
@@ -21,9 +24,13 @@ class DistribuicaoController:
             'location_nome': d.location.name if d.location else None,
             'quantidade': d.quantidade,
             'data_distribuicao': d.data_distribuicao.isoformat() if d.data_distribuicao else None,
-            'observacao': d.observacao
+            'observacao': d.observacao,
+            'user': d.user  # ✅ novo campo
         }
 
+    # ======================================================
+    # 🔹 Listar todas
+    # ======================================================
     @staticmethod
     def get_all():
         try:
@@ -44,6 +51,9 @@ class DistribuicaoController:
             logger.exception(f"[GET BY ID] Distribuicao {id}")
             return jsonify({'error': str(e)}), 500
 
+    # ======================================================
+    # 🔹 Criar nova
+    # ======================================================
     @staticmethod
     def create():
         try:
@@ -54,7 +64,8 @@ class DistribuicaoController:
                 location_id=data['location_id'],
                 quantidade=data['quantidade'],
                 data_distribuicao=datetime.fromisoformat(data['data_distribuicao']) if data.get('data_distribuicao') else datetime.utcnow(),
-                observacao=data.get('observacao')
+                observacao=data.get('observacao'),
+                user=data.get('user')  # ✅ novo campo
             )
             db.session.add(distribuicao)
             db.session.commit()
@@ -64,6 +75,9 @@ class DistribuicaoController:
             logger.exception("[CREATE] Distribuicao failed")
             return jsonify({'error': str(e)}), 500
 
+    # ======================================================
+    # 🔹 Atualizar
+    # ======================================================
     @staticmethod
     def update(id):
         try:
@@ -79,6 +93,7 @@ class DistribuicaoController:
             if 'data_distribuicao' in data and data['data_distribuicao']:
                 distribuicao.data_distribuicao = datetime.fromisoformat(data['data_distribuicao'])
             distribuicao.observacao = data.get('observacao', distribuicao.observacao)
+            distribuicao.user = data.get('user', distribuicao.user)  # ✅ novo campo
 
             db.session.commit()
             return jsonify({'message': 'Distribuicao updated successfully'}), 200
@@ -87,6 +102,9 @@ class DistribuicaoController:
             logger.exception(f"[UPDATE] Distribuicao {id}")
             return jsonify({'error': str(e)}), 500
 
+    # ======================================================
+    # 🔹 Deletar
+    # ======================================================
     @staticmethod
     def delete(id):
         try:

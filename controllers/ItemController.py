@@ -4,6 +4,7 @@ from flask import jsonify, request
 from models import db, Item, Armazem, Porto
 from datetime import datetime
 from controllers.StockController import StockController
+from models import Distribuicao  # importa aqui para evitar import circular
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -39,9 +40,11 @@ class ItemController:
             'dimensoes_palete_cm': i.dimensoes_palete_cm,
             'syncStatus': i.syncStatus,  # agora é apenas string
             'syncStatusDate': i.syncStatusDate.isoformat() if i.syncStatusDate else None,
+            'user': i.user,  # ✅ inclui o nome do usuário que adicionou o item
             'createAt': i.createAt.isoformat() if i.createAt else None,
             'updateAt': i.updateAt.isoformat() if i.updateAt else None
         }
+
 
     @staticmethod
     def get_all():
@@ -157,7 +160,9 @@ class ItemController:
             item.total_cartoes = data.get('total_cartoes', item.total_cartoes)
             item.total_paletes = data.get('total_paletes', item.total_paletes)
             item.dimensoes_palete_cm = data.get('dimensoes_palete_cm', item.dimensoes_palete_cm)
-
+            # Atualiza user se enviado
+            if 'user' in data:
+                item.user = data['user']
             # ✅ atualiza syncStatus como string
             if 'syncStatus' in data:
                 item.syncStatus = data['syncStatus']
@@ -216,14 +221,13 @@ class ItemController:
             if item.quantidade < quantidade:
                 return jsonify({"message": "Quantidade insuficiente"}), 400
 
-            from models import Distribuicao  # importa aqui para evitar import circular
-
             distrib = Distribuicao(
                 item_id=item_id,
                 location_id=location_id,
                 quantidade=quantidade,
                 data_distribuicao=datetime.utcnow(),
-                observacao=observacoes
+                observacao=observacoes,
+                user=data.get('user')  # ✅ usuário logado que está fazendo a distribuição
             )
             db.session.add(distrib)
             item.quantidade -= quantidade

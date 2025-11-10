@@ -5,14 +5,23 @@
 {% block content %}
 <div class="container-fluid mt-3">
 
- <!-- 🌍 MAPA E GRAFICO COM TABELAS -->
+<!-- 🌍 MAPA E GRAFICO COM TABELAS -->
 <div class="container-fluid">
   <div class="row g-4">
+
     <!-- 🌍 MAPA (lado esquerdo) -->
     <div class="col-lg-7">
       <div class="card shadow-sm border-0">
-        <div class="card-header bg-primary text-white fw-semibold">
-          <i class="bi bi-geo-alt-fill me-2"></i>{{ _('Distribuições por Location') }}
+        <div class="card-header bg-primary text-white fw-semibold d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-bar-chart-fill me-2"></i>{{ _('Distribuições por Location') }}</span>
+          <div class="card-tools">
+            <button class="btn btn-sm btn-light me-1 toggle-collapse" title="Recolher/Expandir">
+              <i class="bi bi-chevron-up"></i>
+            </button>
+            <button class="btn btn-sm btn-light toggle-fullscreen" title="Maximizar/Minimizar">
+              <i class="bi bi-arrows-fullscreen"></i>
+            </button>
+          </div>
         </div>
         <div class="card-body p-0">
           <div id="mapDistribuicao" style="height: 480px; width: 100%; border-radius: 0 0 8px 8px;"></div>
@@ -23,8 +32,16 @@
     <!-- 📊 GRAFICO (lado direito) -->
     <div class="col-lg-5">
       <div class="card shadow-sm border-0">
-        <div class="card-header bg-primary text-white fw-semibold">
-          <i class="bi bi-bar-chart-fill me-2"></i>{{ _('Estatísticas de Distribuição') }}
+        <div class="card-header bg-primary text-white fw-semibold d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-bar-chart-fill me-2"></i>{{ _('Estatísticas de Distribuição') }}</span>
+          <div class="card-tools">
+            <button class="btn btn-sm btn-light me-1 toggle-collapse" title="Recolher/Expandir">
+              <i class="bi bi-chevron-up"></i>
+            </button>
+            <button class="btn btn-sm btn-light toggle-fullscreen" title="Maximizar/Minimizar">
+              <i class="bi bi-arrows-fullscreen"></i>
+            </button>
+          </div>
         </div>
         <div class="card-body">
           <canvas id="distribuicaoChart" height="250"></canvas>
@@ -32,15 +49,44 @@
       </div>
     </div>
 
-    <!-- 📋 TABELAS (full width abaixo de mapa e gráfico) -->
+    <!-- 📊 GRAFICO DE NECESSIDADES VS DISTRIBUÍDO -->
+    <!-- Bloco 5: Necessidades vs Distribuído por Location -->
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center" 
+            style="cursor: pointer;" 
+            data-bs-toggle="collapse" 
+            data-bs-target="#graficoNecessidadesLocation"
+            aria-expanded="false">
+            <h5 class="mb-0">
+                <i class="bi bi-bar-chart me-2"></i>
+                Necessidades vs Distribuído por Location
+            </h5>
+            <i class="bi bi-chevron-down"></i>
+        </div>
+        <div class="collapse" id="graficoNecessidadesLocation">
+            <div class="card-body">
+                <canvas id="necessidadesVsDistribuidoChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📋 TABELAS (full width abaixo dos gráficos) -->
     <div class="col-12 mt-4">
       <div class="row g-4">
 
-        <!-- Tabela de Distribuições -->
+        <!-- 🧾 Tabela de Distribuições -->
         <div class="col-md-6">
           <div class="card shadow-sm border-0">
-            <div class="card-header bg-secondary text-white fw-semibold">
-              <i class="bi bi-table me-2"></i>{{ _('Distribuições Detalhadas') }}
+            <div class="card-header bg-secondary text-white fw-semibold d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-table me-2"></i>{{ _('Distribuições Detalhadas') }}</span>
+              <div class="card-tools">
+                <button class="btn btn-sm btn-light me-1 toggle-collapse" title="Recolher/Expandir">
+                  <i class="bi bi-chevron-up"></i>
+                </button>
+                <button class="btn btn-sm btn-light toggle-fullscreen" title="Maximizar/Minimizar">
+                  <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+              </div>
             </div>
             <div class="card-body p-0">
               <div class="table-responsive">
@@ -61,11 +107,19 @@
           </div>
         </div>
 
-        <!-- Tabela de Necessidades -->
+        <!-- 🧾 Tabela de Necessidades -->
         <div class="col-md-6">
           <div class="card shadow-sm border-0">
-            <div class="card-header bg-secondary text-white fw-semibold">
-              <i class="bi bi-table me-2"></i>Necessidades por Location
+            <div class="card-header bg-secondary text-white fw-semibold d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-table me-2"></i>Necessidades por Location</span>
+              <div class="card-tools">
+                <button class="btn btn-sm btn-light me-1 toggle-collapse" title="Recolher/Expandir">
+                  <i class="bi bi-chevron-up"></i>
+                </button>
+                <button class="btn btn-sm btn-light toggle-fullscreen" title="Maximizar/Minimizar">
+                  <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+              </div>
             </div>
             <div class="card-body p-0">
               <div class="table-responsive">
@@ -74,7 +128,7 @@
                     <tr>
                       <th>#</th>
                       <th>Location / Unidade Sanitária</th>
-                      <th>Item</th> <!-- 👈 nova coluna -->
+                      <th>Item</th>
                       <th>Quantidade</th>
                       <th>Descrição / Observações</th>
                       <th>Data Registro</th>
@@ -87,23 +141,90 @@
           </div>
         </div>
 
-        <hr class="my-3">
-        <h6 class="fw-semibold text-primary">
-          <i class="bi bi-bar-chart-line-fill me-2"></i>Necessidades por Location
-        </h6>
-        <canvas id="necessidadesChart" height="250"></canvas>
-
       </div>
     </div>
 
   </div>
 </div>
 
-<!-- ======= SCRIPTS ======= -->
+<!-- ======= SCRIPTS EXISTENTES ======= -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+<!-- ======= NOVO CSS / JS PARA CONTROLES ======= -->
+<style>
+.fullscreen {
+  position: fixed !important;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  z-index: 2000;
+  background: #fff;
+  overflow: auto;
+  padding: 20px;
+}
+
+.fullscreen canvas,
+.fullscreen table {
+  width: 100% !important;
+  height: calc(100vh - 120px) !important;
+}
+
+.card-tools .btn {
+  border: none;
+  background: transparent;
+  color: #fff;
+  transition: transform 0.15s ease;
+}
+
+.card-tools .btn:hover {
+  color: #ffc107;
+  transform: scale(1.15);
+}
+
+.card-header[data-bs-toggle="collapse"] .bi-chevron-down {
+    transition: transform 0.3s ease;
+}
+.card-header[data-bs-toggle="collapse"][aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
+}
+
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".toggle-collapse").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const card = btn.closest(".card");
+      const icon = btn.querySelector("i");
+      const body = card.querySelector(".card-body");
+      body.classList.toggle("d-none");
+      icon.classList.toggle("bi-chevron-up");
+      icon.classList.toggle("bi-chevron-down");
+    });
+  });
+
+  document.querySelectorAll(".toggle-fullscreen").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const card = btn.closest(".card");
+      const icon = btn.querySelector("i");
+
+      if (card.classList.contains("fullscreen")) {
+        card.classList.remove("fullscreen");
+        document.body.style.overflow = "auto";
+        icon.classList.remove("bi-arrows-in");
+        icon.classList.add("bi-arrows-fullscreen");
+      } else {
+        card.classList.add("fullscreen");
+        document.body.style.overflow = "hidden";
+        icon.classList.remove("bi-arrows-fullscreen");
+        icon.classList.add("bi-arrows-in");
+      }
+    });
+  });
+});
+</script>
 
 <script>
 let mapDistribuicao;
@@ -174,9 +295,8 @@ async function loadDistribuicoesMapa() {
       const group = new L.featureGroup(markers);
       mapDistribuicao.fitBounds(group.getBounds().pad(0.2));
     } else if (markers.length === 1) {
-      mapDistribuicao.setView(markers[0].getLatLng(), 9); // Zoom médio se apenas 1 ponto
+      mapDistribuicao.setView(markers[0].getLatLng(), 9);
     } else {
-      // Sem dados — define visão padrão
       mapDistribuicao.setView([-15.0, 35.0], 6);
     }
 
@@ -221,13 +341,11 @@ async function loadDistribuicoesTabela() {
 
 async function carregarNecessidadesDistribuicao(itemId = null) {
   try {
-    // 🔹 Se for passado um item específico, busca apenas por ele
     let url = '/api/item/necessidades';
     if (itemId !== null) {
       url = `/api/item/${itemId}/necessidades`;
     }
 
-    // 🔹 Busca necessidades + locais em paralelo
     const [res, locRes] = await Promise.all([
       fetch(url),
       fetch('/api/location')
@@ -250,7 +368,6 @@ async function carregarNecessidadesDistribuicao(itemId = null) {
       return;
     }
 
-    // 🔹 Montagem das linhas da tabela
     const html = necessidades.map((n, index) => {
       const loc = allLocations.find(l => l.id === n.location_id);
       const locName = loc ? (loc.nome || loc.name || loc.designacao) : `Location ${n.location_id || ''}`;
@@ -258,8 +375,8 @@ async function carregarNecessidadesDistribuicao(itemId = null) {
       return `
         <tr>
           <td>${index + 1}</td>
-          <td>${n.item_nome || n.item_designacao || '-'}</td>
           <td>${locName}</td>
+          <td>${n.item_nome || n.item_designacao || '-'}</td>
           <td>${n.quantidade ?? '-'}</td>
           <td>${n.descricao || ''}</td>
           <td>${n.data_registro ? new Date(n.data_registro).toLocaleString() : '-'}</td>
@@ -289,7 +406,6 @@ async function initDistribuicaoChart() {
     const itemRes = await fetch('/api/item');
     const allItens = await itemRes.json();
 
-    // Mapear item_id → nome/designação
     const itemMap = {};
     allItens.forEach(i => {
       itemMap[i.id] = i.designacao || i.nome || i.codigo || `Item ${i.id}`;
@@ -297,7 +413,6 @@ async function initDistribuicaoChart() {
 
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-    // Estrutura: { item_id: [0,0,0,...(12)] }
     const distribPorItemEMes = {};
     distrib.forEach(d => {
       if (!d.data_distribuicao || !d.item_id) return;
@@ -305,12 +420,11 @@ async function initDistribuicaoChart() {
       const dt = new Date(d.data_distribuicao);
       if (isNaN(dt)) return;
 
-      const month = dt.getMonth(); // 0..11
+      const month = dt.getMonth();
       if (!distribPorItemEMes[d.item_id]) distribPorItemEMes[d.item_id] = Array(12).fill(0);
       distribPorItemEMes[d.item_id][month] += Number(d.quantidade) || 0;
     });
 
-    // Filtrar items com alguma quantidade > 0
     const itensComValor = Object.keys(distribPorItemEMes).filter(itemId => {
       const sum = distribPorItemEMes[itemId].reduce((a,b) => a + b, 0);
       return sum > 0;
@@ -327,7 +441,6 @@ async function initDistribuicaoChart() {
       return;
     }
 
-    // Gerar cores distintas
     const generateColor = (i, total) => {
       const hue = Math.round((i * 360) / Math.max(1, total));
       return `hsl(${hue}, 65%, 55%)`;
@@ -367,11 +480,11 @@ async function initDistribuicaoChart() {
         },
         scales: {
           x: {
-            stacked: false, // ✅ agora as barras ficam lado a lado
+            stacked: false,
             title: { display: true, text: 'Mês' }
           },
           y: {
-            stacked: false, // ✅ sem empilhamento
+            stacked: false,
             beginAtZero: true,
             title: { display: true, text: 'Quantidade distribuída' }
           }
@@ -384,89 +497,288 @@ async function initDistribuicaoChart() {
   }
 }
 
-// Gráfico de necessidades por location e item
-async function initNecessidadesChart() {
+// GRÁFICO CORRIGIDO: Necessidades vs Distribuído por Item e Location
+async function initNecessidadesVsDistribuidoChart() {
   try {
-    const [necRes, locRes] = await Promise.all([
+    // Buscar todos os dados necessários
+    const [necRes, distribRes, itemRes, locRes] = await Promise.all([
       fetch('/api/item/necessidades'),
+      fetch('/api/distribuicao'),
+      fetch('/api/item'),
       fetch('/api/location')
     ]);
 
     const necessidades = await necRes.json();
+    const distribuicoes = await distribRes.json();
+    const allItens = await itemRes.json();
     const allLocations = await locRes.json();
 
-    // Agrupar necessidades: { locationId: { itemNome: quantidadeTotal } }
-    const grouped = {};
+    // Criar estrutura para agrupar por Item × Location
+    const dadosPorItemLocation = {};
+
+    // Processar necessidades
     necessidades.forEach(n => {
-      if (!n.location_id || !n.item_nome) return;
-      if (!grouped[n.location_id]) grouped[n.location_id] = {};
-      grouped[n.location_id][n.item_nome] = (grouped[n.location_id][n.item_nome] || 0) + Number(n.quantidade || 0);
+      if (!n.item_id || !n.location_id) return;
+      
+      const key = `${n.item_id}-${n.location_id}`;
+      if (!dadosPorItemLocation[key]) {
+        dadosPorItemLocation[key] = {
+          item_id: n.item_id,
+          location_id: n.location_id,
+          necessidade: 0,
+          distribuido: 0,
+          item_nome: '',
+          location_nome: ''
+        };
+      }
+      dadosPorItemLocation[key].necessidade += Number(n.quantidade || 0);
+      
+      // Guardar nomes
+      if (!dadosPorItemLocation[key].item_nome) {
+        const item = allItens.find(i => i.id === n.item_id);
+        dadosPorItemLocation[key].item_nome = item?.designacao || item?.nome || item?.codigo || `Item ${n.item_id}`;
+      }
+      if (!dadosPorItemLocation[key].location_nome) {
+        const location = allLocations.find(l => l.id === n.location_id);
+        dadosPorItemLocation[key].location_nome = location?.nome || location?.name || location?.designacao || `Location ${n.location_id}`;
+      }
     });
 
-    // Labels: todas as locations
-    const labels = allLocations.map(l => l.nome || l.name || `Location ${l.id}`);
-
-    // Descobrir todos os itens existentes
-    const allItems = new Set();
-    Object.values(grouped).forEach(items => {
-      Object.keys(items).forEach(item => allItems.add(item));
+    // Processar distribuições
+    distribuicoes.forEach(d => {
+      if (!d.item_id || !d.location_id) return;
+      
+      const key = `${d.item_id}-${d.location_id}`;
+      if (!dadosPorItemLocation[key]) {
+        dadosPorItemLocation[key] = {
+          item_id: d.item_id,
+          location_id: d.location_id,
+          necessidade: 0,
+          distribuido: 0,
+          item_nome: '',
+          location_nome: ''
+        };
+      }
+      dadosPorItemLocation[key].distribuido += Number(d.quantidade || 0);
+      
+      // Guardar nomes se ainda não existirem
+      if (!dadosPorItemLocation[key].item_nome) {
+        const item = allItens.find(i => i.id === d.item_id);
+        dadosPorItemLocation[key].item_nome = item?.designacao || item?.nome || item?.codigo || `Item ${d.item_id}`;
+      }
+      if (!dadosPorItemLocation[key].location_nome) {
+        const location = allLocations.find(l => l.id === d.location_id);
+        dadosPorItemLocation[key].location_nome = location?.nome || location?.name || location?.designacao || `Location ${d.location_id}`;
+      }
     });
-    const itemsArray = Array.from(allItems);
 
-    // Criar datasets: cada item é uma barra diferente
-    const datasets = itemsArray.map((item, index) => {
-      const backgroundColor = `hsl(${index * 50 % 360}, 70%, 50%)`; // cores diferentes
-      const data = labels.map(label => {
-        const loc = allLocations.find(l => (l.nome || l.name) === label);
-        return grouped[loc?.id]?.[item] || 0;
+    // Preparar dados para o gráfico
+    const labels = [];
+    const necessidadesData = [];
+    const distribuicoesData = [];
+    const percentualAtendimento = [];
+    const tooltipData = []; // Para armazenar informações para o tooltip
+
+    // Processar cada combinação Item × Location
+    Object.values(dadosPorItemLocation).forEach(dado => {
+      const necessidade = dado.necessidade || 0;
+      const distribuido = dado.distribuido || 0;
+      
+      // Só incluir se houver necessidade OU distribuição
+      if (necessidade > 0 || distribuido > 0) {
+        // Usar apenas o nome da location no eixo X
+        labels.push(dado.location_nome);
+        
+        necessidadesData.push(necessidade);
+        distribuicoesData.push(distribuido);
+        
+        // Calcular percentual de atendimento
+        const percentual = necessidade > 0 ? Math.min(100, (distribuido / necessidade) * 100) : 0;
+        percentualAtendimento.push(percentual.toFixed(1));
+        
+        // Guardar dados para o tooltip
+        tooltipData.push({
+          item_nome: dado.item_nome,
+          location_nome: dado.location_nome,
+          necessidade: necessidade,
+          distribuido: distribuido,
+          percentual: percentual.toFixed(1)
+        });
+      }
+    });
+
+    // Se não houver dados, mostrar gráfico vazio
+    if (labels.length === 0) {
+      const ctxEmpty = document.getElementById('necessidadesVsDistribuidoChart').getContext('2d');
+      if (window._necVsDistChart) window._necVsDistChart.destroy();
+      window._necVsDistChart = new Chart(ctxEmpty, {
+        type: 'bar',
+        data: { labels: ['Sem dados'], datasets: [] },
+        options: { 
+          plugins: { 
+            title: { display: true, text: 'Nenhum dado disponível' },
+            legend: { display: false }
+          } 
+        }
       });
-      return {
-        label: item,
-        data,
-        backgroundColor
-      };
-    });
+      return;
+    }
 
     // Destruir gráfico anterior se existir
-    if (window._necChart) window._necChart.destroy();
+    if (window._necVsDistChart) window._necVsDistChart.destroy();
 
-    const ctx = document.getElementById('necessidadesChart').getContext('2d');
-    window._necChart = new Chart(ctx, {
+    const ctx = document.getElementById('necessidadesVsDistribuidoChart').getContext('2d');
+    window._necVsDistChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels,
-        datasets
+        labels: labels,
+        datasets: [
+          {
+            label: 'Necessidades',
+            data: necessidadesData,
+            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1,
+            order: 2
+          },
+          {
+            label: 'Distribuído',
+            data: distribuicoesData,
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+            order: 1
+          },
+          {
+            label: '% Atendimento',
+            data: percentualAtendimento,
+            type: 'line',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+            pointBorderColor: '#fff',
+            pointRadius: 4,
+            yAxisID: 'y1',
+            order: 0
+          }
+        ]
       },
       options: {
         responsive: true,
-        indexAxis: 'y', // barras horizontais
         plugins: {
-          title: { display: true, text: 'Necessidades por Location e Item' }
+          title: {
+            display: true,
+            text: 'Comparação: Necessidades vs Distribuído por Unidade Sanitária'
+          },
+          tooltip: {
+            callbacks: {
+              title: function(tooltipItems) {
+                // Mostrar o nome da unidade como título
+                const index = tooltipItems[0].dataIndex;
+                return tooltipData[index].location_nome;
+              },
+              beforeBody: function(tooltipItems) {
+                // Mostrar o nome do item antes dos dados
+                const index = tooltipItems[0].dataIndex;
+                return `Item: ${tooltipData[index].item_nome}`;
+              },
+              label: function(context) {
+                // Manter os labels padrão das barras
+                const label = context.dataset.label || '';
+                const value = context.parsed.y;
+                
+                if (context.dataset.label === '% Atendimento') {
+                  return `${label}: ${value}%`;
+                }
+                return `${label}: ${value}`;
+              },
+              afterBody: function(tooltipItems) {
+                // Mostrar informações adicionais
+                const index = tooltipItems[0].dataIndex;
+                const data = tooltipData[index];
+                return [
+                  `---`,
+                  `Necessidade: ${data.necessidade}`,
+                  `Distribuído: ${data.distribuido}`,
+                  `Atendimento: ${data.percentual}%`
+                ];
+              }
+            }
+          },
+          legend: {
+            position: 'bottom'
+          }
         },
         scales: {
-          x: {
-            beginAtZero: true,
-            title: { display: true, text: 'Quantidade total' }
-          },
           y: {
-            title: { display: true, text: 'Location / Unidade Sanitária' }
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Quantidade'
+            },
+            stacked: false
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Unidade Sanitária'
+            },
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45
+            }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            min: 0,
+            max: 100,
+            title: {
+              display: true,
+              text: '% Atendimento'
+            },
+            grid: {
+              drawOnChartArea: false
+            },
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            }
           }
         }
       }
     });
 
   } catch (error) {
-    console.error('Erro ao gerar gráfico de necessidades por location e item:', error);
+    console.error('Erro ao carregar gráfico de necessidades vs distribuído:', error);
+    
+    // Mostrar mensagem de erro no gráfico
+    const ctx = document.getElementById('necessidadesVsDistribuidoChart').getContext('2d');
+    if (window._necVsDistChart) window._necVsDistChart.destroy();
+    window._necVsDistChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: ['Erro'], datasets: [] },
+      options: { 
+        plugins: { 
+          title: { display: true, text: 'Erro ao carregar dados' },
+          legend: { display: false }
+        } 
+      }
+    });
   }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
   initDistribuicaoMap();
   initDistribuicaoChart();
-  loadDistribuicoesTabela(); // ✅ nova tabela
+  loadDistribuicoesTabela();
   carregarNecessidadesDistribuicao();
-  initNecessidadesChart(); // ✅ novo gráfico
+  initNecessidadesVsDistribuidoChart();
 });
 
 </script>
+{{ super() }}
 {% endblock %}
