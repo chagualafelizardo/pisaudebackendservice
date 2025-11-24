@@ -32,12 +32,21 @@
             <th>Província</th>
             <th>Latitude</th>
             <th>Longitude</th>
+            <th>Observação</th>
             <th>Sync Status</th>
             <th>Ações</th>
         </tr>
     </thead>
     <tbody id="armazemTableBody"></tbody>
 </table>
+
+<!-- 🔥 SIDEBAR LATERAL DE DETALHES -->
+<div id="sidebarDetalhes" class="position-fixed bg-white shadow"
+    style="top:0; right:-500px; width:500px; height:100vh; overflow-y:auto; transition: right .35s; z-index:2000; padding:20px;">
+    <button class="btn btn-sm btn-danger mb-3" onclick="fecharSidebar()">✖ Fechar</button>
+    <div id="sidebarContent"></div>
+</div>
+
 
 <!-- Modal -->
 <div class="modal fade" id="armazemModal" tabindex="-1" aria-hidden="true">
@@ -71,6 +80,12 @@
             <label class="form-label">Longitude</label>
             <input type="text" id="armazemLng" class="form-control" readonly>
           </div>
+        </div>
+
+        <!-- Campo de Observação -->
+        <div class="mt-3">
+          <label class="form-label">Observação</label>
+          <textarea id="armazemObs" class="form-control" rows="4" placeholder="Digite observações detalhadas sobre o armazém..."></textarea>
         </div>
 
         <!-- Campo de pesquisa de local -->
@@ -110,6 +125,8 @@
   </div>
 </div>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <!-- XLSX -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
@@ -134,6 +151,16 @@ window.onload = () => {
     loadProvincias();
     loadArmazens();
 };
+
+/* ⬇️ ADICIONADO: FUNÇÕES DA SIDEBAR */
+function abrirSidebar(html) {
+    document.getElementById("sidebarContent").innerHTML = html;
+    document.getElementById("sidebarDetalhes").style.right = "0";
+}
+function fecharSidebar() {
+    document.getElementById("sidebarDetalhes").style.right = "-500px";
+}
+
 
 /* -------------------- MAPA -------------------- */
 function initializeMap(lat = -25.9636, lng = 32.5805) {
@@ -214,6 +241,7 @@ function abrirModalArmazem() {
     document.getElementById('armazemId').value = '';
     document.getElementById('armazemLat').value = '';
     document.getElementById('armazemLng').value = '';
+    document.getElementById('armazemObs').value = '';
     document.getElementById('mapSearch').value = '';
 
     // Mostra o modal
@@ -257,6 +285,7 @@ async function loadArmazens() {
 }
 
 /* -------------------- FILTRO -------------------- */
+/* -------------------- TABELA -------------------- */
 function filtrarTabela(query) {
     const tbody = document.getElementById('armazemTableBody');
     tbody.innerHTML = '';
@@ -271,13 +300,60 @@ function filtrarTabela(query) {
                 <td>${a.provincia_nome || ''}</td>
                 <td>${a.latitude || ''}</td>
                 <td>${a.longitude || ''}</td>
+                <td>${a.observacao || ''}</td>
                 <td>${a.syncStatus || ''}</td>
                 <td>
-                    <button class="btn btn-sm btn-warning" onclick="editarArmazem(${a.id})">Editar</button>
-                    <button class="btn btn-sm btn-danger" onclick="eliminarArmazem(${a.id})">Apagar</button>
+                    <button class="btn btn-sm btn-outline-info" title="Detalhes" onclick="verDetalhes(${a.id})">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning" title="Editar" onclick="editarArmazem(${a.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" title="Apagar" onclick="eliminarArmazem(${a.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </td>
             </tr>`;
         });
+}
+
+/* ⬇️ FUNÇÃO NOVA — GERAR HTML COMPLETO DOS DETALHES */
+function verDetalhes(id) {
+    const a = allArmazens.find(x => x.id === id);
+    if (!a) return;
+
+    const itens = a.itens || [];
+    let estoqueHtml = '<ul style="margin:4px 0; padding-left:16px;">';
+
+    if (itens.length) {
+        itens.forEach(i => {
+            estoqueHtml += `
+                <li style="margin-bottom:6px;">
+                    <strong>${i.designacao || i.codigo || 'Item sem nome'}</strong><br>
+                    <small>Em stock: <b>${i.quantidade || 0}</b></small><br>
+                    ${i.user ? `<small class="text-muted">Registado por: ${i.user}</small><br>` : ''}
+                    ${i.recebeu ? `<small class="text-muted">Recebido por: ${i.recebeu}</small>` : ''}
+                </li>`;
+        });
+    } else {
+        estoqueHtml += '<li><em>Sem itens registados</em></li>';
+    }
+    estoqueHtml += '</ul>';
+
+    const html = `
+        <h4>🏥 ${a.nome}</h4>
+        <hr>
+        <b>📝 Observação:</b><br>
+        ${a.observacao || '<i>Sem observação registada</i>'}
+        <hr>
+        <b>📦 Itens em Estoque:</b>
+        ${estoqueHtml}
+        <hr>
+        <small class="text-muted">ID: ${a.id}</small><br>
+        <small class="text-muted">Sync: ${a.syncStatus || ''}</small>
+    `;
+
+    abrirSidebar(html);
 }
 
 /* -------------------- EDITAR -------------------- */
@@ -290,6 +366,7 @@ function editarArmazem(id) {
     document.getElementById('armazemProvincia').value = a.provincia_id || '';
     document.getElementById('armazemLat').value = a.latitude || '';
     document.getElementById('armazemLng').value = a.longitude || '';
+    document.getElementById('armazemObs').value = a.observacao || '';
     document.getElementById('armazemSyncStatus').value = a.syncStatus || 'Not Syncronized';
     document.getElementById('armazemSyncDate').value = a.syncStatusDate ? a.syncStatusDate.slice(0,16) : '';
 
@@ -332,6 +409,7 @@ document.getElementById('armazemForm').addEventListener('submit', async e => {
     const provincia_id = document.getElementById('armazemProvincia').value;
     const latitude = document.getElementById('armazemLat').value;
     const longitude = document.getElementById('armazemLng').value;
+    const observacao = document.getElementById('armazemObs').value;
     const syncStatus = document.getElementById('armazemSyncStatus').value;
     const syncStatusDate = document.getElementById('armazemSyncDate').value;
 
@@ -340,6 +418,7 @@ document.getElementById('armazemForm').addEventListener('submit', async e => {
         provincia_id: parseInt(provincia_id),
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
+        observacao,
         syncStatus: syncStatus,
         syncStatusDate: syncStatusDate ? new Date(syncStatusDate).toISOString() : null
     };

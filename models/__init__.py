@@ -50,6 +50,9 @@ from .NotaEnvio import NotaEnvio, SyncStatusEnum
 from .NotaEnvioItem import NotaEnvioItem
 from .NotaEnvioDocument import NotaEnvioDocument
 from .ItemPendente import ItemPendente
+from .FormacaoItem import FormacaoItem
+from .Participante import Participante
+from .ItemsSolicitados import ItemsSolicitados
 
 __all__ = [
     'db', 'Role', 'State', 'Grouptype', 'Group', 'Location', 
@@ -62,5 +65,6 @@ __all__ = [
     'Pais', 'Formacao', 'Licenca','EstadoLicencaEnum', 'Despacho','EstadoDespachoEnum',
     'Provincia','Item','Armazem', 'Componente','UserComponente', 'Porto',
     'ItemHistorico','ItemLocationNecessidade', 'Distribuicao','TipoItem','NotaEnvio',
-    'NotaEnvioItem', 'NotaEnvioDocument', 'ItemPendente'
+    'NotaEnvioItem', 'NotaEnvioDocument', 'ItemPendente', 'FormacaoItem','Participantes',
+    'ItemsSolicitados'
 ]

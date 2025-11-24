@@ -19,6 +19,7 @@ class ItemHistoricoController:
                     'tipo_movimento': h.tipo_movimento,
                     'quantidade': h.quantidade,
                     'observacoes': h.observacoes,
+                    'user': h.user,  # ✅ Incluir usuário
                     'data_movimento': h.data_movimento.isoformat() if h.data_movimento else None
                 } for h in historicos
             ]), 200

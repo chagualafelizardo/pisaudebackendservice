@@ -98,6 +98,7 @@
                       <th>Quantidade</th>
                       <th>Data de Distribuição</th>
                       <th>Observação</th>
+                      <th>User</th>
                     </tr>
                   </thead>
                   <tbody></tbody>
@@ -132,6 +133,7 @@
                       <th>Quantidade</th>
                       <th>Descrição / Observações</th>
                       <th>Data Registro</th>
+                      <th>User</th>
                     </tr>
                   </thead>
                   <tbody></tbody>
@@ -152,6 +154,10 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css">
+
 
 <!-- ======= NOVO CSS / JS PARA CONTROLES ======= -->
 <style>
@@ -243,54 +249,118 @@ async function initDistribuicaoMap() {
 
 async function loadDistribuicoesMapa() {
   try {
-    const distribRes = await fetch('/api/distribuicao');
-    const allDistribuicoes = await distribRes.json();
+    const [distribRes, locRes, itemRes, armazemRes] = await Promise.all([
+      fetch('/api/distribuicao'),
+      fetch('/api/location'),
+      fetch('/api/item'),
+      fetch('/api/armazem') // 🔹 nova chamada para buscar armazéns
+    ]);
 
-    const locRes = await fetch('/api/location');
-    const allLocations = await locRes.json();
-
-    const itemRes = await fetch('/api/item');
-    const allItens = await itemRes.json();
+    const [allDistribuicoes, allLocations, allItens, allArmazens] = await Promise.all([
+      distribRes.json(),
+      locRes.json(),
+      itemRes.json(),
+      armazemRes.json()
+    ]);
 
     markersLayer.clearLayers();
 
-    // Agrupar distribuições por location
+    // ====== AGRUPAR DISTRIBUIÇÕES POR LOCATION ======
     const distribPorLocation = {};
     allDistribuicoes.forEach(d => {
       if (!distribPorLocation[d.location_id]) distribPorLocation[d.location_id] = [];
       distribPorLocation[d.location_id].push(d);
     });
 
-    // Filtrar apenas locations com distribuições e coordenadas válidas
+    // ====== DESENHAR LINHAS DE ARMAZÉM PARA UNIDADE ======
+    allDistribuicoes.forEach(d => {
+      const armazem = allArmazens.find(a => a.id === d.armazem_id);
+      const loc = allLocations.find(l => l.id === d.location_id);
+      const item = allItens.find(i => i.id === d.item_id);
+
+      if (armazem && loc && armazem.latitude && armazem.longitude && loc.latitude && loc.longitude) {
+        // 🔹 Criar o popup com os detalhes da distribuição
+        const popupHtml = `
+          <strong>${loc.name || loc.nome}</strong><br>
+          <ul>
+            <li>
+              <strong>${item?.codigo || 'Sem código'}</strong> - ${item?.designacao || '-'}<br>
+              Quantidade: ${d.quantidade || '-'}<br>
+              Data envio: ${
+                d.data_distribuicao
+                  ? new Date(d.data_distribuicao).toLocaleDateString()
+                  : '-'
+              }<br>
+              <small class="text-muted">Registado por: ${d.user || 'Desconhecido'}</small><br>
+              <small class="text-muted">Recebido por: ${d.recebeu || 'Desconhecido'}</small>
+            </li>
+          </ul>
+
+          <hr>
+          <strong>📌 Armazém:</strong> ${armazem?.nome || '-'}<br>
+          <strong>Observação:</strong> ${item?.observacao || '-'}
+        `;
+
+
+        // 🔹 Criar linha entre armazém e unidade
+        const line = L.polyline(
+          [
+            [armazem.latitude, armazem.longitude],
+            [loc.latitude, loc.longitude]
+          ],
+          {
+            color: '#28a745', // verde para linha de distribuição
+            weight: 5,
+            opacity: 0.7,
+            dashArray: '5,5' // tracejada
+          }
+        )
+          .addTo(markersLayer)
+          .bindPopup(popupHtml); // ← mostra detalhes ao clicar na linha
+      }
+    });
+
+    // ====== FILTRAR LOCATIONS COM DISTRIBUIÇÕES ======
     const locationsComDistrib = allLocations.filter(
       loc => distribPorLocation[loc.id] && loc.latitude && loc.longitude
     );
 
     const markers = [];
 
+    // ====== ADICIONAR MARKERS DE LOCATIONS ======
     locationsComDistrib.forEach(loc => {
       const distribs = distribPorLocation[loc.id];
 
-      // Conteúdo do popup
       let popupHtml = `<strong>${loc.name || loc.nome}</strong><br><ul>`;
       distribs.forEach(d => {
         const item = allItens.find(i => i.id === d.item_id);
         popupHtml += `<li>
           <strong>${item?.codigo || 'Sem código'}</strong> - ${item?.designacao || '-'}<br>
-          Quantidade: ${d.quantidade}<br>
-          Data envio: ${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleDateString() : '-'}
+          Quantidade: ${d.quantidade || '-'}<br>
+          Data envio: ${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleDateString() : '-'}<br>
+          <small class="text-muted">Registado por: ${d.user || 'Desconhecido'}</small><br>
+          <small class="text-muted">Recebido por: ${d.recebeu || 'Desconhecido'}</small>
         </li>`;
       });
       popupHtml += '</ul>';
 
-      const marker = L.marker([loc.latitude, loc.longitude])
-        .addTo(markersLayer)
-        .bindPopup(popupHtml);
+      const marker = L.circleMarker([loc.latitude, loc.longitude], {
+        radius: 10,             // 🔹 tamanho do ponto
+        color: '#007bff',       // 🔹 cor da borda (azul)
+        fillColor: '#007bff',   // 🔹 cor do preenchimento (azul)
+        fillOpacity: 1,         // 🔹 opacidade do preenchimento
+        weight: 2               // 🔹 espessura da borda
+      })
+      .addTo(markersLayer)
+      .bindPopup(popupHtml);
 
       markers.push(marker);
     });
 
-    // Ajustar o zoom de acordo com os markers
+    // ====== ADICIONAR MARKERS DOS ARMAZÉNS ======
+    loadArmazensMapa(allArmazens, markersLayer, markers);
+
+    // ====== AJUSTAR O ZOOM ======
     if (markers.length > 1) {
       const group = new L.featureGroup(markers);
       mapDistribuicao.fitBounds(group.getBounds().pad(0.2));
@@ -300,10 +370,135 @@ async function loadDistribuicoesMapa() {
       mapDistribuicao.setView([-15.0, 35.0], 6);
     }
 
+    // ====== LINHA DE ROTA REAL ENTRE ARMAZÉNS ======
+    // if (allArmazens.length > 1) {
+    //   for (let i = 0; i < allArmazens.length - 1; i++) {
+    //     const origem = allArmazens[i];
+    //     const destino = allArmazens[i + 1];
+
+    //     if (!origem.latitude || !origem.longitude || !destino.latitude || !destino.longitude) continue;
+
+    //     const route = L.Routing.control({
+    //       waypoints: [
+    //         L.latLng(origem.latitude, origem.longitude),
+    //         L.latLng(destino.latitude, destino.longitude)
+    //       ],
+    //       addWaypoints: false,
+    //       draggableWaypoints: false,
+    //       fitSelectedRoutes: false,   // não altera o zoom do mapa
+    //       showAlternatives: false,
+    //       lineOptions: {
+    //         styles: [
+    //           { color: "#ff9800", weight: 5, opacity: 0.85 } // 🔸 laranja
+    //         ]
+    //       },
+    //       createMarker: () => null // 🔹 não criar ícones extras na rota
+    //     }).addTo(mapDistribuicao);
+
+    //     route.on("routesfound", function (e) {
+    //       const km = (e.routes[0].summary.totalDistance / 1000).toFixed(1);
+
+    //       const popupHtml = `
+    //         <strong>📦 Conexão entre armazéns</strong><br>
+    //         Origem: ${origem.nome}<br>
+    //         Destino: ${destino.nome}<br>
+    //         <strong>Distância:</strong> ${km} km via estrada
+    //       `;
+
+    //       // 🔹 Permite abrir popup ao clicar na linha da rota
+    //       const coords = e.routes[0].coordinates;
+    //       const middleIndex = Math.floor(coords.length / 2);
+    //       const centerPoint = coords[middleIndex];
+
+    //       L.marker([centerPoint.lat, centerPoint.lng], {
+    //         icon: L.divIcon({ className: "invisible-marker" })
+    //       })
+    //       .addTo(mapDistribuicao)
+    //       .bindPopup(popupHtml);
+    //     });
+    //   }
+    // }
   } catch (error) {
-    console.error('Erro ao carregar distribuições para o mapa:', error);
+    console.error('❌ Erro ao carregar distribuições para o mapa:', error);
   }
 }
+
+/* ===================================================
+   🏥 NOVA FUNÇÃO: Adiciona os Armazéns no Mapa
+   =================================================== */
+function loadArmazensMapa(allArmazens, markersLayer, markers) {
+  if (!allArmazens?.length) return;
+
+  allArmazens.forEach(a => {
+    if (!a.latitude || !a.longitude) return;
+
+    const itens = a.itens || [];
+
+    // 🔹 Construir HTML da lista de itens (estoque)
+    let estoqueHtml = '<ul style="margin:4px 0; padding-left:16px;">';
+    if (itens.length > 0) {
+      itens.forEach(i => {
+        estoqueHtml += `
+          <li style="margin-bottom:6px;">
+            <strong>${i.designacao || i.codigo || 'Item sem nome'}</strong><br>
+            <small>Em stock: <b>${i.quantidade || 0}</b></small><br>
+            ${i.user ? `<small class="text-muted">Registado por: ${i.user}</small><br>` : ''}
+            ${i.recebeu ? `<small class="text-muted">Recebido por: ${i.recebeu}</small>` : ''}
+          </li>
+        `;
+      });
+    } else {
+      estoqueHtml += '<li><em>Sem itens registados</em></li>';
+    }
+    estoqueHtml += '</ul>';
+
+    // 🔹 Popup HTML — observação logo após o nome
+    const popupHtml = `
+      <div style="min-width:250px; font-size:13px;">
+        <div style="margin-bottom:6px;">
+          <strong>🏥 ${a.nome || a.name}</strong><br>
+
+          <hr style="margin:6px 0;">
+          <div>
+          </div>
+          
+          <div style="margin-top:4px; margin-bottom:6px;">
+            <b>📝 Observação do Armazém:</b><br>
+            ${a.observacao ? a.observacao : '<i>Sem observação registada</i>'}
+          </div>
+
+          ${a.responsavel ? `<b>Responsável:</b> ${a.responsavel}<br>` : ''}
+          ${a.contacto ? `<b>Contacto:</b> ${a.contacto}<br>` : ''}
+          ${a.endereco ? `<b>Endereço:</b> ${a.endereco}<br>` : ''}
+        </div>
+
+        <hr style="margin:6px 0;">
+        <div>
+          <b>📦 Itens em estoque:</b>
+          ${estoqueHtml}
+        </div>
+
+        <hr style="margin:6px 0;">
+        <small class="text-muted">Tipo: Armazém de Distribuição</small>
+      </div>
+    `;
+
+    // 🔹 Criar marcador no mapa
+    const marker = L.marker([a.latitude, a.longitude], {
+      icon: L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/883/883407.png',
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -28]
+      })
+    })
+      .addTo(markersLayer)
+      .bindPopup(popupHtml);
+
+    markers.push(marker);
+  });
+}
+
 
 async function loadDistribuicoesTabela() {
   try {
@@ -330,6 +525,7 @@ async function loadDistribuicoesTabela() {
         <td>${d.quantidade || '-'}</td>
         <td>${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleDateString() : '-'}</td>
         <td>${d.observacao || '-'}</td>
+        <td>${d.user || '-'}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -380,6 +576,7 @@ async function carregarNecessidadesDistribuicao(itemId = null) {
           <td>${n.quantidade ?? '-'}</td>
           <td>${n.descricao || ''}</td>
           <td>${n.data_registro ? new Date(n.data_registro).toLocaleString() : '-'}</td>
+          <td>${n.user || '-'}</td>
         </tr>`;
     }).join('');
 

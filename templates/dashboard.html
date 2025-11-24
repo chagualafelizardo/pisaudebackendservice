@@ -17,7 +17,6 @@
     </div>
 
     <!-- Quick Access -->
-    {% if 'QuickAccess' in user_menus %}
     <div class="row mb-4" >
         <div class="col-12">
             <div class="card">
@@ -46,7 +45,7 @@
                         
                         {% if 'alosaudeMenu' in user_menus %}
                         <div class="col-md-2 col-4 mb-3">
-                            <a href="/content/alosaude" class="btn btn-outline-info w-100 h-100 py-3">
+                            <a href="/content/pisaudedashboard" class="btn btn-outline-info w-100 h-100 py-3">
                                 <i class="bi bi-heart-pulse display-6 d-block mb-2"></i>
                                 Alo-Saúde
                             </a>
@@ -57,25 +56,25 @@
                         <div class="col-md-2 col-4 mb-3">
                             <a href="/content/dashboarddistribuicao" class="btn btn-outline-warning w-100 h-100 py-3">
                                 <i class="bi bi-box-seam display-6 d-block mb-2"></i>
-                                Distribuição
+                                Distribuição de Itens RISE
                             </a>
                         </div>
                         {% endif %}
                         
+                        {% if 'trackingMenu' in user_menus %}
+                        <div class="col-md-2 col-4 mb-3">
+                            <a href="/content/dashboarddoddistribuicao" class="btn btn-outline-warning w-100 h-100 py-3">
+                                <i class="bi bi-box-seam display-6 d-block mb-2"></i>
+                                DOD - Resource And Resource Mapping
+                            </a>
+                        </div>
+                        {% endif %}
+
                         {% if 'gestaoFormacaoMenu' in user_menus %}
                         <div class="col-md-2 col-4 mb-3">
                             <a href="/content/formacao" class="btn btn-outline-danger w-100 h-100 py-3">
                                 <i class="bi bi-mortarboard display-6 d-block mb-2"></i>
-                                Formações
-                            </a>
-                        </div>
-                        {% endif %}
-                        
-                        {% if 'rhMenu' in user_menus %}
-                        <div class="col-md-2 col-4 mb-3">
-                            <a href="/content/person" class="btn btn-outline-dark w-100 h-100 py-3">
-                                <i class="bi bi-person-badge display-6 d-block mb-2"></i>
-                                RH
+                                Formação e RH SSM
                             </a>
                         </div>
                         {% endif %}
@@ -84,27 +83,27 @@
             </div>
         </div>
     </div>
-    {% endif %}
 
     <!-- Blocos Expansíveis dos Módulos -->
     <div class="row">
         <div class="col-12">
             <!-- Bloco 1: Módulo de Testagem na Comunidade -->
-            <!-- {% if 'moduloTestagem' in user_menus %} -->
-            <div class="card mb-3">
-                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center" 
-                     style="cursor: pointer;" 
-                     data-bs-toggle="collapse" 
-                     data-bs-target="#moduloTestagem">
+            <div class="card mb-3" id="moduloTestagem">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center"
+                    style="cursor: pointer;"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#moduloTestagemBody"
+                    aria-expanded="true">
                     <h5 class="mb-0">
                         <i class="bi bi-clipboard-pulse me-2"></i>
                         1. PI-SAÚDE - Módulo de Testagem na Comunidade
                     </h5>
                     <i class="bi bi-chevron-down"></i>
                 </div>
-                <div class="collapse show" id="moduloTestagem">
-                    <div class="card-body">
-                        <div class="row">
+
+                <!-- 🔥 repare no ID correto aqui -->
+                <div class="collapse show" id="moduloTestagemBody">
+                    <div class="card-body">                        <div class="row">
                             <div class="col-md-6">
                                 <h6><i class="bi bi-check-circle text-success me-2"></i>Funcionalidades Principais:</h6>
                                 <ul>
@@ -135,22 +134,21 @@
                     </div>
                 </div>
             </div>
-            <!-- {% endif %} -->
 
-            <!-- Bloco 2: Alo-Saúde para SMS -->
-            <!-- {% if 'moduloAloSaude' in user_menus %} -->
-            <div class="card mb-3">
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center" 
-                     style="cursor: pointer;" 
-                     data-bs-toggle="collapse" 
-                     data-bs-target="#moduloAloSaude">
+            <!-- {# Bloco 2: Alo-Saúde para SMS #} -->
+            <div class="card mb-3" id="moduloAloSaude">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center"
+                    style="cursor: pointer;"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#moduloAloSaudeBody">
                     <h5 class="mb-0">
                         <i class="bi bi-chat-dots me-2"></i>
                         2. Alo-Saúde - Sistema de SMS para Pacientes
                     </h5>
                     <i class="bi bi-chevron-down"></i>
                 </div>
-                <div class="collapse" id="moduloAloSaude">
+
+                <div class="collapse" id="moduloAloSaudeBody">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
@@ -184,22 +182,22 @@
                     </div>
                 </div>
             </div>
-            <!-- {% endif %} -->
+
 
             <!-- Bloco 3: Sistema de Formação e RH -->
-            <!-- {% if 'moduloFormacaoRH' in user_menus %} -->
-            <div class="card mb-3">
+            <div class="card mb-3" id="moduloFormacaoRH">
                 <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center" 
-                     style="cursor: pointer;" 
-                     data-bs-toggle="collapse" 
-                     data-bs-target="#moduloFormacaoRH">
+                    style="cursor: pointer;" 
+                    data-bs-toggle="collapse" 
+                    data-bs-target="#moduloFormacaoRHBody">
                     <h5 class="mb-0">
                         <i class="bi bi-mortarboard me-2"></i>
                         3. Sistema de Formação e RH para SSM
                     </h5>
                     <i class="bi bi-chevron-down"></i>
                 </div>
-                <div class="collapse" id="moduloFormacaoRH">
+
+                <div class="collapse" id="moduloFormacaoRHBody">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
@@ -244,22 +242,21 @@
                     </div>
                 </div>
             </div>
-            <!-- {% endif %} -->
 
             <!-- Bloco 4: Rastreamento de Itens/Materiais -->
-            <!-- {% if 'moduloRastreamento' in user_menus %} -->
-            <div class="card mb-3">
+            <div class="card mb-3" id="moduloRastreamento">
                 <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center" 
-                     style="cursor: pointer;" 
-                     data-bs-toggle="collapse" 
-                     data-bs-target="#moduloRastreamento">
+                    style="cursor: pointer;" 
+                    data-bs-toggle="collapse" 
+                    data-bs-target="#moduloRastreamentoBody">
                     <h5 class="mb-0">
                         <i class="bi bi-box-seam me-2"></i>
                         4. Módulo de Rastreamento de Itens/Materiais
                     </h5>
                     <i class="bi bi-chevron-down"></i>
                 </div>
-                <div class="collapse" id="moduloRastreamento">
+
+                <div class="collapse" id="moduloRastreamentoBody">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
@@ -304,8 +301,65 @@
                     </div>
                 </div>
             </div>
-            <!-- {% endif %} -->
 
+            <!-- Bloco 5: Testagem HIV -->
+            <div class="card mb-3" id="moduloTestagemHIV">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center" 
+                    style="cursor: pointer;" 
+                    data-bs-toggle="collapse" 
+                    data-bs-target="#moduloTestagemHIVBody">
+                    <h5 class="mb-0">
+                        <i class="bi bi-box-seam me-2"></i>
+                        4. Módulo de Testagem HIV na Comunidade
+                    </h5>
+                    <i class="bi bi-chevron-down"></i>
+                </div>
+
+                <div class="collapse" id="moduloTestagemHIVBody">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-truck text-primary me-2"></i>Módulo de Testagem HIV na Comunidade:</h6>
+                                <ul>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-graph-up-arrow text-success me-2"></i>Módulo de Testagem HIV na Comunidade:</h6>
+                                <ul>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6><i class="bi bi-shield-check text-warning me-2"></i>Módulo de Testagem HIV na Comunidade:</h6>
+                                <ul>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                    <li>Módulo de Testagem HIV na Comunidade</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-3 p-3 bg-light rounded">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Módulo de Testagem HIV na Comunidade.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

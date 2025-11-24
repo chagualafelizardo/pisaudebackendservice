@@ -54,3 +54,9 @@ def distribuir_item(item_id):
 def get_necessidades_por_item():
     """Lista todas as necessidades agrupadas por item (join com Item)"""
     return ItemController.get_necessidades_por_item()
+
+# 🔹 Confirmar recepção de item
+@item_bp.route('/item/<int:id>/confirmarrecepcao', methods=['PUT'])
+def confirmar_recepcao_item(id):
+    """Confirma a recepção de um item (guia assinada, data, recebedor)"""
+    return ItemController.confirmar_recepcao(id)

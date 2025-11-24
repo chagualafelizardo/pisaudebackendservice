@@ -10,5 +10,9 @@ class ItemHistorico(db.Model):
     quantidade = db.Column(db.Integer)
     observacoes = db.Column(db.Text)
     data_movimento = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.Column(db.String(100))  # 🔹 Usuário responsável pelo registro
 
     item = db.relationship('Item', backref=db.backref('historico', lazy=True))
+
+    def __repr__(self):
+        return f"<ItemHistorico {self.id} - Item {self.item_id} ({self.tipo_movimento})>"

@@ -1,0 +1,548 @@
+{% extends 'base.html' %}
+{% block title %}PI-SAÚDE / Dashboard{% endblock %}
+
+{% block content %}
+
+<h1 class="mb-4">📊 Dashboard PI-SAÚDE</h1>
+
+<!-- Filtros de Data -->
+<div class="card p-3 mb-4 shadow-sm">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label"><strong>Data Inicial</strong></label>
+            <input type="date" id="filterStartDate" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label"><strong>Data Final</strong></label>
+            <input type="date" id="filterEndDate" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label"><strong>Localização</strong></label>
+            <select id="filterLocation" class="form-select">
+                <option value="">Todas</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" onclick="loadDashboardData()">Aplicar Filtros</button>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-secondary w-100" onclick="clearDashboardFilters()">Limpar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Cards de Resumo -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">📋 Total Pacientes</h5>
+                <h2 id="totalPatients" class="card-text">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">💊 Levantamentos</h5>
+                <h2 id="levantamentosCount" class="card-text">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">⚠️ Faltosos</h5>
+                <h2 id="faltososCount" class="card-text">0</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">📞 Chamadas</h5>
+                <h2 id="chamadasCount" class="card-text">0</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos Principais -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">📈 Distribuição por Tipo de Ação (Semanal)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="actionsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">📅 Evolução Semanal</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="weeklyTrendChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabelas Detalhadas -->
+<div class="row">
+    <!-- 1. Pacientes para Levantamento -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">💊 Pacientes para Levantamento</h5>
+                <span class="badge bg-primary" id="levantamentosBadge">0</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Contacto</th>
+                                <th>Data Levant.</th>
+                                <th>Localização</th>
+                            </tr>
+                        </thead>
+                        <tbody id="levantamentosTable">
+                            <!-- Dados serão carregados via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Pacientes Faltosos -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">⚠️ Pacientes Faltosos</h5>
+                <span class="badge bg-warning" id="faltososBadge">0</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Contacto</th>
+                                <th>Última CV</th>
+                                <th>Dias Faltosos</th>
+                            </tr>
+                        </thead>
+                        <tbody id="faltososTable">
+                            <!-- Dados serão carregados via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Pacientes para Chamadas -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">📞 Pacientes para Chamadas</h5>
+                <span class="badge bg-info" id="chamadasBadge">0</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Contacto</th>
+                                <th>Próxima Consulta</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chamadasTable">
+                            <!-- Dados serão carregados via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Pacientes para Visitas Domiciliares -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">🏠 Pacientes para Visitas</h5>
+                <span class="badge bg-success" id="visitasBadge">0</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Contacto</th>
+                                <th>Localização</th>
+                                <th>Observação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="visitasTable">
+                            <!-- Dados serão carregados via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loader -->
+<div id="dashboardLoader" class="text-center" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">A carregar...</span>
+    </div>
+    <p class="mt-2">A carregar dados do dashboard...</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Variáveis globais
+let actionsChart = null;
+let weeklyTrendChart = null;
+let dashboardData = {};
+
+// API Endpoints
+const apiObs = '/api/observation';
+const apiLocation = '/api/location';
+const apiDashboard = '/api/dashboard';
+
+/* ============== INICIALIZAÇÃO ============== */
+async function initializeDashboard() {
+    await loadLocations();
+    setDefaultDates();
+    await loadDashboardData();
+}
+
+/* ============== CARREGAMENTO DE DADOS ============== */
+async function loadDashboardData() {
+    showLoader(true);
+    
+    try {
+        const filters = getDashboardFilters();
+        const queryParams = new URLSearchParams(filters).toString();
+        const url = queryParams ? `${apiDashboard}?${queryParams}` : apiDashboard;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        dashboardData = data;
+        updateDashboardUI();
+        
+    } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        alert('Erro ao carregar dados do dashboard');
+    } finally {
+        showLoader(false);
+    }
+}
+
+function getDashboardFilters() {
+    const filters = {};
+    
+    const startDate = document.getElementById('filterStartDate').value;
+    const endDate = document.getElementById('filterEndDate').value;
+    const location = document.getElementById('filterLocation').value;
+    
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    if (location) filters.locationId = location;
+    
+    return filters;
+}
+
+function setDefaultDates() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    document.getElementById('filterStartDate').value = firstDay.toISOString().split('T')[0];
+    document.getElementById('filterEndDate').value = today.toISOString().split('T')[0];
+}
+
+/* ============== ATUALIZAÇÃO DA UI ============== */
+function updateDashboardUI() {
+    updateSummaryCards();
+    updateCharts();
+    updateTables();
+}
+
+function updateSummaryCards() {
+    const stats = dashboardData.stats || {};
+    
+    document.getElementById('totalPatients').textContent = stats.totalPatients || 0;
+    document.getElementById('levantamentosCount').textContent = stats.levantamentosCount || 0;
+    document.getElementById('faltososCount').textContent = stats.faltososCount || 0;
+    document.getElementById('chamadasCount').textContent = stats.chamadasCount || 0;
+}
+
+function updateCharts() {
+    updateActionsChart();
+    updateWeeklyTrendChart();
+}
+
+function updateActionsChart() {
+    const ctx = document.getElementById('actionsChart').getContext('2d');
+    const weeklyData = dashboardData.weeklyStats || {};
+    
+    if (actionsChart) {
+        actionsChart.destroy();
+    }
+    
+    actionsChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Levantamentos', 'Faltosos', 'Chamadas', 'Visitas'],
+            datasets: [{
+                data: [
+                    weeklyData.levantamentos || 0,
+                    weeklyData.faltosos || 0,
+                    weeklyData.chamadas || 0,
+                    weeklyData.visitas || 0
+                ],
+                backgroundColor: [
+                    '#007bff', '#ffc107', '#17a2b8', '#28a745'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function updateWeeklyTrendChart() {
+    const ctx = document.getElementById('weeklyTrendChart').getContext('2d');
+    const trendData = dashboardData.weeklyTrend || {};
+    
+    if (weeklyTrendChart) {
+        weeklyTrendChart.destroy();
+    }
+    
+    weeklyTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: trendData.weeks || ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+            datasets: [
+                {
+                    label: 'Levantamentos',
+                    data: trendData.levantamentos || [0, 0, 0, 0],
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Faltosos',
+                    data: trendData.faltosos || [0, 0, 0, 0],
+                    borderColor: '#ffc107',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Chamadas',
+                    data: trendData.chamadas || [0, 0, 0, 0],
+                    borderColor: '#17a2b8',
+                    backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function updateTables() {
+    updateLevantamentosTable();
+    updateFaltososTable();
+    updateChamadasTable();
+    updateVisitasTable();
+}
+
+function updateLevantamentosTable() {
+    const tableBody = document.getElementById('levantamentosTable');
+    const patients = dashboardData.levantamentos || [];
+    
+    document.getElementById('levantamentosBadge').textContent = patients.length;
+    
+    tableBody.innerHTML = patients.map(patient => `
+        <tr>
+            <td>${patient.fullname || 'N/A'}</td>
+            <td>${patient.contact || 'N/A'}</td>
+            <td>${formatDate(patient.dataproximolevantamento)}</td>
+            <td>${patient.location?.name || 'N/A'}</td>
+        </tr>
+    `).join('');
+    
+    if (patients.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhum paciente para levantamento esta semana</td></tr>';
+    }
+}
+
+function updateFaltososTable() {
+    const tableBody = document.getElementById('faltososTable');
+    const patients = dashboardData.faltosos || [];
+    
+    document.getElementById('faltososBadge').textContent = patients.length;
+    
+    tableBody.innerHTML = patients.map(patient => `
+        <tr>
+            <td>${patient.fullname || 'N/A'}</td>
+            <td>${patient.contact || 'N/A'}</td>
+            <td>${formatDate(patient.dataultimacv)}</td>
+            <td><span class="badge bg-danger">${calculateDaysMissing(patient.dataultimacv)} dias</span></td>
+        </tr>
+    `).join('');
+    
+    if (patients.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhum paciente faltoso</td></tr>';
+    }
+}
+
+function updateChamadasTable() {
+    const tableBody = document.getElementById('chamadasTable');
+    const patients = dashboardData.chamadas || [];
+    
+    document.getElementById('chamadasBadge').textContent = patients.length;
+    
+    tableBody.innerHTML = patients.map(patient => `
+        <tr>
+            <td>${patient.fullname || 'N/A'}</td>
+            <td>${patient.contact || 'N/A'}</td>
+            <td>${formatDate(patient.dataproximaconsulta)}</td>
+            <td><span class="badge bg-info">Para contactar</span></td>
+        </tr>
+    `).join('');
+    
+    if (patients.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhuma chamada pendente</td></tr>';
+    }
+}
+
+function updateVisitasTable() {
+    const tableBody = document.getElementById('visitasTable');
+    const patients = dashboardData.visitas || [];
+    
+    document.getElementById('visitasBadge').textContent = patients.length;
+    
+    tableBody.innerHTML = patients.map(patient => `
+        <tr>
+            <td>${patient.fullname || 'N/A'}</td>
+            <td>${patient.contact || 'N/A'}</td>
+            <td>${patient.location?.name || 'N/A'}</td>
+            <td>${patient.observation || 'Visita domiciliar necessária'}</td>
+        </tr>
+    `).join('');
+    
+    if (patients.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhuma visita pendente</td></tr>';
+    }
+}
+
+/* ============== FUNÇÕES AUXILIARES ============== */
+async function loadLocations() {
+    try {
+        const response = await fetch(apiLocation);
+        const locations = await response.json();
+        
+        const select = document.getElementById('filterLocation');
+        select.innerHTML = '<option value="">Todas as localizações</option>';
+        
+        locations.forEach(location => {
+            select.innerHTML += `<option value="${location.id}">${location.name}</option>`;
+        });
+    } catch (error) {
+        console.error('Erro ao carregar localizações:', error);
+    }
+}
+
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('pt-PT');
+    } catch (error) {
+        return 'N/A';
+    }
+}
+
+function calculateDaysMissing(lastCVDate) {
+    if (!lastCVDate) return 'N/A';
+    
+    try {
+        const lastCV = new Date(lastCVDate);
+        const today = new Date();
+        const diffTime = Math.abs(today - lastCV);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    } catch (error) {
+        return 'N/A';
+    }
+}
+
+function showLoader(show) {
+    document.getElementById('dashboardLoader').style.display = show ? 'block' : 'none';
+}
+
+function clearDashboardFilters() {
+    document.getElementById('filterStartDate').value = '';
+    document.getElementById('filterEndDate').value = '';
+    document.getElementById('filterLocation').value = '';
+    loadDashboardData();
+}
+
+/* ============== INICIALIZAÇÃO ============== */
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+    
+    // Atualizar automaticamente a cada 5 minutos
+    setInterval(loadDashboardData, 300000);
+});
+</script>
+
+<style>
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.table-responsive {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.badge {
+    font-size: 0.8em;
+}
+</style>
+
+{% endblock %}

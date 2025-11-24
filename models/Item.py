@@ -1,62 +1,73 @@
 from . import db
 from sqlalchemy.orm import relationship
-from sqlalchemy import LargeBinary, DateTime, Float, Integer, String, Text, ForeignKey
+from sqlalchemy import LargeBinary, DateTime, Float, Integer, String, Text, ForeignKey, UniqueConstraint
 from datetime import datetime
 
 
 class Item(db.Model):
     __tablename__ = 'item'
 
+    # 🔹 Chave primária
     id = db.Column(Integer, primary_key=True, autoincrement=True)
-    codigo = db.Column(String(50), nullable=False, unique=True)
-    designacao = db.Column(String(150), nullable=False)
 
-    # 🔹 Relação com Armazém
+    # 🔹 Campos únicos por combinação
+    codigo = db.Column(String(50), nullable=False)
+    designacao = db.Column(String(150), nullable=False)
     armazem_id = db.Column(Integer, ForeignKey('armazem.id'), nullable=False)
     armazem = relationship('Armazem', back_populates='itens')
 
-    # 🔹 Relação com Porto de chegada (opcional)
+    # 🔹 Combinação única
+    __table_args__ = (
+        UniqueConstraint('codigo', 'designacao', 'armazem_id', name='uq_item_codigo_designacao_armazem'),
+    )
+
+    # 🔹 Porto (opcional)
     porto_id = db.Column(Integer, ForeignKey('porto.id'), nullable=True)
     porto = relationship('Porto', backref=db.backref('itens', lazy=True))
 
-    # 🔹 Relação opcional com Nota de Envio
+    # 🔹 Nota de envio (opcional)
     nota_envio_id = db.Column(Integer, ForeignKey('nota_envio.id'), nullable=True)
     nota_envio = relationship('NotaEnvio', backref=db.backref('itens_envio', lazy=True))
 
-    # 🔹 Imagem do item (binário)
+    # 🔹 Anexos e documentos
     imagem = db.Column(LargeBinary, nullable=True)
-
-    # 🔹 Comprovativo de envio em PDF
     pdf_nome = db.Column(String(255), nullable=True)
     pdf_tipo = db.Column(String(50), nullable=True)
     pdf_dados = db.Column(LargeBinary, nullable=True)
+    guia_assinada_nome = db.Column(String(255), nullable=True)
+    guia_assinada_tipo = db.Column(String(50), nullable=True)
+    guia_assinada_dados = db.Column(LargeBinary, nullable=True)
 
-    # 🔹 Campos de observações
+    # 🔹 Observação
     observacoes = db.Column(Text, nullable=True)
 
-    # 🔹 Novos campos logísticos e comerciais
-    hs_code = db.Column(String(50), nullable=True)                   # HS Code
-    quantidade = db.Column(Integer, nullable=True)                   # Qty
-    batch_no = db.Column(String(50), nullable=True)                  # Batch No
-    data_fabricacao = db.Column(DateTime, nullable=True)             # MFG Date
-    data_validade = db.Column(DateTime, nullable=True)               # Expiry Date
-    no_cartoes = db.Column(Integer, nullable=True)                   # No. of Cartons
-    peso_bruto_total = db.Column(Float, nullable=True)               # Total Gross Weight
-    volume_total_cbm = db.Column(Float, nullable=True)               # Total Volume (CBM)
-    total_cartoes = db.Column(Integer, nullable=True)                # Total No of Cartons
-    total_paletes = db.Column(Integer, nullable=True)                # Total No. of Pallets
-    dimensoes_palete_cm = db.Column(String(100), nullable=True)      # Pallet Dimensions (CM)
+    # 🔹 Informações logísticas
+    hs_code = db.Column(String(50), nullable=True)
+    quantidade = db.Column(Integer, nullable=True)
+    batch_no = db.Column(String(50), nullable=True)
+    data_fabricacao = db.Column(DateTime, nullable=True)
+    data_validade = db.Column(DateTime, nullable=True)
+    no_cartoes = db.Column(Integer, nullable=True)
+    peso_bruto_total = db.Column(Float, nullable=True)
+    volume_total_cbm = db.Column(Float, nullable=True)
+    total_cartoes = db.Column(Integer, nullable=True)
+    total_paletes = db.Column(Integer, nullable=True)
+    dimensoes_palete_cm = db.Column(String(100), nullable=True)
 
-    # 🔹 Campo de sincronização (agora String simples)
+    # 🔹 Recepção
+    data_recepcao = db.Column(DateTime, nullable=True)
+
+    # 🔹 Sincronização
     syncStatus = db.Column(String(50), nullable=False, default='NotSyncronized')
     syncStatusDate = db.Column(DateTime, nullable=True)
 
-    # 🔹 Novo campo para armazenar o nome do utilizador que adicionou o item
+    # 🔹 Utilizadores
     user = db.Column(String(150), nullable=True)
+    recebeu = db.Column(String(150), nullable=True)
 
     # 🔹 Timestamps
     createAt = db.Column(DateTime, default=db.func.current_timestamp())
     updateAt = db.Column(DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
     def __repr__(self):
-        return f'<Item {self.designacao}>'
+        return f'<Item ID={self.id} | {self.codigo} - {self.designacao} - Armazém {self.armazem_id}>'

@@ -5,7 +5,13 @@ class Distribuicao(db.Model):
     __tablename__ = 'distribuicao'
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+
+    item_id = db.Column(
+        db.Integer,
+        db.ForeignKey('item.id', ondelete="CASCADE"),
+        nullable=False
+    )
+
     armazem_id = db.Column(db.Integer, db.ForeignKey('armazem.id'), nullable=False)  # armazem provincial
     location_id = db.Column(db.Integer, db.ForeignKey('location.id'), nullable=False) # unidade sanitária
     quantidade = db.Column(db.Integer, nullable=False)

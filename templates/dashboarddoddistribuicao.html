@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Resources Mapping{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">DOD - Resources And Resources Mapping</h2>
+
+<div class="container-fluid">
+    <div class="row g-4">
+
+        <!-- 📍 MAPA LEAFLET -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <strong><i class="bi bi-geo-alt-fill me-2"></i>Map of Locations and Resources</strong>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-light btn-sm" onclick="setMapLayer('streets')">Streets</button>
+                        <button class="btn btn-light btn-sm" onclick="setMapLayer('satellite')">Satellite</button>
+                        <button class="btn btn-light btn-sm" onclick="setMapLayer('terrain')">Terrain</button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="mapResources" style="height: 480px; width: 100%; border-radius: 0 0 8px 8px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📋 TABELA DE RECURSOS POR LOCAL -->
+        <div class="col-12">
+        <div class="card shadow-sm border-0" id="locationsTableCard">
+            <div class="card-header bg-secondary text-white fw-semibold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-table me-2"></i>Resources by Location</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                    <table id="resourcesTable" class="table table-striped table-hover mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Unit / Location</th>
+                                <th>Resources</th>
+                                <th>Responsible</th>
+                                <th>Description</th>
+                                <th>Latitude</th>
+                                <th>Longitude</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    </div>
+</div>
+
+<!-- 🔹 MODAL REUTILIZADO DO LOCATIONS COM GOOGLE MAPS -->
+<div class="modal fade" id="locationModal" tabindex="-1" aria-labelledby="locationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <form id="locationForm" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="locationModalLabel">Add/Edit Location & Resources</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="locationId">
+
+        <div class="mb-3">
+          <label for="locationName" class="form-label">Location Name</label>
+          <input type="text" id="locationName" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="locationDescription" class="form-label">Description</label>
+          <textarea id="locationDescription" class="form-control" required></textarea>
+        </div>
+
+        <div class="mb-3">
+          <label for="responsavel" class="form-label">Responsible</label>
+          <select id="responsavel" class="form-select" required>
+            <option value="DOD">DOD</option>
+            <option value="Jhpiego">Jhpiego</option>
+            <option value="RISE">RISE</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label for="latitude" class="form-label">Latitude</label>
+          <input type="text" id="latitude" class="form-control">
+        </div>
+
+        <div class="mb-3">
+          <label for="longitude" class="form-label">Longitude</label>
+          <input type="text" id="longitude" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="locationSearch" class="form-label">Search Location</label>
+            <input type="text" id="locationSearch" class="form-control" placeholder="Search for a place">
+        </div>
+
+        <div id="mapContainer" style="position: relative; height: 400px; margin-bottom: 15px;">
+          <div id="map" style="height: 100%;"></div>
+          <button id="toggleMapTypeBtn" class="btn btn-info position-absolute"
+                  style="top: 10px; left: 10px; z-index: 1000; padding: 5px 10px;">
+              Satellite
+          </button>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Resources</label>
+          <div id="resourceRows"></div>
+          <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addResourceRow()">+ Add Resource</button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
+
+<!-- Google Maps com Places -->
+<script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDw8qHIN9go7Do3aouyR9343opJ33ZdDb0&libraries=places">
+</script>
+
+
+<script>
+// ==================== CONFIGURAÇÕES ====================
+const apiUrl = '/api/location';
+const apiResources = '/api/resource';
+let availableResources = [];
+let map, marker, autocomplete;
+const MAPUTO_CENTER = { lat: -25.9636, lng: 32.5805 };
+let markers = [];
+let baseLayers;
+
+// ==================== LEAFLET - MAPA PRINCIPAL ====================
+function initMap() {
+    map = L.map('mapResources', { center: [-25.9636, 32.5805], zoom: 6 });
+    const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
+    const satellite = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap' });
+    const terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap' });
+    baseLayers = { streets, satellite, terrain };
+    loadLocationsResources(map);
+
+    // 🔹 Controle customizado para mostrar/esconder tabela
+    L.Control.LocationsToggle = L.Control.extend({
+        onAdd: function(map) {
+            const btn = L.DomUtil.create('button', 'btn btn-info');
+            btn.innerHTML = '<i class="bi bi-list-ul"></i>';
+            btn.style.backgroundColor = '#0d6efd';
+            btn.style.color = 'white';
+            btn.style.padding = '5px 8px';
+            btn.style.border = 'none';
+            btn.style.borderRadius = '4px';
+            btn.style.cursor = 'pointer';
+            btn.title = 'Show/Hide Locations Table';
+
+            btn.onclick = function() {
+                const tableCard = document.getElementById('locationsTableCard');
+                if(tableCard.style.display === 'none' || !tableCard.style.display){
+                    tableCard.style.display = 'block';
+                } else {
+                    tableCard.style.display = 'none';
+                }
+            }
+
+            // Previne propagação de clique para o mapa
+            L.DomEvent.disableClickPropagation(btn);
+            return btn;
+        },
+
+        onRemove: function(map) {
+            // nada especial
+        }
+    });
+
+    // Adiciona o botão ao mapa
+    map.addControl(new L.Control.LocationsToggle({ position: 'topright' }));
+
+}
+
+function setMapLayer(layerName) {
+    Object.values(baseLayers).forEach(l => map.removeLayer(l));
+    baseLayers[layerName].addTo(map);
+}
+
+async function loadLocationsResources(mapInstance) {
+    try {
+        const res = await fetch(apiUrl);
+        const locations = await res.json();
+
+        const tbody = document.querySelector("#resourcesTable tbody");
+        tbody.innerHTML = '';
+
+        // Remove marcadores antigos
+        markers.forEach(m => mapInstance.removeLayer(m));
+        markers = [];
+
+        locations.forEach(loc => {
+            if (!(loc.latitude && loc.longitude)) return;
+
+            const lat = parseFloat(loc.latitude);
+            const lng = parseFloat(loc.longitude);
+
+            const resourceList = loc.resources?.length
+                ? loc.resources.map(r => `${r.name} (${r.quantity})`).join('<br>')
+                : '<em>No resources</em>';
+
+            const observacao = loc.observacoes
+                ? loc.observacoes
+                : '<em>Sem observação</em>';
+
+            // 🔹 Popup do mapa organizado
+            const popupHtml = `
+                <div style="max-width: 260px;">
+                    <strong>${loc.name}</strong>
+                    <hr>
+                    <strong>Recursos:</strong><br>
+                    ${resourceList}
+                    <hr>
+                    <strong>Observação:</strong><br>
+                    <small>${observacao}</small>
+                    <hr>
+                    <button class="btn btn-sm btn-primary w-100" onclick="openLocationModalById(${loc.id})">
+                        Add/Edit Resources
+                    </button>
+                </div>
+            `;
+
+            const markerLeaf = L.marker([lat, lng])
+                .addTo(mapInstance)
+                .bindPopup(popupHtml);
+
+            markers.push(markerLeaf);
+
+            // 🔹 Tabela na página
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>${loc.name}</td>
+                <td>${resourceList.replace(/<br>/g, ', ')}</td>
+                <td>${loc.responsavel || '-'}</td>
+                <td>${loc.description || '-'}</td>
+                <td>${lat}</td>
+                <td>${lng}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="openLocationModalById(${loc.id})">
+                        Edit
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+    } catch (err) {
+        console.error(err);
+        alert('Failed to load locations.');
+    }
+}
+
+
+async function openLocationModalById(id) {
+    try {
+        const res = await fetch(`${apiUrl}/${id}`);
+        if (!res.ok) throw new Error("Erro ao carregar dados");
+        const locationData = await res.json();
+        openLocationModal(locationData); // ← chama o modal já existente
+    } catch (err) {
+        console.error(err);
+        alert("Failed to load location information.");
+    }
+}
+
+// ==================== MODAL GOOGLE MAPS ====================
+async function fetchResources() {
+    try { const res = await fetch(apiResources); availableResources = await res.json(); } 
+    catch(err){ console.error('Error fetching resources:',err); }
+}
+
+function addResourceRow(resourceId='', quantity=''){
+    const container = document.getElementById('resourceRows');
+    const row = document.createElement('div');
+    row.className='row mb-2 align-items-center';
+    row.innerHTML=`<div class="col-md-6"><select class="form-select resource-select" required>
+        <option value="">Select Resource</option>
+        ${availableResources.map(r=>`<option value="${r.id}" ${r.id==resourceId?'selected':''}>${r.name}</option>`).join('')}
+    </select></div>
+    <div class="col-md-4"><input type="number" min="0" class="form-control quantity-input" value="${quantity}" placeholder="Quantity" required></div>
+    <div class="col-md-2"><button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.row').remove()">✕</button></div>`;
+    container.appendChild(row);
+}
+
+function initializeMap(lat=-25.9636, lng=32.5805){
+    const center={lat:parseFloat(lat),lng:parseFloat(lng)};
+    map = new google.maps.Map(document.getElementById("map"),{center,zoom:7,mapTypeId:"terrain"});
+    marker = new google.maps.Marker({position:center,map,draggable:true});
+    map.addListener("click",e=>{marker.setPosition(e.latLng); document.getElementById("latitude").value=e.latLng.lat().toFixed(6); document.getElementById("longitude").value=e.latLng.lng().toFixed(6);});
+    marker.addListener("dragend",()=>{const pos=marker.getPosition();document.getElementById("latitude").value=pos.lat().toFixed(6);document.getElementById("longitude").value=pos.lng().toFixed(6);});
+    autocomplete = new google.maps.places.Autocomplete(document.getElementById("locationSearch"));
+    autocomplete.bindTo("bounds", map);
+    autocomplete.addListener("place_changed",()=>{const place=autocomplete.getPlace(); if(!place.geometry) return; map.panTo(place.geometry.location); map.setZoom(15); marker.setPosition(place.geometry.location); document.getElementById("latitude").value=place.geometry.location.lat().toFixed(6); document.getElementById("longitude").value=place.geometry.location.lng().toFixed(6);});
+    document.getElementById("toggleMapTypeBtn").onclick=()=>{const current=map.getMapTypeId();const newType=current==="terrain"?"satellite":"terrain";map.setMapTypeId(newType);document.getElementById("toggleMapTypeBtn").textContent=newType==="terrain"?"Satellite":"Map";};
+    document.getElementById("latitude").value=center.lat.toFixed(6);
+    document.getElementById("longitude").value=center.lng.toFixed(6);
+}
+
+function openLocationModal(locationData=null){
+    document.getElementById('locationForm').reset();
+    document.getElementById('locationId').value='';
+    document.getElementById('resourceRows').innerHTML='';
+    document.getElementById('locationSearch').value='';
+    addResourceRow();
+
+    if(locationData){
+        document.getElementById('locationId').value=locationData.id;
+        document.getElementById('locationName').value=locationData.name;
+        document.getElementById('locationDescription').value=locationData.description||'';
+        document.getElementById('latitude').value=locationData.latitude||'';
+        document.getElementById('longitude').value=locationData.longitude||'';
+        document.getElementById('responsavel').value=locationData.responsavel||'DOD';
+        document.getElementById('resourceRows').innerHTML='';
+        (locationData.resources||[]).forEach(r=>addResourceRow(r.id,r.quantity));
+    }
+
+    const modal=new bootstrap.Modal(document.getElementById('locationModal'));
+    modal.show();
+
+    document.getElementById('locationModal').addEventListener('shown.bs.modal',function(){
+        initializeMap(locationData?.latitude,locationData?.longitude);
+        setTimeout(()=>{google.maps.event.trigger(map,"resize"); map.setCenter(locationData?{lat:parseFloat(locationData.latitude),lng:parseFloat(locationData.longitude)}:MAPUTO_CENTER); map.setZoom(locationData?15:7);},100);
+    },{once:true});
+}
+
+document.getElementById('locationForm').addEventListener('submit',async function(e){
+    e.preventDefault();
+    const id=document.getElementById('locationId').value;
+    const name=document.getElementById('locationName').value;
+    const description=document.getElementById('locationDescription').value;
+    const latitude=document.getElementById('latitude').value;
+    const longitude=document.getElementById('longitude').value;
+    const responsavel=document.getElementById('responsavel').value;
+
+    const resources=[];
+    document.querySelectorAll('#resourceRows .row').forEach(row=>{
+        const resourceSelect=row.querySelector('.resource-select');
+        const quantityInput=row.querySelector('.quantity-input');
+        if(resourceSelect.value && quantityInput.value){
+            resources.push({resourceId:parseInt(resourceSelect.value),quantity:parseInt(quantityInput.value)});
+        }
+    });
+
+    const payload={name,description,latitude:parseFloat(latitude),longitude:parseFloat(longitude),responsavel,resources};
+
+    try{
+        const res=await fetch(id?`${apiUrl}/${id}`:apiUrl,{method:id?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(!res.ok){const error=await res.json();throw new Error(error.message||'Failed to save location');}
+        bootstrap.Modal.getInstance(document.getElementById('locationModal')).hide();
+        document.querySelectorAll('.modal-backdrop').forEach(el=>el.remove());
+        loadLocationsResources(map);
+    }catch(err){console.error(err);alert('Error saving location: '+err.message);}
+});
+
+window.onload=async function(){await fetchResources(); initMap();};
+</script>
+{% endblock %}

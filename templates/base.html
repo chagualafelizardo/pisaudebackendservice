@@ -155,6 +155,188 @@
             width: 100%;
         }
 
+        /* AI Assistant Avatar */
+        .ai-assistant-container {
+            position: fixed;
+            bottom: 100px; /* subiu 10px */
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .ai-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            border: 4px solid white;
+            position: relative;
+        }
+
+        .ai-avatar:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .ai-avatar .pulse {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+        }
+
+        /* AI Dialog Styles */
+        .ai-dialog {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 380px;
+            height: 550px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+            z-index: 1001;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .ai-dialog.active {
+            display: flex;
+        }
+
+        .ai-dialog-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .ai-dialog-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .ai-dialog-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .ai-message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-message.bot {
+            flex-direction: row;
+        }
+
+        .ai-message.user {
+            flex-direction: row-reverse;
+        }
+
+        .ai-message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #4facfe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .ai-message-text {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            line-height: 1.4;
+        }
+
+        .ai-message.user .ai-message-text {
+            background: #007bff;
+            color: white;
+        }
+
+        .ai-dialog-input {
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            background: white;
+        }
+
+        .ai-dialog-input input {
+            border: none;
+            outline: none;
+            width: 100%;
+            padding: 12px 18px;
+            border-radius: 25px;
+            background: #f8f9fa;
+            font-size: 14px;
+        }
+
+        .ai-dialog-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .ai-dialog-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
         /* Responsivo */
         @media (max-width: 1199.98px) {
             :root {
@@ -179,6 +361,24 @@
             .main-content.mobile-pushed {
                 margin-left: var(--sidebar-width);
             }
+
+            .ai-assistant-container {
+                bottom: 15px;
+                right: 15px;
+            }
+
+            .ai-avatar {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+
+            .ai-dialog {
+                width: 320px;
+                height: 450px;
+                right: 15px;
+                bottom: 85px;
+            }
         }
 
         @media (max-width: 767.98px) {
@@ -190,6 +390,14 @@
                 width: 100%;
                 max-width: 300px;
             }
+
+            .ai-dialog {
+                width: calc(100% - 30px);
+                right: 15px;
+                left: 15px;
+                height: 65vh;
+                bottom: 85px;
+            }
         }
 
         @media (max-width: 575.98px) {
@@ -199,6 +407,16 @@
             
             .navbar-brand {
                 font-size: 1rem;
+            }
+
+            .ai-avatar {
+                width: 55px;
+                height: 55px;
+                font-size: 22px;
+            }
+
+            .ai-dialog {
+                height: 70vh;
             }
         }
 
@@ -286,6 +504,66 @@
             font-weight: 600;
             color: white;
         }
+
+        /* AI Options Styles */
+        .ai-options-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 10px 0;
+            padding: 0 10px;
+        }
+
+        .ai-option-button {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            color: #495057;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .ai-option-button:hover {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+
+        .ai-option-button i {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .ai-option-button span {
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        /* Responsive adjustments for options */
+        @media (max-width: 991.98px) {
+            .ai-options-container {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            
+            .ai-option-button {
+                padding: 10px 6px;
+                font-size: 11px;
+            }
+            
+            .ai-option-button i {
+                font-size: 14px;
+            }
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -298,7 +576,7 @@
                 <i class="bi bi-list"></i>
             </button>
             <a class="navbar-brand fw-bold" href="/dashboard">
-                <i class="bi bi-heart-pulse me-2"></i>PI-SAÚDE
+                <i class="bi bi-heart-pulse me-2"></i>PI-SAÚDE Tool
             </a>
 
             <div class="navbar-nav ms-auto">
@@ -345,23 +623,21 @@
                 <i class="bi bi-speedometer2"></i>Dashboard
             </a>
 
-            <!-- Alo-Saúde -->
-            {% if 'alosaudeMenu' in user_menus %}
             <div class="main-menu">
-                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#alosaudeMenu">
-                    <span><i class="bi bi-heart-pulse"></i>Alo-Saúde</span>
+                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#locationMenu">
+                    <span><i class="bi bi-clipboard-data"></i>Gestão de Localizações</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
-                <div class="collapse" id="alosaudeMenu">
-                    <a href="/content/iniciotarv" class="submenu">Início TARV</a>
-                    <a href="/content/adesaotarv" class="submenu">Adesão ao TARV</a>
-                    <a href="/content/cargaviral" class="submenu">Carga Viral</a>
-                    <a href="/content/faltosos" class="submenu">Faltosos</a>
-                    <a href="/content/abandonos" class="submenu">Abandonos</a>
-                    <a href="/content/observations" class="submenu">Observations</a>
+                <div class="collapse" id="locationMenu">
+                    <a href="/content/pais" class="submenu">Pais</a>
+                    <a href="/content/provincia" class="submenu">Provincia</a>
+                    <li><hr class="dropdown-divider"></li>
+
+                    <a href="/content/location" class="submenu">Health Facility</a>
+                    <a href="/content/subunidade" class="submenu">Subunidade</a>
+                    <li><hr class="dropdown-divider"></li>
                 </div>
             </div>
-            {% endif %}
 
             <!-- Menu Registo -->
             {% if 'registoMenu' in user_menus %}
@@ -371,19 +647,11 @@
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="registoMenu">
-                    <a href="/content/pais" class="submenu">Pais</a>
-                    <a href="/content/provincia" class="submenu">Provincia</a>
-                    <li><hr class="dropdown-divider"></li>
-
-                    <a href="/content/location" class="submenu">Health Facility</a>
-                    <a href="/content/subunidade" class="submenu">Subunidade</a>
-                    <li><hr class="dropdown-divider"></li>
-
                     <a href="/content/portatestagem" class="submenu">Porta de Testagem</a>
                     <a href="/content/keypopulation" class="submenu">Key Populations</a>
                     <li><hr class="dropdown-divider"></li>
 
-                    <a href="/content/grouptypes" class="submenu">Group Types</a>
+                    <a href="/content/grouptype" class="submenu">Group Types</a>
                     <a href="/content/group" class="submenu">Groups</a>
                     <li><hr class="dropdown-divider"></li>
 
@@ -392,6 +660,36 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Alo-Saúde -->
+            {% if 'alosaudeMenu' in user_menus %}
+            <div class="main-menu">
+                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#alosaudeMenu">
+                    <span><i class="bi bi-heart-pulse"></i>Linha Alo-Saúde</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="collapse" id="alosaudeMenu">
+                    <a href="/content/pisaudedashboard" class="submenu">PI-Saúde DashBoard</a>
+                    <a href="/content/iniciotarv" class="submenu">Início TARV</a>
+                    <a href="/content/adesaotarv" class="submenu">Adesão ao TARV</a>
+                    <a href="/content/marcadoslevantamento" class="submenu">Marcados Para Levantamento de ARVs</a>
+                    <a href="/content/cargaviral" class="submenu">Carga Viral</a>
+                    <a href="/content/faltosos" class="submenu">Faltosos</a>
+                    <a href="/content/abandonos" class="submenu">Abandonos</a>
+                    <a href="/content/observations" class="submenu">Observations</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="main-menu">
+                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#testagemMenu">
+                    <span><i class="bi bi-heart-pulse"></i>Testagem HIV</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="collapse" id="testagemMenu">
+                    <a href="/content/pisaudedashboard" class="submenu">PI-Saúde DashBoard</a>
+                </div>
+            </div>
 
             <!-- Resources Mapping -->
             {% if 'mappingMenu' in user_menus %}
@@ -458,6 +756,16 @@
             </div>
             {% endif %}
 
+            <div class="main-menu">
+                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#DODtrackingMenu">
+                    <span><i class="bi bi-box-seam"></i>DOD Tracking</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="collapse" id="DODtrackingMenu">
+                    <a href="/content/dashboarddoddistribuicao" class="submenu">Distribuição de Recursos</a>
+                </div>
+            </div>
+
             <!-- Recursos Humanos -->
             {% if 'rhMenu' in user_menus %}
             <div class="main-menu">
@@ -495,7 +803,6 @@
             {% endif %}
 
             <!-- User Management -->
-            {% if 'userMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#userMenu">
                     <span><i class="bi bi-person-gear"></i>Gestão de Usuários</span>
@@ -508,25 +815,6 @@
                     <a href="/content/settings" class="submenu">Configurações</a>
                 </div>
             </div>
-            {% endif %}
-
-            <!-- Grupos Alo-Saúde -->
-            {% if 'gruposAlosaudeMenus' in user_menus %}
-            <div class="main-menu">
-                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#gruposAlosaudeMenus">
-                    <span><i class="bi bi-people-fill"></i>Grupos Alo-Saúde</span>
-                    <i class="bi bi-chevron-down"></i>
-                </button>
-                <div class="collapse" id="gruposAlosaudeMenus">
-                    <a href="/content/iniciotarv" class="submenu">Início TARV</a>
-                    <a href="/content/adesaotarv" class="submenu">Adesão ao TARV</a>
-                    <a href="/content/cargaviral" class="submenu">Carga Viral</a>
-                    <a href="/content/faltosos" class="submenu">Faltosos</a>
-                    <a href="/content/abandonos" class="submenu">Abandonos</a>
-                    <a href="/content/observations" class="submenu">Observations</a>
-                </div>
-            </div>
-            {% endif %}
         </div>
 
         <!-- Usuário no fundo -->
@@ -551,6 +839,65 @@
         {% block content %}
         <!-- O conteúdo das páginas vai aqui -->
         {% endblock %}
+    </div>
+
+    <!-- AI Assistant Container -->
+    <div class="ai-assistant-container">
+        <!-- Jhpiego AI Avatar -->
+        <div class="ai-avatar" id="jhpiegoAiAvatar" title="Jhpiego AI Assistant">
+            <i class="bi bi-robot"></i>
+            <div class="pulse"></div>
+        </div>
+    </div>
+
+    <!-- Jhpiego AI Dialog -->
+    <div class="ai-dialog" id="jhpiegoAiDialog">
+        <div class="ai-dialog-header">
+            <div class="ai-dialog-avatar">
+                <i class="bi bi-robot"></i>
+            </div>
+            <div>
+                <h6 class="mb-0">Jhpiego AI Assistant</h6>
+                <small>Inteligência Artificial para suporte avançado</small>
+            </div>
+            <button class="ai-dialog-close" onclick="closeAiDialog('jhpiegoAiDialog')">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div class="ai-dialog-content" id="jhpiegoAiContent">
+            <div class="ai-message bot">
+                <div class="ai-message-avatar">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="ai-message-text">
+                    Olá! Sou o Jhpiego AI Assistant. Como posso ajudá-lo hoje? Escolha uma opção ou digite sua pergunta:
+                </div>
+            </div>
+            
+            <!-- Botões de opções iniciais -->
+            <div class="ai-options-container" id="aiInitialOptions">
+                <div class="ai-option-button" onclick="selectAiOption('Perguntas Frequentes')">
+                    <i class="bi bi-question-circle"></i>
+                    <span>Perguntas Frequentes</span>
+                </div>
+                <div class="ai-option-button" onclick="selectAiOption('Marcação de Consultas')">
+                    <i class="bi bi-calendar-check"></i>
+                    <span>Marcação de Consultas</span>
+                </div>
+                <div class="ai-option-button" onclick="selectAiOption('Algoritmos de Testagem')">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Implementar Algoritmo de Testagem</span>
+                </div>
+                <div class="ai-option-button" onclick="selectAiOption('Suporte Técnico')">
+                    <i class="bi bi-tools"></i>
+                    <span>Suporte Técnico</span>
+                </div>
+            </div>
+        </div>
+        <div class="ai-dialog-input">
+            <input type="text" placeholder="Digite sua mensagem para o Jhpiego AI..." 
+                id="jhpiegoAiInput" onkeypress="handleAiInput(event, 'jhpiegoAi')">
+        </div>
     </div>
 
     <footer>
@@ -605,8 +952,96 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
+            // AI Assistant functionality
+            initializeAiAssistant();
+
             console.log('Base template loaded successfully - Menu permissions applied');
         });
+
+        // AI Assistant Functions
+        function initializeAiAssistant() {
+            // Jhpiego AI Avatar click
+            document.getElementById('jhpiegoAiAvatar').addEventListener('click', function() {
+                openAiDialog('jhpiegoAiDialog');
+            });
+
+            // Close dialog when clicking outside
+            document.addEventListener('click', function(event) {
+                const aiDialog = document.getElementById('jhpiegoAiDialog');
+                const aiAvatar = document.getElementById('jhpiegoAiAvatar');
+                
+                const isClickInsideDialog = aiDialog.contains(event.target);
+                const isClickOnAvatar = aiAvatar.contains(event.target);
+
+                if (!isClickInsideDialog && !isClickOnAvatar && aiDialog.classList.contains('active')) {
+                    closeAiDialog('jhpiegoAiDialog');
+                }
+            });
+        }
+
+        function openAiDialog(dialogId) {
+            document.getElementById(dialogId).classList.add('active');
+            
+            // Focus on input
+            setTimeout(() => {
+                const input = document.getElementById('jhpiegoAiInput');
+                if (input) input.focus();
+            }, 100);
+        }
+
+        function closeAiDialog(dialogId) {
+            document.getElementById(dialogId).classList.remove('active');
+        }
+
+        function handleAiInput(event, aiType) {
+            if (event.key === 'Enter') {
+                const input = event.target;
+                const message = input.value.trim();
+                
+                if (message) {
+                    sendAiMessage(message, aiType);
+                    input.value = '';
+                }
+            }
+        }
+
+        function sendAiMessage(message, aiType) {
+            const contentId = `${aiType}Content`;
+            const content = document.getElementById(contentId);
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'ai-message user';
+            userMessage.innerHTML = `
+                <div class="ai-message-avatar">
+                    <i class="bi bi-person"></i>
+                </div>
+                <div class="ai-message-text">${message}</div>
+            `;
+            content.appendChild(userMessage);
+
+            // Simulate AI response (in a real implementation, this would be an API call)
+            setTimeout(() => {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'ai-message bot';
+                
+                const response = `Estou processando sua solicitação: "${message}". Em uma implementação real, eu me conectaria aos dados do sistema PI-SAÚDE para fornecer insights específicos sobre pacientes, medicamentos, relatórios ou análises que você precisa.`;
+                
+                botMessage.innerHTML = `
+                    <div class="ai-message-avatar">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <div class="ai-message-text">${response}</div>
+                `;
+                content.appendChild(botMessage);
+                
+                // Scroll to bottom
+                content.scrollTop = content.scrollHeight;
+            }, 1000);
+
+            // Scroll to bottom after adding user message
+            content.scrollTop = content.scrollHeight;
+        }
     </script>
 
     {% block extra_js %}{% endblock %}

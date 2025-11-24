@@ -19,6 +19,16 @@ class Location(db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
 
+    # 🔹 NOVO CAMPO: Responsável com valores fixos (DOD, Jhpiego)
+    responsavel = db.Column(
+        db.String(20), 
+        nullable=False, 
+        default='DOD',
+        server_default='DOD'
+    )
+    # NOVO CAMPO: Observações (texto livre, sem relacionamento)
+    observacoes = db.Column(db.Text, nullable=True)
+    
     # Relacionamentos
     observations = db.relationship('Observation', back_populates='location')
     users = db.relationship('User', back_populates='location')
@@ -35,3 +45,14 @@ class Location(db.Model):
 
     def __repr__(self):
         return f'<Location {self.name}>'
+
+    # 🔹 MÉTODO PARA VALIDAÇÃO DOS VALORES PERMITIDOS
+    @staticmethod
+    def get_responsaveis_permitidos():
+        """Retorna a lista de responsáveis permitidos"""
+        return ['DOD', 'Jhpiego','RISE']
+
+    # 🔹 MÉTODO PARA VALIDAR O VALOR DO RESPONSÁVEL
+    def validar_responsavel(self):
+        """Valida se o responsável está na lista de permitidos"""
+        return self.responsavel in self.get_responsaveis_permitidos()

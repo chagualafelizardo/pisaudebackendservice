@@ -3,7 +3,6 @@
 {% block title %}PI-SAÚDE / Groups{% endblock %}
 
 {% block content %}
-<!-- {% include 'navbar.html' %} -->
 
 <h2>Manage Groups</h2>
 
@@ -17,6 +16,8 @@
         <tr>
             <th>ID</th>
             <th>Description</th>
+            <th>Period</th>
+            <th>Observation</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -32,43 +33,68 @@
           <h5 class="modal-title" id="modalTitle">Add Group</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
+
         <div class="modal-body">
           <input type="hidden" id="groupId">
-          <input type="text" id="groupDescription" class="form-control" placeholder="Description" required>
+
+          <div class="mb-2">
+            <label><strong>Name / Description</strong></label>
+            <input type="text" id="groupDescription" class="form-control" placeholder="Description" required>
+          </div>
+
+          <div class="mb-2">
+            <label><strong>Start Date</strong></label>
+            <input type="date" id="groupDateStart" class="form-control">
+          </div>
+
+          <div class="mb-2">
+            <label><strong>End Date</strong></label>
+            <input type="date" id="groupDateEnd" class="form-control">
+          </div>
+
+          <div class="mb-2">
+            <label><strong>Observation</strong></label>
+            <textarea id="groupObservation" class="form-control" rows="3" placeholder="Observation"></textarea>
+          </div>
         </div>
+
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Save</button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         </div>
+
       </form>
     </div>
   </div>
 </div>
 
+
 <script>
 const apiGroup = '/api/group';
 
-// Carregar grupos
+// Carregar tabela
 async function loadGroups() {
     const res = await fetch(apiGroup);
     const groups = await res.json();
     const tbody = document.getElementById('groupsTableBody');
     tbody.innerHTML = '';
-    groups.forEach(group => {
+
+    groups.forEach(g => {
         tbody.innerHTML += `
         <tr>
-            <td>${group.id}</td>
-            <td>${group.description}</td>
+            <td>${g.id}</td>
+            <td>${g.description}</td>
+            <td>${g.dateStart ?? '-'} → ${g.dateEnd ?? '-'}</td>
+            <td>${g.observation ? g.observation.substring(0, 25) + '...' : ''}</td>
             <td>
-                <button class="btn btn-sm btn-warning" onclick="editGroup(${group.id})">Edit</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteGroup(${group.id})">Delete</button>
+                <button class="btn btn-sm btn-warning" onclick="editGroup(${g.id})">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteGroup(${g.id})">Delete</button>
             </td>
-        </tr>
-        `;
+        </tr>`;
     });
 }
 
-// Abrir modal (adicionar)
+// Abrir modal (novo)
 function openModal() {
     document.getElementById('modalTitle').innerText = 'Add Group';
     document.getElementById('groupForm').reset();
@@ -78,10 +104,15 @@ function openModal() {
 // Editar grupo
 async function editGroup(id) {
     const res = await fetch(`${apiGroup}/${id}`);
-    const group = await res.json();
+    const g = await res.json();
+
     document.getElementById('modalTitle').innerText = 'Edit Group';
-    document.getElementById('groupId').value = group.id;
-    document.getElementById('groupDescription').value = group.description;
+    document.getElementById('groupId').value = g.id;
+    document.getElementById('groupDescription').value = g.description;
+    document.getElementById('groupDateStart').value = g.dateStart ?? '';
+    document.getElementById('groupDateEnd').value = g.dateEnd ?? '';
+    document.getElementById('groupObservation').value = g.observation ?? '';
+
     new bootstrap.Modal(document.getElementById('groupModal')).show();
 }
 
@@ -89,40 +120,37 @@ async function editGroup(id) {
 document.getElementById('groupForm').addEventListener('submit', async e => {
     e.preventDefault();
     const id = document.getElementById('groupId').value;
-    const data = { description: document.getElementById('groupDescription').value };
+
+    const data = {
+        description: document.getElementById('groupDescription').value,
+        dateStart: document.getElementById('groupDateStart').value || null,
+        dateEnd: document.getElementById('groupDateEnd').value || null,
+        observation: document.getElementById('groupObservation').value || null
+    };
 
     let res;
     if (id) {
         res = await fetch(`${apiGroup}/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
     } else {
         res = await fetch(apiGroup, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
         });
     }
 
-    if (!res.ok) {
-        const err = await res.json();
-        alert(err.message);
-        return;
-    }
-
-    const modalEl = document.getElementById('groupModal');
-    const modal = bootstrap.Modal.getInstance(modalEl);
+    const modal = bootstrap.Modal.getInstance(document.getElementById('groupModal'));
     modal.hide();
-
-    // Remove backdrop manualmente
-    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.querySelectorAll('.modal-backdrop').forEach(e => e.remove());
 
     loadGroups();
 });
 
-// Deletar grupo
+// Deletar
 async function deleteGroup(id) {
     if (!confirm('Are you sure you want to delete this group?')) return;
     await fetch(`${apiGroup}/${id}`, { method: 'DELETE' });
@@ -134,7 +162,6 @@ window.onload = () => loadGroups();
 </script>
 
 <style>
-/* Botão flutuante no canto inferior direito */
 #addGroupBtn {
     position: fixed;
     bottom: 20px;

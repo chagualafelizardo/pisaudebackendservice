@@ -16,7 +16,6 @@ class LocationController:
             for loc in locations:
                 resources_data = []
                 for resource in loc.resources:
-                    # CORREÇÃO: Usando a sintaxe correta do SQLAlchemy 2.x
                     stmt = select(text('quantity')).select_from(
                         Location.resources.property.secondary
                     ).where(
@@ -37,6 +36,8 @@ class LocationController:
                     'description': loc.description,
                     'latitude': loc.latitude,
                     'longitude': loc.longitude,
+                    'responsavel': loc.responsavel,
+                    'observacoes': loc.observacoes,   # 👇 ADICIONADO
                     'resources': resources_data,
                     'createAt': loc.createAt,
                     'updateAt': loc.updateAt
@@ -52,12 +53,10 @@ class LocationController:
             logger.info(f"[GET BY ID] Fetching location ID: {id}")
             loc = Location.query.get(id)
             if not loc:
-                logger.warning(f"[GET BY ID] Location ID {id} not found")
                 return jsonify({'message': 'Location not found'}), 404
 
             resources_data = []
             for resource in loc.resources:
-                # CORREÇÃO: Sintaxe atualizada para SQLAlchemy 2.x
                 stmt = select(text('quantity')).select_from(
                     Location.resources.property.secondary
                 ).where(
@@ -78,6 +77,8 @@ class LocationController:
                 'description': loc.description,
                 'latitude': loc.latitude,
                 'longitude': loc.longitude,
+                'responsavel': loc.responsavel,
+                'observacoes': loc.observacoes,   # 👇 ADICIONADO
                 'resources': resources_data,
                 'createAt': loc.createAt,
                 'updateAt': loc.updateAt
@@ -94,21 +95,27 @@ class LocationController:
             description = data.get('description')
             latitude = data.get('latitude')
             longitude = data.get('longitude')
+            responsavel = data.get('responsavel', 'DOD')
+            observacoes = data.get('observacoes')  # 👇 ADICIONADO
             resources = data.get('resources', [])
 
             if not name or not description:
-                logger.warning("[CREATE] Missing name or description")
                 return jsonify({'message': 'Missing required data'}), 400
 
+            responsaveis_permitidos = Location.get_responsaveis_permitidos()
+            if responsavel not in responsaveis_permitidos:
+                return jsonify({'message': f'Responsável deve ser um dos: {", ".join(responsaveis_permitidos)}'}), 400
+
             if Location.query.filter_by(name=name).first():
-                logger.warning(f"[CREATE] Location '{name}' already exists")
                 return jsonify({'message': 'Location already exists'}), 400
 
             new_location = Location(
                 name=name,
                 description=description,
                 latitude=float(latitude) if latitude else None,
-                longitude=float(longitude) if longitude else None
+                longitude=float(longitude) if longitude else None,
+                responsavel=responsavel,
+                observacoes=observacoes   # 👇 ADICIONADO
             )
             db.session.add(new_location)
             db.session.flush()
@@ -116,7 +123,6 @@ class LocationController:
             for item in resources:
                 res = Resource.query.get(item.get('resourceId'))
                 if res:
-                    logger.info(f"[CREATE] Adding resource ID {res.id} with quantity {item.get('quantity', 0)} to location '{name}'")
                     db.session.execute(
                         Location.resources.property.secondary.insert().values(
                             location_id=new_location.id,
@@ -126,7 +132,6 @@ class LocationController:
                     )
 
             db.session.commit()
-            logger.info(f"[CREATE] Location '{name}' created successfully with ID {new_location.id}")
             return jsonify({'message': 'Location created successfully'}), 201
         except Exception as e:
             db.session.rollback()
@@ -138,7 +143,6 @@ class LocationController:
         try:
             loc = Location.query.get(id)
             if not loc:
-                logger.warning(f"[UPDATE] Location ID {id} not found")
                 return jsonify({'message': 'Location not found'}), 404
 
             data = request.get_json()
@@ -146,21 +150,30 @@ class LocationController:
             description = data.get('description')
             latitude = data.get('latitude')
             longitude = data.get('longitude')
+            responsavel = data.get('responsavel')
+            observacoes = data.get('observacoes')  # 👇 ADICIONADO
             resources = data.get('resources', [])
 
             if not name or not description:
-                logger.warning(f"[UPDATE] Missing data for location ID {id}")
                 return jsonify({'message': 'Missing required data'}), 400
 
+            if responsavel:
+                responsaveis_permitidos = Location.get_responsaveis_permitidos()
+                if responsavel not in responsaveis_permitidos:
+                    return jsonify({'message': f'Responsável deve ser um dos: {", ".join(responsaveis_permitidos)}'}), 400
+
             if Location.query.filter(Location.name == name, Location.id != id).first():
-                logger.warning(f"[UPDATE] Location name '{name}' already used by another location")
                 return jsonify({'message': 'Location name already in use'}), 400
 
-            logger.info(f"[UPDATE] Updating location ID {id} with name '{name}'")
             loc.name = name
             loc.description = description
             loc.latitude = float(latitude) if latitude else None
             loc.longitude = float(longitude) if longitude else None
+
+            if responsavel:
+                loc.responsavel = responsavel
+
+            loc.observacoes = observacoes  # 👇 ADICIONADO
             loc.updateAt = datetime.utcnow()
 
             db.session.execute(
@@ -172,7 +185,6 @@ class LocationController:
             for item in resources:
                 res = Resource.query.get(item.get('resourceId'))
                 if res:
-                    logger.info(f"[UPDATE] Re-adding resource ID {res.id} with quantity {item.get('quantity', 0)}")
                     db.session.execute(
                         Location.resources.property.secondary.insert().values(
                             location_id=loc.id,
@@ -182,7 +194,6 @@ class LocationController:
                     )
 
             db.session.commit()
-            logger.info(f"[UPDATE] Location ID {id} updated successfully")
             return jsonify({'message': 'Location updated successfully'}), 200
         except Exception as e:
             db.session.rollback()
@@ -194,14 +205,19 @@ class LocationController:
         try:
             loc = Location.query.get(id)
             if not loc:
-                logger.warning(f"[DELETE] Location ID {id} not found")
                 return jsonify({'message': 'Location not found'}), 404
 
             db.session.delete(loc)
             db.session.commit()
-            logger.info(f"[DELETE] Location ID {id} deleted successfully")
             return jsonify({'message': 'Location deleted successfully'}), 200
         except Exception as e:
             db.session.rollback()
-            logger.error(f"[DELETE] Failed to delete location ID {id}: {e}")
+            return jsonify({'error': str(e)}), 500
+
+    @staticmethod
+    def get_responsaveis():
+        try:
+            responsaveis = Location.get_responsaveis_permitidos()
+            return jsonify({'responsaveis': responsaveis, 'total': len(responsaveis)}), 200
+        except Exception as e:
             return jsonify({'error': str(e)}), 500

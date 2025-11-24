@@ -7,6 +7,7 @@ from models import db, Observation, User, Location
 from models import User, UserComponente
 from werkzeug.security import check_password_hash
 import os
+from flask_cors import CORS  # 🔹 IMPORTE O CORS
 
 # -------------------------------
 # Configuração de Logging
@@ -24,6 +25,9 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = 'sua_chave_secreta'
+
+# 🔹🔹🔹 CONFIGURAÇÃO CORS - PERMITE TODAS AS ORIGENS (para desenvolvimento) 🔹🔹🔹
+CORS(app)
 
 # Inicialização do SQLAlchemy
 db.init_app(app)
@@ -84,6 +88,7 @@ from routes.NotaEnvioRoutes import nota_envio_bp
 from routes.NotaEnvioItemRoutes import nota_envio_item_bp
 from routes.NotaEnvioDocumentRoutes import nota_envio_document_bp
 from routes.ItensPendentesRoutes import itens_pendentes_bp
+from routes.ItensSolicitadosRoutes import items_solicitados_bp
 
 # -------------------------------
 # Registro de Blueprints (API)
@@ -99,7 +104,8 @@ blueprints = [
     pais_bp, formacao_bp, despacho_bp, licenca_bp, provincia_bp, armazem_bp,
     item_bp, componente_bp, usercomponente_bp, porto_bp, necessidade_bp,
     historico_bp, distribuicao_bp, tipo_item_bp, nota_envio_bp,
-    nota_envio_item_bp, nota_envio_document_bp, itens_pendentes_bp
+    nota_envio_item_bp, nota_envio_document_bp, itens_pendentes_bp,
+    items_solicitados_bp
 ]
 
 for bp in blueprints:
@@ -175,14 +181,6 @@ def dashboard():
                          total_records=0,  # Adapte conforme necessário
                          system_activity='Online')
 
-
-@app.route('/dashboarddistribuicao')
-def dashboard_distribuicao():
-    if 'user_id' not in session:
-        flash('Por favor, faça login primeiro.', 'warning')
-        return redirect(url_for('login'))
-    return render_template('dashboarddistribuicao.html')
-
 # app.py
 @app.route('/content/<page>')
 def content(page):
@@ -195,7 +193,7 @@ def content(page):
         return redirect(url_for('login'))
     
     # Páginas básicas sempre permitidas
-    if page in ['dashboard', 'dashboarddistribuicao']:
+    if page in ['dashboard', 'dashboarddistribuicao','dashboarddoddistribuicao','pisaudedashboard']:
         try:
             return render_template(f'{page}.html')
         except Exception as e:
@@ -214,70 +212,72 @@ def content(page):
         # Mapeamento de páginas para menus principais
         page_to_menu = {
             # Gestão de Formações
-            'especialidadesaude': 'gestaoFormacaoMenu',
-            'formacao': 'gestaoFormacaoMenu', 
-            'candidato': 'gestaoFormacaoMenu',
+            # 'especialidadesaude': 'gestaoFormacaoMenu',
+            # 'formacao': 'gestaoFormacaoMenu', 
+            # 'candidato': 'gestaoFormacaoMenu',
             
             # Resources Mapping
-            'resource': 'mappingMenu',
-            'resourcetype': 'mappingMenu',
-            'mapping': 'mappingMenu',
+            # 'resource': 'mappingMenu',
+            # 'resourcetype': 'mappingMenu',
+            # 'mapping': 'mappingMenu',
             
             # Gestão de Alocação
-            'afetacao': 'gestaoAlocacaoMenu',
-            'transferencia': 'gestaoAlocacaoMenu',
+            # 'afetacao': 'gestaoAlocacaoMenu',
+            # 'transferencia': 'gestaoAlocacaoMenu',
             
             # Items Tracking
-            'porto': 'trackingMenu',
-            'tipoitem': 'trackingMenu',
-            'notaenvio': 'trackingMenu',
-            'armazem': 'trackingMenu',
-            'item': 'trackingMenu',
-            'distribuicao': 'trackingMenu',
+            # 'porto': 'trackingMenu',
+            # 'tipoitem': 'trackingMenu',
+            # 'notaenvio': 'trackingMenu',
+            # 'armazem': 'trackingMenu',
+            # 'item': 'trackingMenu',
+            # 'distribuicao': 'trackingMenu',
             
             # Alo-Saúde
-            'alosaude': 'alosaudeMenu',
+            # 'alosaude': 'alosaudeMenu',
             
             # Menu Registo
-            'provincia': 'registoMenu',
-            'location': 'registoMenu',
-            'subunidade': 'registoMenu',
-            'portatestagem': 'registoMenu',
-            'keypopulation': 'registoMenu',
-            'grouptypes': 'registoMenu',
-            'group': 'registoMenu',
-            'states': 'registoMenu',
-            'textmessage': 'registoMenu',
-            'ramo': 'registoMenu',
-            'funcao': 'registoMenu',
-            'especialidade': 'registoMenu',
-            'subespecialidade': 'registoMenu',
-            'pais': 'registoMenu',
+            # 'provincia': 'registoMenu',
+            # 'location': 'registoMenu',
+            # 'subunidade': 'registoMenu',
+            # 'portatestagem': 'registoMenu',
+            # 'keypopulation': 'registoMenu',
+            # 'grouptypes': 'registoMenu',
+            # 'group': 'registoMenu',
+            # 'states': 'registoMenu',
+            # 'textmessage': 'registoMenu',
+            # 'ramo': 'registoMenu',
+            # 'funcao': 'registoMenu',
+            # 'especialidade': 'registoMenu',
+            # 'subespecialidade': 'registoMenu',
+            # 'pais': 'registoMenu',
             
             # Recursos Humanos
-            'patent': 'rhMenu',
-            'person': 'rhMenu',
-            'formaprestacaoservico': 'rhMenu',
-            'situacaogeral': 'rhMenu',
-            'situacaoprestacaoservico': 'rhMenu',
-            'tipolicenca': 'rhMenu',
-            'licenca': 'rhMenu',
-            'despacho': 'rhMenu',
+            # 'patent': 'rhMenu',
+            # 'person': 'rhMenu',
+            # 'formaprestacaoservico': 'rhMenu',
+            # 'situacaogeral': 'rhMenu',
+            # 'situacaoprestacaoservico': 'rhMenu',
+            # 'tipolicenca': 'rhMenu',
+            # 'licenca': 'rhMenu',
+            # 'despacho': 'rhMenu',
             
             # Grupos Alo-Saúde
-            'iniciotarv': 'gruposAlosaudeMenus',
-            'adesaotarv': 'gruposAlosaudeMenus',
-            'cargaviral': 'gruposAlosaudeMenus',
-            'faltosos': 'gruposAlosaudeMenus',
-            'abandonos': 'gruposAlosaudeMenus',
-            'observations': 'gruposAlosaudeMenus',
+            # 'iniciotarv': 'gruposAlosaudeMenus',
+            # 'adesaotarv': 'gruposAlosaudeMenus',
+            # 'cargaviral': 'gruposAlosaudeMenus',
+            # 'faltosos': 'gruposAlosaudeMenus',
+            # 'abandonos': 'gruposAlosaudeMenus',
+            # 'observations': 'gruposAlosaudeMenus',
+            # 'Modulo Alo-Saúde':'moduloAloSaude',
             
             # User Management
-            'user': 'userMenu',
-            'roles': 'userMenu',
-            'componente': 'userMenu',
-            'register': 'userMenu',
-            'settings': 'userMenu'
+            # 'location':'locationMenu',
+            # 'user': 'userMenu',
+            # 'roles': 'userMenu',
+            # 'componente': 'userMenu',
+            # 'register': 'userMenu',
+            # 'settings': 'userMenu'
         }
         
         # Verificar se a página é permitida
@@ -345,8 +345,10 @@ def get_user_menus(user_id):
         'Alo-Saúde': 'alosaudeMenu',
         'Menu de registos': 'registoMenu',
         'Menu de Recursos Humanos': 'rhMenu',
-        'Manus do usuário': 'userMenu',
-        'Menus de grupos de alo saúde': 'gruposAlosaudeMenus'
+        'Menus do usuário': 'userMenu',
+        'Menus de localização': 'locationMenu',
+        'Menus de grupos de alo saúde': 'gruposAlosaudeMenus',
+        'Módulo Alo-Saúde': 'moduloAloSaude'
     }
     
     # Converter componentes para menus

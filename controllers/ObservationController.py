@@ -6,47 +6,82 @@ class ObservationController:
     @staticmethod
     def get_all():
         try:
-            observations = Observation.query.all()
-            return jsonify([{
-                'id': obs.id,
-                'nid': obs.nid,
-                'fullname': obs.fullname,
-                'gender': obs.gender,
-                'age': obs.age,
-                'contact': obs.contact,
-                'occupation': obs.occupation,
-                'datainiciotarv': obs.datainiciotarv.isoformat(),
-                'datalevantamento': obs.datalevantamento.isoformat(),
-                'dataproximolevantamento': obs.dataproximolevantamento.isoformat(),
-                'dataconsulta': obs.dataconsulta.isoformat(),
-                'dataproximaconsulta': obs.dataproximaconsulta.isoformat(),
-                'dataalocacao': obs.dataalocacao.isoformat(),
-                'dataenvio': obs.dataenvio.isoformat(),
-                'smssendernumber': obs.smssendernumber,
-                'smssuporternumber': obs.smssuporternumber,
-                'dataprimeiracv': obs.dataprimeiracv.isoformat(),
-                'valorprimeiracv': obs.valorprimeiracv,
-                'dataultimacv': obs.dataultimacv.isoformat(),
-                'valorultimacv': obs.valorultimacv,
-                'linhaterapeutica': obs.linhaterapeutica,
-                'regime': obs.regime,
-                'stateId': obs.stateId,
-                'textmessageId': obs.textmessageId,
-                'grouptypeId': obs.grouptypeId,
-                'groupId': obs.groupId,
-                'locationId': obs.locationId,
-                'userId': obs.userId,
-                'createAt': obs.createAt.isoformat(),
-                'updateAt': obs.updateAt.isoformat(),
-                'state': {'id': obs.state.id, 'description': obs.state.description} if obs.state else None,
-                'textmessage': {'id': obs.textmessage.id, 'messagetext': obs.textmessage.messagetext} if obs.textmessage else None,
-                'grouptype': {'id': obs.grouptype.id, 'description': obs.grouptype.description} if obs.grouptype else None,
-                'group': {'id': obs.group.id, 'description': obs.group.description} if obs.group else None,
-                'location': {'id': obs.location.id, 'name': obs.location.name} if obs.location else None,
-                'user': {'id': obs.user.id, 'fullname': obs.user.fullname} if obs.user else None
-            } for obs in observations]), 200
+            query = Observation.query
+
+            # 🔥 Filtros opcionais do frontend
+            textId = request.args.get('textmessageId')
+            stateId = request.args.get('stateId')
+            groupId = request.args.get('groupId')
+            groupTypeId = request.args.get('grouptypeId')
+            locationId = request.args.get('locationId')
+
+            if textId:
+                query = query.filter(Observation.textmessageId == int(textId))
+
+            if stateId:
+                query = query.filter(Observation.stateId == int(stateId))
+
+            if groupId:
+                query = query.filter(Observation.groupId == int(groupId))
+
+            if groupTypeId:
+                query = query.filter(Observation.grouptypeId == int(groupTypeId))
+
+            if locationId:
+                query = query.filter(Observation.locationId == int(locationId))
+
+            observations = query.all()
+
+            result = []
+            for obs in observations:
+                result.append({
+                    'id': obs.id,
+                    'nid': obs.nid,
+                    'fullname': obs.fullname,
+                    'gender': obs.gender,
+                    'age': obs.age,
+                    'contact': obs.contact,
+                    'occupation': obs.occupation,
+                    'datainiciotarv': obs.datainiciotarv.isoformat() if obs.datainiciotarv else None,
+                    'datalevantamento': obs.datalevantamento.isoformat() if obs.datalevantamento else None,
+                    'dataproximolevantamento': obs.dataproximolevantamento.isoformat() if obs.dataproximolevantamento else None,
+                    'dataconsulta': obs.dataconsulta.isoformat() if obs.dataconsulta else None,
+                    'dataproximaconsulta': obs.dataproximaconsulta.isoformat() if obs.dataproximaconsulta else None,
+                    'dataalocacao': obs.dataalocacao.isoformat() if obs.dataalocacao else None,
+                    'dataenvio': obs.dataenvio.isoformat() if obs.dataenvio else None,
+                    'dataprimeiracv': obs.dataprimeiracv.isoformat() if obs.dataprimeiracv else None,
+                    'valorprimeiracv': obs.valorprimeiracv,
+                    'dataultimacv': obs.dataultimacv.isoformat() if obs.dataultimacv else None,
+                    'valorultimacv': obs.valorultimacv,
+                    'linhaterapeutica': obs.linhaterapeutica,
+                    'regime': obs.regime,
+
+                    # 🔥 IDs
+                    'stateId': obs.stateId,
+                    'textmessageId': obs.textmessageId,
+                    'grouptypeId': obs.grouptypeId,
+                    'groupId': obs.groupId,
+                    'locationId': obs.locationId,
+                    'userId': obs.userId,
+
+                    # 🔥 Descrições completas
+                    'stateDescription': obs.state.description if obs.state else None,
+                    'textMessageDescription': obs.textmessage.messagetext if obs.textmessage else None,
+                    'groupTypeDescription': obs.grouptype.description if obs.grouptype else None,
+                    'groupDescription': obs.group.description if obs.group else None,
+                    'locationName': obs.location.name if obs.location else None,
+                    'userFullName': obs.user.fullname if obs.user else None,
+
+                    'createAt': obs.createAt.isoformat() if obs.createAt else None,
+                    'updateAt': obs.updateAt.isoformat() if obs.updateAt else None
+                })
+
+            return jsonify(result), 200
+
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+
+
 
     @staticmethod
     def get_by_id(id):
@@ -179,52 +214,106 @@ class ObservationController:
             if not data:
                 return jsonify({'message': 'No data provided'}), 400
 
-            # Atualiza campos simples
-            simple_fields = ['fullname', 'gender', 'age', 'contact', 'occupation',
-                           'smssendernumber', 'smssuporternumber', 'linhaterapeutica', 'regime']
-            
+            # 1) Campos simples
+            simple_fields = [
+                'fullname', 'gender', 'age', 'contact', 'occupation',
+                'smssendernumber', 'smssuporternumber', 'linhaterapeutica', 'regime'
+            ]
             for field in simple_fields:
                 if field in data:
                     setattr(observation, field, data[field])
 
-            # Atualiza campos de data
-            date_fields = ['datainiciotarv', 'datalevantamento', 'dataproximolevantamento',
-                         'dataconsulta', 'dataproximaconsulta', 'dataalocacao', 'dataenvio',
-                         'dataprimeiracv', 'dataultimacv']
-            
+            # 2) Campos de data
+            date_fields = [
+                'datainiciotarv', 'datalevantamento', 'dataproximolevantamento',
+                'dataconsulta', 'dataproximaconsulta', 'dataalocacao', 'dataenvio',
+                'dataprimeiracv', 'dataultimacv'
+            ]
             for field in date_fields:
-                if field in data:
+                if field in data and data[field]:
                     setattr(observation, field, datetime.fromisoformat(data[field]))
 
-            # Atualiza campos numéricos
+            # 3) Campos numéricos
             if 'valorprimeiracv' in data:
                 observation.valorprimeiracv = data['valorprimeiracv']
             if 'valorultimacv' in data:
                 observation.valorultimacv = data['valorultimacv']
 
-            # Atualiza relacionamentos
-            related_models = {
-                'stateId': State,
-                'textmessageId': Textmessage,
-                'grouptypeId': Grupotype,
-                'groupId': Grupo,
-                'locationId': Location,
-                'userId': User
+            # 4) Relacionamentos (FKs)
+            fk_fields = {
+                'stateId': 'state_id',
+                'textmessageId': 'textmessage_id',
+                'grouptypeId': 'grouptype_id',
+                'groupId': 'group_id',
+                'locationId': 'location_id',
+                'userId': 'user_id'
             }
 
-            for field, model in related_models.items():
+            for field, column_name in fk_fields.items():
                 if field in data:
-                    if not model.query.get(data[field]):
-                        return jsonify({'message': f'{model.__name__} with id {data[field]} not found'}), 404
-                    setattr(observation, field, data[field])
+                    setattr(observation, column_name, data[field])
 
+            # Atualiza timestamp
             observation.updateAt = datetime.utcnow()
+
             db.session.commit()
 
             return jsonify({
                 'message': 'Observation updated successfully',
                 'id': observation.id
             }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+    @staticmethod
+    def confirm_action(id):
+        try:
+            observation = Observation.query.get(id)
+            if not observation:
+                return jsonify({'message': 'Observation not found'}), 404
+
+            data = request.get_json()
+            if not data:
+                return jsonify({'message': 'No data provided'}), 400
+
+            if 'stateId' not in data or 'textmessageId' not in data:
+                return jsonify({'message': 'stateId and textmessageId are required'}), 400
+
+            observation.stateId = int(data['stateId'])
+            observation.textmessageId = int(data['textmessageId'])
+            observation.updateAt = datetime.utcnow()
+
+            db.session.commit()
+
+            return jsonify({'message': 'Action confirmed successfully'}), 200
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+    @staticmethod
+    def update_group(id):
+        try:
+            observation = Observation.query.get(id)
+            if not observation:
+                return jsonify({'message': 'Observation not found'}), 404
+
+            data = request.get_json()
+            if not data:
+                return jsonify({'message': 'No data provided'}), 400
+
+            if 'groupId' not in data or 'textmessageId' not in data:
+                return jsonify({'message': 'groupId and textmessageId are required'}), 400
+
+            observation.groupId = int(data['groupId'])
+            observation.textmessageId = int(data['textmessageId'])
+            observation.updateAt = datetime.utcnow()
+
+            db.session.commit()
+            return jsonify({'message': 'Observation updated successfully'}), 200
+
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500

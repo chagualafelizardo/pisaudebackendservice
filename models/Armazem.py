@@ -14,6 +14,9 @@ class Armazem(db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
 
+    # 🔹 Novo campo de observação (texto livre)
+    observacao = db.Column(db.Text, nullable=True)
+
     # Relação com Provincia
     provincia_id = db.Column(db.Integer, ForeignKey('provincia.id'), nullable=False)
     provincia = relationship('Provincia', back_populates='armazens')

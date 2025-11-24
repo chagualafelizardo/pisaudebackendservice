@@ -60,6 +60,7 @@
                 <th>Quantidade</th>
                 <th>Data Distribuição</th>
                 <th>Observação</th>
+                <th>User</th>
                 <th>Ações</th>
             </tr>
         </thead>
@@ -1012,6 +1013,7 @@ function renderizarTabela(distribuicoes) {
             <td><span class="badge bg-primary">${d.quantidade}</span></td>
             <td>${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleString() : '-'}</td>
             <td>${d.observacao || '-'}</td>
+            <td>${d.user || '-'}</td>
             <td>
                 <button class="btn btn-warning btn-sm" onclick='editDistribuicao(${JSON.stringify(d).replace(/'/g, "\\'")})' data-bs-toggle="tooltip" title="Editar">
                     <i class="bi bi-pencil-square"></i>
@@ -1088,7 +1090,8 @@ function renderizarBlocos(distribuicoes) {
                         <small class="text-muted"><strong>Armazém:</strong> ${armazemNome}</small><br>
                         <small class="text-muted"><strong>Destino:</strong> ${locationNome}</small><br>
                         <small class="text-muted"><strong>Data:</strong> ${d.data_distribuicao ? new Date(d.data_distribuicao).toLocaleDateString() : 'N/A'}</small><br>
-                        <small class="text-muted"><strong>Observação:</strong> ${d.observacao || 'Nenhuma'}</small>
+                        <small class="text-muted"><strong>Observação:</strong> ${d.observacao || 'Nenhuma'}</small><br>
+                        <small class="text-muted"><strong>User:</strong> ${d.user || 'Nenhum user associado'}</small>
                     </p>
                     <div class="card-actions">
                         <button class="btn btn-sm btn-warning" onclick='editDistribuicao(${JSON.stringify(d).replace(/'/g, "\\'")})' data-bs-toggle="tooltip" title="Editar">

@@ -20,3 +20,4 @@ importlib_metadata==8.0.0
 pytz
 Flask-Migrate # ao actualizar o model ele é responsavel por fazer isso na base de dados
 Flask-Babel
+Flask-CORS==4.0.0  # 🔹 ADICIONE ESTA LINHA

@@ -22,3 +22,8 @@ def update_grupo(id):
 @group_bp.route('/group/<int:id>', methods=['DELETE'])
 def delete_grupo(id):
     return GroupController.delete(id)
+
+# 🔥 NOVA ROTA PARA INSERIR PACIENTES NO GRUPO
+@group_bp.route('/group/addmembersingrup', methods=['POST'])
+def add_members():
+    return GroupController.add_members()

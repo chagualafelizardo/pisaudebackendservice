@@ -24,6 +24,8 @@
             <th>Latitude</th>
             <th>Longitude</th>
             <th>Resources</th>
+            <th>Responsavel</th>
+            <th>Observações</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -53,14 +55,29 @@
           <textarea id="locationDescription" class="form-control" required></textarea>
         </div>
 
+        <!-- 🔹 NOVO CAMPO: Responsável -->
+        <div class="mb-3">
+          <label for="responsavel" class="form-label">Responsável</label>
+          <select id="responsavel" class="form-select" required>
+            <option value="DOD">DOD</option>
+            <option value="Jhpiego">Jhpiego</option>
+            <option value="RISE">RISE</option>
+          </select>
+        </div>
+
         <div class="mb-3">
           <label for="latitude" class="form-label">Latitude</label>
-          <input type="text" id="latitude" class="form-control" readonly required>
+          <input type="text" id="latitude" class="form-control">
         </div>
 
         <div class="mb-3">
           <label for="longitude" class="form-label">Longitude</label>
-          <input type="text" id="longitude" class="form-control" readonly required>
+          <input type="text" id="longitude" class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="observacoes" class="form-label">Observações</label>
+            <textarea id="observacoes" class="form-control" rows="3" placeholder="Comentários ou informações adicionais"></textarea>
         </div>
 
         <!-- Search Location -->
@@ -218,6 +235,7 @@ function openLocationModal(locationData = null) {
         document.getElementById('locationDescription').value = locationData.description || '';
         document.getElementById('latitude').value = locationData.latitude || '';
         document.getElementById('longitude').value = locationData.longitude || '';
+        document.getElementById('responsavel').value = locationData.responsavel || 'DOD'; // 🔹 NOVO CAMPO
         
         // Limpa recursos anteriores e adiciona os novos
         document.getElementById('resourceRows').innerHTML = '';
@@ -230,6 +248,7 @@ function openLocationModal(locationData = null) {
         // Para novo local, reseta as coordenadas
         document.getElementById('latitude').value = '';
         document.getElementById('longitude').value = '';
+        document.getElementById('responsavel').value = 'DOD'; // 🔹 VALOR PADRÃO
     }
 
     // Mostra o modal
@@ -281,6 +300,8 @@ async function loadLocations() {
                     <td>${loc.latitude || ''}</td>
                     <td>${loc.longitude || ''}</td>
                     <td>${resourceList}</td>
+                    <td>${loc.responsavel || 'DOD'}</td>
+                    <td>${loc.observacoes || ''}</td>
                     <td>
                         <button class="btn btn-sm btn-warning" onclick="editLocation(${loc.id})">Edit</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteLocation(${loc.id})">Delete</button>
@@ -343,6 +364,8 @@ document.getElementById('locationForm').addEventListener('submit', async functio
     const description = document.getElementById('locationDescription').value;
     const latitude = document.getElementById('latitude').value;
     const longitude = document.getElementById('longitude').value;
+    const responsavel = document.getElementById('responsavel').value; // 🔹 NOVO CAMPO
+    const observacoes = document.getElementById('observacoes').value;
 
     // Coleta os recursos
     const resources = [];
@@ -363,8 +386,11 @@ document.getElementById('locationForm').addEventListener('submit', async functio
         description, 
         latitude: parseFloat(latitude), 
         longitude: parseFloat(longitude), 
+        responsavel,
+        observacoes,  // 🔹 NOVO
         resources 
     };
+
 
     try {
         const url = id ? `${apiUrl}/${id}` : apiUrl;
