@@ -234,6 +234,10 @@ async function loadLocationsResources(mapInstance) {
                     <strong>Observação:</strong><br>
                     <small>${observacao}</small>
                     <hr>
+                        <strong>Coordenadas Geográficas</strong><br>
+                        <strong>${loc.latitude}</strong><br>
+                        <strong>${loc.longitude}</strong>
+                    <hr>
                     <button class="btn btn-sm btn-primary w-100" onclick="openLocationModalById(${loc.id})">
                         Add/Edit Resources
                     </button>

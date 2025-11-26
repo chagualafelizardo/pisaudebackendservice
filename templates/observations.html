@@ -95,6 +95,7 @@
           <th>Contact</th>
           <th>Occupation</th>
           <th>SMS Text Message</th>
+          <th>Status</th>
           <th>Unidade Sanitária</th>
           <th>Utilizador</th>
           <th>Actions</th>
@@ -297,7 +298,17 @@ function renderTablePage(data, page){
     tbody.innerHTML += `
       <tr>
         <td><input type="checkbox" class="rowCheck" value="${o.id}"></td>
-        <td>${o.id}</td><td>${o.fullname}</td><td>${o.nid}</td><td>${o.gender}</td><td>${o.age}</td><td>${o.contact}</td><td>${o.occupation}</td><td>${o.textMessageDescription}</td><td>${o.locationName}</td><td>${o.userFullName}</td>
+        <td>${o.id}</td>
+        <td>${o.fullname}</td>
+        <td>${o.nid}</td>
+        <td>${o.gender}</td>
+        <td>${o.age}</td>
+        <td>${o.contact}</td>
+        <td>${o.occupation}</td>
+        <td>${o.textMessageDescription}</td>
+        <td>${o.status}</td>
+        <td>${o.userFullName}</td>
+        <td>${o.locationName}</td>
         <td>
           <button class="btn btn-warning btn-sm" onclick="editObs(${o.id})">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="deleteObs(${o.id})">Delete</button>
@@ -466,7 +477,9 @@ async function confirmAddMembers() {
 async function confirmAction(){
   const textId = filterTextmessage.value;
   const stateId = filterState.value;
+  const stateText = filterState.options[filterState.selectedIndex].text; // pega o texto do dropdown
   const ids = getSelectedIds();
+
   if(!ids.length) return alert("Selecione pacientes.");
   if(!textId) return alert("Selecione Text Message.");
   if(!stateId) return alert("Selecione State.");
@@ -474,13 +487,20 @@ async function confirmAction(){
 
   for(const id of ids){
     await fetch(`/api/observation/confirm/${id}`, {
-      method:'PUT', headers:{'Content-Type':'application/json'},
+      method:'PUT', 
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({stateId:Number(stateId), textmessageId:Number(textId)})
     });
+
+    // Atualiza localmente o campo status
+    const obs = observationsData.find(o => o.id === id);
+    if(obs) obs.status = stateText;
   }
+
   alert("Ação concluída!");
-  loadObservationsWithProgress();
+  renderTablePage(filteredData, currentPage); // atualiza a tabela com os novos status
 }
+
 
 /* --- Insert into Group --- */
 async function openInsertToGroupModal(){

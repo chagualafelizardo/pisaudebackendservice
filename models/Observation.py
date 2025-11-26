@@ -1,11 +1,19 @@
+from . import db
+from sqlalchemy import Enum
+import enum
 from datetime import datetime
-from . import db  # Importa db do __init__.py
 
+# Enum para syncStatus
+class SyncStatusEnum(enum.Enum):
+    NotSyncronized = "Not Syncronized"
+    Syncronized = "Syncronized"
+    Updated = "Updated"
+    
 class Observation(db.Model):
     __tablename__ = 'observation'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    nid = db.Column(db.String(100), nullable=False, unique=False)
+    nid = db.Column(db.String(100), nullable=False)
     fullname = db.Column(db.String(500), nullable=False)
     gender = db.Column(db.String(1), nullable=False)
     age = db.Column(db.String(100), nullable=False)
@@ -26,8 +34,15 @@ class Observation(db.Model):
     valorultimacv = db.Column(db.Integer, nullable=False)
     linhaterapeutica = db.Column(db.String(100), nullable=False)
     regime = db.Column(db.String(100), nullable=False)
+
+    # Novo campo para flat status
+    status = db.Column(db.String(100), nullable=False)
     
-    # Chaves estrangeiras (removido unique=True pois não faz sentido para FKs)
+    # Campos de sincronização
+    syncStatus = db.Column(Enum(SyncStatusEnum), nullable=False, default=SyncStatusEnum.NotSyncronized)
+    syncStatusDate = db.Column(db.DateTime, nullable=True)
+
+    # Chaves estrangeiras
     stateId = db.Column(db.Integer, db.ForeignKey('state.id'), nullable=False)
     textmessageId = db.Column(db.Integer, db.ForeignKey('textmessage.id'), nullable=False)
     grouptypeId = db.Column(db.Integer, db.ForeignKey('grouptype.id'), nullable=False)
@@ -39,12 +54,12 @@ class Observation(db.Model):
     updateAt = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
     # Relacionamentos
-    state = db.relationship('State', backref='state_observations')  # ✅
-    textmessage = db.relationship('Textmessage', backref='textmessage_observations')  # ✅
-    grouptype = db.relationship('Grouptype', backref='grouptype_observations')  # ✅
-    group = db.relationship('Group', backref='group_observations')  # ✅
-    location = db.relationship('Location', backref='location_observations')  # ✅
-    user = db.relationship('User', backref='user_observations')  # ✅
+    state = db.relationship('State', backref='state_observations')
+    textmessage = db.relationship('Textmessage', backref='textmessage_observations')
+    grouptype = db.relationship('Grouptype', backref='grouptype_observations')
+    group = db.relationship('Group', backref='group_observations')
+    location = db.relationship('Location', backref='location_observations')
+    user = db.relationship('User', backref='user_observations')
 
     def __repr__(self):
-        return f'<Observation {self.id}>'
+        return f'<Observation {self.id} service={self.service.value}>'

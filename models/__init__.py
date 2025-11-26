@@ -10,7 +10,7 @@ from .Location import Location
 from .Textmessage import Textmessage
 from .User import User
 from .UserRole import UserRole
-from .Observation import Observation
+from .Observation import Observation, SyncStatusEnum
 from .keyPopulation import KeyPopulation
 from .PortaTestagem import PortaTestagem
 from .ContactLink import ContactLink 

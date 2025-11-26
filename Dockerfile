@@ -14,7 +14,9 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip uninstall -y Flask-Babel || true && \
     pip install --no-cache-dir Flask==2.3.3 Flask-BabelEx==0.9.4 Flask-CORS==4.0.0 && \
+    pip install --no-cache-dir numpy==1.26.4 && \
     pip install --no-cache-dir -r requirements.txt
+
 
 # Copia todo o código do projeto
 COPY . .

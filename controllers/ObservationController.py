@@ -55,6 +55,7 @@ class ObservationController:
                     'valorultimacv': obs.valorultimacv,
                     'linhaterapeutica': obs.linhaterapeutica,
                     'regime': obs.regime,
+                    'status': obs.status,
 
                     # 🔥 IDs
                     'stateId': obs.stateId,
@@ -111,6 +112,7 @@ class ObservationController:
                     'valorultimacv': observation.valorultimacv,
                     'linhaterapeutica': observation.linhaterapeutica,
                     'regime': observation.regime,
+                    'status': observation.status,
                     'stateId': observation.stateId,
                     'textmessageId': observation.textmessageId,
                     'grouptypeId': observation.grouptypeId,
@@ -140,7 +142,7 @@ class ObservationController:
                              'datainiciotarv', 'datalevantamento', 'dataproximolevantamento',
                              'dataconsulta', 'dataproximaconsulta', 'dataalocacao', 'dataenvio',
                              'smssendernumber', 'smssuporternumber', 'dataprimeiracv', 'valorprimeiracv',
-                             'dataultimacv', 'valorultimacv', 'linhaterapeutica', 'regime',
+                             'dataultimacv', 'valorultimacv', 'linhaterapeutica', 'regime','status',
                              'stateId', 'textmessageId', 'grouptypeId', 'groupId', 'locationId', 'userId']
             
             missing_fields = [field for field in required_fields if field not in data]
@@ -184,6 +186,7 @@ class ObservationController:
                 valorultimacv=data['valorultimacv'],
                 linhaterapeutica=data['linhaterapeutica'],
                 regime=data['regime'],
+                status=data['status'],
                 stateId=data['stateId'],
                 textmessageId=data['textmessageId'],
                 grouptypeId=data['grouptypeId'],
@@ -281,9 +284,16 @@ class ObservationController:
             if 'stateId' not in data or 'textmessageId' not in data:
                 return jsonify({'message': 'stateId and textmessageId are required'}), 400
 
+            # Atualiza os campos principais
             observation.stateId = int(data['stateId'])
             observation.textmessageId = int(data['textmessageId'])
             observation.updateAt = datetime.utcnow()
+
+            # Atualiza o campo status com o valor do State
+            from models import State  # ou ajuste conforme o caminho do seu modelo
+            state = State.query.get(int(data['stateId']))
+            if state:
+                observation.status = state.description  # ou o campo que representa o nome do estado
 
             db.session.commit()
 
@@ -292,6 +302,7 @@ class ObservationController:
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
+
 
     @staticmethod
     def update_group(id):

@@ -8,6 +8,7 @@ services:
       - "5000:5000"
     volumes:
       - .:/app
+      - ./uploads:/app/uploads  # ✅ NOVO VOLUME ADICIONADO
     environment:
       - FLASK_ENV=development
       - FLASK_APP=app.py

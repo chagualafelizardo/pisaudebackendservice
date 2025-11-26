@@ -564,6 +564,66 @@
                 font-size: 14px;
             }
         }
+
+        /* Efeito de digitação */
+        .typing-indicator .ai-message-text {
+            background: #e9ecef !important;
+            color: #6c757d;
+            min-height: 20px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            height: 20px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Melhorar a aparência das mensagens durante a digitação */
+        .ai-message-text {
+            transition: all 0.3s ease;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        /* Efeito sutil quando a mensagem completa é exibida */
+        .ai-message.bot .ai-message-text {
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0.8;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
     
     {% block extra_css %}{% endblock %}
@@ -876,7 +936,7 @@
             
             <!-- Botões de opções iniciais -->
             <div class="ai-options-container" id="aiInitialOptions">
-                <div class="ai-option-button" onclick="selectAiOption('Perguntas Frequentes')">
+                <div class="ai-option-button" onclick="loadFaq()">
                     <i class="bi bi-question-circle"></i>
                     <span>Perguntas Frequentes</span>
                 </div>
@@ -904,7 +964,7 @@
         <small>&copy; {{ current_year }} - Developed by Felizardo Chaguala | Powered by Flask</small>
     </footer>
 
-    <script>
+<script>
         $(document).ready(function() {
             const sidebar = $('#mainSidebar');
             const mainContent = $('#mainContent');
@@ -1005,43 +1065,170 @@
             }
         }
 
-        function sendAiMessage(message, aiType) {
-            const contentId = `${aiType}Content`;
-            const content = document.getElementById(contentId);
-            
-            // Add user message
-            const userMessage = document.createElement('div');
-            userMessage.className = 'ai-message user';
-            userMessage.innerHTML = `
+        async function sendAiMessage(message, aiType) {
+        const contentId = `${aiType}Content`;
+        const content = document.getElementById(contentId);
+
+        // Add user message
+        const userMessage = document.createElement('div');
+        userMessage.className = 'ai-message user';
+        userMessage.innerHTML = `
+            <div class="ai-message-avatar">
+                <i class="bi bi-person"></i>
+            </div>
+            <div class="ai-message-text">${message}</div>
+        `;
+        content.appendChild(userMessage);
+
+        // Scroll to bottom
+        content.scrollTop = content.scrollHeight;
+
+        try {
+            // Mostrar indicador de digitação
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'ai-message bot typing-indicator';
+            typingIndicator.innerHTML = `
                 <div class="ai-message-avatar">
-                    <i class="bi bi-person"></i>
+                    <i class="bi bi-robot"></i>
                 </div>
-                <div class="ai-message-text">${message}</div>
+                <div class="ai-message-text typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             `;
-            content.appendChild(userMessage);
+            content.appendChild(typingIndicator);
+            content.scrollTop = content.scrollHeight;
 
-            // Simulate AI response (in a real implementation, this would be an API call)
-            setTimeout(() => {
-                const botMessage = document.createElement('div');
-                botMessage.className = 'ai-message bot';
-                
-                const response = `Estou processando sua solicitação: "${message}". Em uma implementação real, eu me conectaria aos dados do sistema PI-SAÚDE para fornecer insights específicos sobre pacientes, medicamentos, relatórios ou análises que você precisa.`;
-                
-                botMessage.innerHTML = `
-                    <div class="ai-message-avatar">
-                        <i class="bi bi-robot"></i>
-                    </div>
-                    <div class="ai-message-text">${response}</div>
-                `;
-                content.appendChild(botMessage);
-                
-                // Scroll to bottom
-                content.scrollTop = content.scrollHeight;
-            }, 1000);
+            const res = await fetch('/api/ai-query', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({message})
+            });
+            const data = await res.json();
 
-            // Scroll to bottom after adding user message
+            // Remover indicador de digitação
+            typingIndicator.remove();
+
+            // Criar mensagem do bot com efeito de digitação
+            const botMessage = document.createElement('div');
+            botMessage.className = 'ai-message bot';
+            botMessage.innerHTML = `
+                <div class="ai-message-avatar">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="ai-message-text" id="typing-text-${Date.now()}"></div>
+            `;
+            content.appendChild(botMessage);
+            
+            // Aplicar efeito de digitação
+            await typeWriter(`typing-text-${Date.now()}`, data.response, 20);
+            
+            content.scrollTop = content.scrollHeight;
+
+        } catch (err) {
+            console.error(err);
+            
+            // Remover indicador de digitação em caso de erro
+            const typingIndicator = document.querySelector('.typing-indicator');
+            if (typingIndicator) typingIndicator.remove();
+            
+            // Mostrar mensagem de erro
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'ai-message bot';
+            errorMessage.innerHTML = `
+                <div class="ai-message-avatar">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div class="ai-message-text">Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.</div>
+            `;
+            content.appendChild(errorMessage);
             content.scrollTop = content.scrollHeight;
         }
+    }
+
+    // Função para efeito de digitação
+    function typeWriter(elementId, text, speed = 30) {
+        return new Promise((resolve) => {
+            const element = document.getElementById(elementId);
+            let i = 0;
+            element.innerHTML = '';
+            
+            function type() {
+                if (i < text.length) {
+                    // Adicionar caractere atual
+                    element.innerHTML += text.charAt(i);
+                    
+                    // Scroll para baixo a cada 10 caracteres
+                    if (i % 10 === 0) {
+                        element.parentElement.parentElement.scrollTop = element.parentElement.parentElement.scrollHeight;
+                    }
+                    
+                    i++;
+                    
+                    // Velocidade variável para simular digitação humana
+                    const randomSpeed = speed + Math.random() * 20 - 10;
+                    setTimeout(type, randomSpeed);
+                } else {
+                    resolve();
+                }
+            }
+            
+            type();
+        });
+    }
+
+    // Função para selecionar opção rápida
+    function selectAiOption(option) {
+        const input = document.getElementById('jhpiegoAiInput');
+        input.value = option;
+        
+        // Simular pressionar Enter
+        const event = new KeyboardEvent('keypress', {
+            key: 'Enter',
+            code: 'Enter',
+            keyCode: 13,
+            which: 13,
+            bubbles: true
+        });
+        input.dispatchEvent(event);
+    }
+
+    function loadFaq() {
+        fetch('/api/ai/faq')
+            .then(r => r.json())
+            .then(data => {
+                const container = document.getElementById('jhpiegoAiContent');
+
+                let html = `
+                    <div class="ai-message bot">
+                        <div class="ai-message-avatar"><i class="bi bi-robot"></i></div>
+                        <div class="ai-message-text">
+                            Aqui estão algumas perguntas frequentes que pode selecionar:
+                        </div>
+                    </div>
+                    <div class="ai-options-container">
+                `;
+
+                data.faq.forEach(q => {
+                    html += `
+                    <div class="ai-option-button" onclick="sendFaqQuestion('${q.replace(/'/g, "\\'")}')">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>${q}</span>
+                    </div>`;
+                });
+
+                html += `</div>`;
+                container.insertAdjacentHTML('beforeend', html);
+                container.scrollTop = container.scrollHeight;
+            });
+    }
+
+    function sendFaqQuestion(q) {
+        addUserMessage(q);
+        processAiQuery(q);
+    }
+
     </script>
 
     {% block extra_js %}{% endblock %}
