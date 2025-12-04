@@ -1,6 +1,6 @@
+# app.py (REFATORADO)
 import logging
 import os
-import re
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_babelex import Babel, gettext as _
@@ -8,11 +8,10 @@ from config import Config
 from models import db, Observation, User, Location
 from models import User, UserComponente
 from werkzeug.security import check_password_hash
-from flask_cors import CORS  # 🔹 IMPORTE O CORS
-import PyPDF2
-import docx
-import pandas as pd
+from flask_cors import CORS
 
+# 🔥 IMPORTE O BOT
+from bot.jhpiego_bot import JhpiegoBot
 # -------------------------------
 # Configuração de Logging
 # -------------------------------
@@ -30,14 +29,14 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = 'sua_chave_secreta'
 
-# Onde colocar os documento para a leitura de Jhpiego Bot
-UPLOAD_DIR = 'uploads'
-
-# 🔹🔹🔹 CONFIGURAÇÃO CORS - PERMITE TODAS AS ORIGENS (para desenvolvimento) 🔹🔹🔹
+# 🔹 Configuração CORS
 CORS(app)
 
 # Inicialização do SQLAlchemy
 db.init_app(app)
+
+# Instância global do bot
+jhpiego_bot = JhpiegoBot()
 
 # Inicialização do Babel (idiomas)
 app.config['BABEL_DEFAULT_LOCALE'] = 'pt'
@@ -45,7 +44,7 @@ app.config['BABEL_SUPPORTED_LOCALES'] = ['pt', 'en']
 babel = Babel(app)
 
 # -------------------------------
-# Importação de Blueprints
+# Importação de Blueprints (MANTIDO)
 # -------------------------------
 from routes.ContactLinkRoutes import contactlink_bp
 from routes.DailyRecordRoutes import dailyrecord_bp
@@ -96,9 +95,10 @@ from routes.NotaEnvioItemRoutes import nota_envio_item_bp
 from routes.NotaEnvioDocumentRoutes import nota_envio_document_bp
 from routes.ItensPendentesRoutes import itens_pendentes_bp
 from routes.ItensSolicitadosRoutes import items_solicitados_bp
+from routes.AiRoutes import ai_bp
 
 # -------------------------------
-# Registro de Blueprints (API)
+# Registro de Blueprints (MANTIDO)
 # -------------------------------
 blueprints = [
     contactlink_bp, dailyrecord_bp, observation_bp, location_bp, role_bp,
@@ -112,95 +112,97 @@ blueprints = [
     item_bp, componente_bp, usercomponente_bp, porto_bp, necessidade_bp,
     historico_bp, distribuicao_bp, tipo_item_bp, nota_envio_bp,
     nota_envio_item_bp, nota_envio_document_bp, itens_pendentes_bp,
-    items_solicitados_bp
+    items_solicitados_bp, ai_bp
 ]
 
 for bp in blueprints:
     app.register_blueprint(bp, url_prefix='/api')
 
-# --- Para o Jhpiego AI Assistant -------
-
-# Funções para ler arquivos
-def read_txt(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return f.read()
-
-def read_pdf(file_path):
-    text = ""
-    with open(file_path, 'rb') as f:
-        reader = PyPDF2.PdfReader(f)
-        for page in reader.pages:
-            text += page.extract_text() + "\n"
-    return text
-
-def read_docx(file_path):
-    doc = docx.Document(file_path)
-    return "\n".join([p.text for p in doc.paragraphs])
-
-def read_excel(file_path):
-    df = pd.read_excel(file_path)
-    return df.to_csv(index=False)
-
-def load_files():
-    data = ""
-    for filename in os.listdir(UPLOAD_DIR):
-        path = os.path.join(UPLOAD_DIR, filename)
-        if filename.endswith('.txt'):
-            data += read_txt(path) + "\n"
-        elif filename.endswith('.pdf'):
-            data += read_pdf(path) + "\n"
-        elif filename.endswith('.docx'):
-            data += read_docx(path) + "\n"
-        elif filename.endswith('.xlsx'):
-            data += read_excel(path) + "\n"
-    return data
-
-# Endpoint para AI
-def clean_terms(text):
-    stopwords = ["o", "a", "os", "as", "de", "do", "da", "que", "é", "e", "para", "em"]
-    words = re.findall(r"\w+", text.lower())
-    return [w for w in words if w not in stopwords]
-
-TOPIC_KEYWORDS = {
-    "hiv": ["hiv", "sida", "aids"],
-    "malaria": ["malaria", "mosquito", "plasmodium"],
-    "tuberculose": ["tb", "tuberculose"],
-}
-
-def detect_topic(question):
-    q = question.lower()
-    for topic, keywords in TOPIC_KEYWORDS.items():
-        if any(k in q for k in keywords):
-            return topic
-    return None
-
+# -------------------------------
+# 🔥 ENDPOINT SIMPLIFICADO DO BOT
+# -------------------------------
 @app.route('/api/ai-query', methods=['POST'])
 def ai_query():
-    question = request.json.get("message", "")
-    docs_text = load_files()
-
-    topic = detect_topic(question)
-
-    if not topic:
-        return jsonify({"response": "Não consegui identificar o tema da pergunta. Pode reformular?"})
-
-    paragraphs = docs_text.split("\n\n")
-    best = ""
-
-    for p in paragraphs:
-        if any(kw in p.lower() for kw in TOPIC_KEYWORDS[topic]):
-            best = p
-            break
-
-    if not best:
-        return jsonify({"response": f"Não encontrei informações sobre {topic} nos documentos."})
-
-    return jsonify({"response": best})
-
-# ------------------------------
+    """Endpoint para consultas do Jhpiego Bot"""
+    try:
+        data = request.get_json()
+        if not data or 'message' not in data:
+            return jsonify({"response": "Por favor, forneça uma mensagem."}), 400
+        
+        question = data['message'].strip()
+        
+        # 🔥 USAR O BOT PARA PROCESSAR
+        result = jhpiego_bot.process_query(question)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"❌ Erro no endpoint AI: {e}")
+        return jsonify({
+            "response": "Ocorreu um erro ao processar sua pergunta. Tente novamente.",
+            "topic": None,
+            "source": None
+        }), 500
 
 # -------------------------------
-# Idioma (Babel)
+# 🔥 NOVO ENDPOINT: Status do Bot
+# -------------------------------
+@app.route('/api/bot-status', methods=['GET'])
+def bot_status():
+    """Retorna status do bot e documentos carregados"""
+    try:
+        upload_dir = jhpiego_bot.UPLOAD_DIR
+        documents = []
+        
+        if os.path.exists(upload_dir):
+            for filename in os.listdir(upload_dir):
+                if filename.endswith(('.txt', '.pdf', '.docx', '.xlsx')):
+                    documents.append({
+                        'name': filename,
+                        'size': os.path.getsize(os.path.join(upload_dir, filename))
+                    })
+        
+        return jsonify({
+            'status': 'active',
+            'documents_loaded': len(documents),
+            'documents': documents,
+            'topics_supported': list(jhpiego_bot.TOPIC_KEYWORDS.keys())
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Erro no status do bot: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+# -------------------------------
+# 🔥 NOVO ENDPOINT: Upload de Documentos
+# -------------------------------
+@app.route('/api/upload-document', methods=['POST'])
+def upload_document():
+    """Endpoint para upload de documentos para o bot"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'Nome de arquivo vazio'}), 400
+        
+        if file and file.filename.endswith(('.txt', '.pdf', '.docx', '.xlsx')):
+            filename = file.filename
+            filepath = os.path.join(jhpiego_bot.UPLOAD_DIR, filename)
+            file.save(filepath)
+            
+            logger.info(f"✅ Documento salvo: {filename}")
+            return jsonify({'message': f'Documento {filename} carregado com sucesso'})
+        else:
+            return jsonify({'error': 'Tipo de arquivo não suportado'}), 400
+            
+    except Exception as e:
+        logger.error(f"❌ Erro no upload: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# -------------------------------
+# Resto do código (MANTIDO - idioma, context processor, rotas frontend, etc.)
 # -------------------------------
 @babel.localeselector
 def get_locale():
@@ -216,17 +218,12 @@ def set_language(lang):
         session['lang'] = lang
     return redirect(request.referrer or url_for('dashboard'))
 
-# -------------------------------
-# Context Processor — info do usuário
-# -------------------------------
-# app.py
+# Context Processor — info do usuário (MANTIDO)
 @app.context_processor
 def inject_user_components():
     user_id = session.get('user_id')
     username = ''
     location_name = ''
-    
-    # SEMPRE inicializar as variáveis
     user_menus = []
     user_component_names = []
 
@@ -235,8 +232,6 @@ def inject_user_components():
         if user:
             username = getattr(user, 'fullname', user.username)
             location_name = getattr(user.location, 'name', '') if getattr(user, 'location', None) else ''
-
-            # Buscar componentes e menus do usuário
             componentes = UserComponente.query.filter_by(user_id=user_id).all()
             user_component_names = [uc.componente.descricao for uc in componentes if uc.componente]
             user_menus = get_user_menus(user_id)
@@ -244,32 +239,26 @@ def inject_user_components():
     return dict(
         username=username,
         location_name=location_name,
-        user_components=user_component_names,  # Para exibição
-        user_menus=user_menus,  # Para controle de acesso
+        user_components=user_component_names,
+        user_menus=user_menus,
         current_year=datetime.now().year
     )
 
-# -------------------------------
-# Rotas Frontend (HTML)
-# -------------------------------
+# Rotas Frontend (MANTIDO)
 @app.route('/')
 def index():
     return redirect(url_for('dashboard'))
 
 @app.route('/dashboard')
 def dashboard():
-    # Estatísticas básicas (exemplo - adapte conforme seus modelos)
     total_users = User.query.count()
     total_locations = Location.query.count()
-    # Adicione outras estatísticas conforme necessário
-    
     return render_template('dashboard.html', 
                          total_users=total_users,
                          total_locations=total_locations,
-                         total_records=0,  # Adapte conforme necessário
+                         total_records=0,
                          system_activity='Online')
 
-# app.py
 @app.route('/content/<page>')
 def content(page):
     # Converter para minúsculas
@@ -383,10 +372,8 @@ def content(page):
         logger.error(f"Erro ao carregar template '{page}.html': {str(e)}")
         flash(f'Erro ao carregar a página {page}.', 'danger')
         return redirect(url_for('dashboard'))
-    
-# -------------------------------
-# Login / Logout
-# -------------------------------
+
+# Login / Logout (MANTIDO)
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -417,14 +404,11 @@ def about():
     return render_template('about.html')
 
 def get_user_menus(user_id):
-    """Retorna lista de IDs de menus permitidos para o usuário"""
+    """Retorna lista de IDs de menus permitidos para o usuário (MANTIDO)"""
     user_menus = []
-    
-    # Buscar componentes do usuário
     componentes = UserComponente.query.filter_by(user_id=user_id).all()
     user_component_names = [uc.componente.descricao for uc in componentes if uc.componente]
     
-    # Mapeamento de componentes para menus
     componente_to_menu = {
         'Formação': 'gestaoFormacaoMenu',
         'Mapeamento de recursos': 'mappingMenu', 
@@ -439,18 +423,16 @@ def get_user_menus(user_id):
         'Módulo Alo-Saúde': 'moduloAloSaude'
     }
     
-    # Converter componentes para menus
     for component_name in user_component_names:
         if component_name in componente_to_menu:
             user_menus.append(componente_to_menu[component_name])
     
     return user_menus
 
-# -------------------------------
-# Rota de importação de Observações (API)
-# -------------------------------
+# Rota de importação de Observações (MANTIDO)
 @app.route('/api/observations/import', methods=['POST'])
 def import_observations():
+    # ... (código mantido igual)
     if not request.is_json:
         return jsonify({'error': 'Content-Type must be application/json'}), 415
         
@@ -517,9 +499,7 @@ def import_observations():
 
     return jsonify({'message': 'Import completed', 'imported_count': imported_count, 'errors': errors}), 200
 
-# -------------------------------
-# Error Handlers
-# -------------------------------
+# Error Handlers (MANTIDO)
 @app.errorhandler(404)
 def not_found_error(error):
     return """
@@ -563,7 +543,6 @@ def internal_error(error):
     </html>
     """, 500
 
-# Rota para favicon
 @app.route('/favicon.ico')
 def favicon():
     return '', 204
@@ -572,7 +551,7 @@ def favicon():
 # Inicialização da App
 # -------------------------------
 if __name__ == '__main__':
-    logger.info("🚀 Iniciando aplicação PI-SAÚDE...")
+    logger.info("🚀 Iniciando aplicação PI-SAÚDE com Jhpiego Bot...")
     
     with app.app_context():
         db.create_all()

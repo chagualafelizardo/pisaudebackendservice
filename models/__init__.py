@@ -6,7 +6,7 @@ from .Role import Role
 from .State import State
 from .Grouptype import Grouptype
 from .Group import Group
-from .Location import Location
+from .Location import Location, location_resource
 from .Textmessage import Textmessage
 from .User import User
 from .UserRole import UserRole
@@ -65,6 +65,6 @@ __all__ = [
     'Pais', 'Formacao', 'Licenca','EstadoLicencaEnum', 'Despacho','EstadoDespachoEnum',
     'Provincia','Item','Armazem', 'Componente','UserComponente', 'Porto',
     'ItemHistorico','ItemLocationNecessidade', 'Distribuicao','TipoItem','NotaEnvio',
-    'NotaEnvioItem', 'NotaEnvioDocument', 'ItemPendente', 'FormacaoItem','Participantes',
-    'ItemsSolicitados'
+    'NotaEnvioItem', 'NotaEnvioDocument', 'ItemPendente', 'FormacaoItem','Participante',
+    'ItemsSolicitados', 'location_resource'
 ]

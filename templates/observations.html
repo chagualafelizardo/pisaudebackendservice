@@ -3,233 +3,613 @@
 
 {% block content %}
 
-<h2>Manage Observations</h2>
-
-<!-- Botão flutuante -->
-<button id="addUserBtn"
-        class="btn btn-success rounded-circle position-fixed"
-        style="bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 28px; z-index: 1050;"
-        data-bs-toggle="modal"
-        data-bs-target="#obsModal"
-        onclick="openObsModal()">
-  +
-</button>
-
-<!-- 🔍 Filtros no Topo -->
-<div class="card p-3 mb-3 shadow-sm">
-      <!-- Data Inicial -->
-    <div class="col-md-2">
-      <label class="form-label"><strong>Data Inicial</strong></label>
-      <input type="date" id="filterStartDate" class="form-control">
-      <label class="form-label"><strong>Data Final</strong></label>
-      <input type="date" id="filterEndDate" class="form-control">
-    </div>
-  <div class="row g-3 align-items-end">
-    <!-- Text Message -->
-    <div class="col-md-2">
-      <label class="form-label"><strong>Text Message</strong></label>
-      <select id="filterTextmessage" class="form-select">
-        <option value="">-- All --</option>
-      </select>
-      
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">👥 Patient Observations Management</h2>
+            <p class="text-muted mb-0">Manage patient observations, states, and groups</p>
+        </div>
+        <button class="btn btn-primary btn-lg" onclick="openObsModal()">
+            <i class="fas fa-plus me-2"></i> Add New Observation
+        </button>
     </div>
 
-    <!-- State -->
-    <div class="col-md-2">
-      <label class="form-label"><strong>State</strong></label>
-      <select id="filterState" class="form-select">
-        <option value="">-- All --</option>
-      </select>
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Total Observations</h6>
+                            <h3 id="totalObservations" class="card-title mb-0">0</h3>
+                        </div>
+                        <i class="fas fa-clipboard-list fs-1 text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Active Patients</h6>
+                            <h3 id="activePatients" class="card-title mb-0">0</h3>
+                        </div>
+                        <i class="fas fa-user-check fs-1 text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Pending Actions</h6>
+                            <h3 id="pendingActions" class="card-title mb-0">0</h3>
+                        </div>
+                        <i class="fas fa-clock fs-1 text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">In Groups</h6>
+                            <h3 id="inGroups" class="card-title mb-0">0</h3>
+                        </div>
+                        <i class="fas fa-users fs-1 text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Group Type -->
-    <div class="col-md-2">
-      <label class="form-label"><strong>Group Type</strong></label>
-      <select id="filterGroupType" class="form-select">
-        <option value="">-- All --</option>
-      </select>
+    <!-- 🔍 Advanced Filters -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-filter me-2"></i> Filter Observations</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Date Range -->
+                <div class="col-md-3">
+                    <label class="form-label">
+                        <i class="fas fa-calendar me-1 text-primary"></i> Date Range
+                    </label>
+                    <div class="input-group">
+                        <input type="date" id="filterStartDate" class="form-control" placeholder="Start">
+                        <span class="input-group-text">to</span>
+                        <input type="date" id="filterEndDate" class="form-control" placeholder="End">
+                    </div>
+                </div>
+
+                <!-- Text Message -->
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="fas fa-sms me-1 text-primary"></i> SMS Message
+                    </label>
+                    <select id="filterTextmessage" class="form-select">
+                        <option value="">All Messages</option>
+                    </select>
+                </div>
+
+                <!-- State -->
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="fas fa-tag me-1 text-primary"></i> State
+                    </label>
+                    <select id="filterState" class="form-select">
+                        <option value="">All States</option>
+                    </select>
+                </div>
+
+                <!-- Location -->
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="fas fa-hospital me-1 text-primary"></i> Location
+                    </label>
+                    <select id="filterLocation" class="form-select">
+                        <option value="">All Locations</option>
+                    </select>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="col-md-3 d-flex flex-column gap-2 align-self-end">
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-primary" onclick="filterObservations()">
+                            <i class="fas fa-search me-1"></i> Apply
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="clearFilters()">
+                            <i class="fas fa-times me-1"></i> Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Filters Display -->
+            <div id="activeFilters" class="mt-3" style="display: none;">
+                <div class="d-flex align-items-center">
+                    <span class="me-2 text-muted"><i class="fas fa-filter"></i> Active filters:</span>
+                    <div id="filterTags" class="d-flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Group -->
-    <div class="col-md-2">
-      <label class="form-label"><strong>Group</strong></label>
-      <select id="filterGroup" class="form-select">
-        <option value="">-- All --</option>
-      </select>
+    <!-- Batch Actions -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-cogs me-2"></i> Batch Actions</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="selectAll">
+                        <label class="form-check-label" for="selectAll">
+                            <strong>Select All</strong> (<span id="selectedCount">0</span> selected)
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-success" onclick="confirmAction()">
+                            <i class="fas fa-check-circle me-1"></i> Confirm State
+                        </button>
+                        <button class="btn btn-primary" onclick="openInsertToGroupModal()">
+                            <i class="fas fa-user-plus me-1"></i> Add to Group
+                        </button>
+                        <button class="btn btn-warning" onclick="exportSelected()">
+                            <i class="fas fa-file-export me-1"></i> Export
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteSelected()">
+                            <i class="fas fa-trash me-1"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Location -->
-    <div class="col-md-2">
-      <label class="form-label"><strong>Location</strong></label>
-      <select id="filterLocation" class="form-select">
-        <option value="">-- All --</option>
-      </select>
+    <!-- Observations Table -->
+    <div class="card">
+        <div class="card-header bg-white border-bottom-0">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">Observations List</h5>
+                    <small class="text-muted" id="resultsInfo">Loading observations...</small>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary" onclick="loadObservationsWithProgress()">
+                        <i class="fas fa-redo me-1"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="40">
+                                <input type="checkbox" id="selectAllHeader" class="form-check-input">
+                            </th>
+                            <th>ID</th>
+                            <th>Patient</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>SMS Message</th>
+                            <th>Group</th>
+                            <th>Location</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="obsTableBody">
+                        <tr>
+                            <td colspan="10" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 mb-0">Loading observations...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                <div class="text-muted" id="paginationInfo">Showing 0 of 0 observations</div>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="changePage(-1)" disabled id="prevBtn">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="changePage(1)" disabled id="nextBtn">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- Botões principais -->
-    <div class="col-md-2 d-flex flex-column gap-2">
-      <button class="btn btn-primary w-100" onclick="filterObservations()">Apply Filter</button>
-      <button class="btn btn-secondary w-100" onclick="clearFilters()">Clear</button>
-      <button class="btn btn-danger w-100" onclick="deleteSelected()">Delete Selected</button>
-    </div>
-
-    <div class="col-md-2 d-flex flex-column gap-2">
-        <button class="btn btn-success w-100" onclick="confirmAction()">Confirmar ação</button>
-    </div>
-    <div class="col-md-2 d-flex flex-column gap-2">
-        <button class="btn btn-primary w-100" onclick="openInsertToGroupModal()">Inserir no Grupo</button>
-    </div>
-  </div>
 </div>
-
-
-<table class="table table-bordered">
-  <thead>
-      <tr>
-          <th><input type="checkbox" id="selectAll"></th>
-          <th>ID</th>
-          <th>Full Name</th>
-          <th>NID</th>
-          <th>Gender</th>
-          <th>Age</th>
-          <th>Contact</th>
-          <th>Occupation</th>
-          <th>SMS Text Message</th>
-          <th>Status</th>
-          <th>Unidade Sanitária</th>
-          <th>Utilizador</th>
-          <th>Actions</th>
-      </tr>
-  </thead>
-  <tbody id="obsTableBody"></tbody>
-</table>
-<div id="pagination" class="mt-3 d-flex justify-content-center"></div>
 
 <!-- ============== MODAL OBSERVATION ============== -->
 <div class="modal fade" id="obsModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <form id="obsForm">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalTitle">Add Observation</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form id="obsForm">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalTitle">
+                        <i class="fas fa-clipboard-medical me-2"></i>
+                        Add Observation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="obsId">
+                    
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs" id="observationTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="patient-tab" data-bs-toggle="tab" data-bs-target="#patient" type="button">
+                                <i class="fas fa-user me-1"></i> Patient Info
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="medical-tab" data-bs-toggle="tab" data-bs-target="#medical" type="button">
+                                <i class="fas fa-heartbeat me-1"></i> Medical Info
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="sms-tab" data-bs-toggle="tab" data-bs-target="#sms" type="button">
+                                <i class="fas fa-sms me-1"></i> SMS & Status
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="dates-tab" data-bs-toggle="tab" data-bs-target="#dates" type="button">
+                                <i class="fas fa-calendar-alt me-1"></i> Dates
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content p-4">
+                        <!-- Patient Info Tab -->
+                        <div class="tab-pane fade show active" id="patient" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="nid" class="form-label">
+                                            <i class="fas fa-id-card me-1 text-primary"></i> NID *
+                                        </label>
+                                        <input type="text" id="nid" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="fullname" class="form-label">
+                                            <i class="fas fa-user me-1 text-primary"></i> Full Name *
+                                        </label>
+                                        <input type="text" id="fullname" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="contact" class="form-label">
+                                            <i class="fas fa-phone me-1 text-primary"></i> Contact *
+                                        </label>
+                                        <input type="tel" id="contact" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="gender" class="form-label">
+                                            <i class="fas fa-venus-mars me-1 text-primary"></i> Gender *
+                                        </label>
+                                        <select id="gender" class="form-select" required>
+                                            <option value="">Select Gender</option>
+                                            <option value="M">Male</option>
+                                            <option value="F">Female</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="age" class="form-label">
+                                            <i class="fas fa-birthday-cake me-1 text-primary"></i> Age *
+                                        </label>
+                                        <input type="number" id="age" class="form-control" min="0" max="120" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="occupation" class="form-label">
+                                            <i class="fas fa-briefcase me-1 text-primary"></i> Occupation *
+                                        </label>
+                                        <select id="occupation" class="form-select" required>
+                                            <option value="">Select Occupation</option>
+                                            <option value="Militar">Military</option>
+                                            <option value="Civil">Civilian</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Medical Info Tab -->
+                        <div class="tab-pane fade" id="medical" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="linhaterapeutica" class="form-label">Therapeutic Line</label>
+                                        <input type="text" id="linhaterapeutica" class="form-control">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="regime" class="form-label">Regimen</label>
+                                        <input type="text" id="regime" class="form-control">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="valorprimeiracv" class="form-label">First CV Value</label>
+                                        <input type="number" id="valorprimeiracv" class="form-control" step="0.01">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="valorultimacv" class="form-label">Last CV Value</label>
+                                        <input type="number" id="valorultimacv" class="form-control" step="0.01">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="dataprimeiracv" class="form-label">First CV Date</label>
+                                        <input type="datetime-local" id="dataprimeiracv" class="form-control">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="dataultimacv" class="form-label">Last CV Date</label>
+                                        <input type="datetime-local" id="dataultimacv" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- SMS & Status Tab -->
+                        <div class="tab-pane fade" id="sms" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="stateSelect" class="form-label">State *</label>
+                                        <select id="stateSelect" class="form-select" required></select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="textmessageSelect" class="form-label">SMS Message *</label>
+                                        <select id="textmessageSelect" class="form-select" required></select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="smssendernumber" class="form-label">SMS Sender Number</label>
+                                        <input type="tel" id="smssendernumber" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="smssuporternumber" class="form-label">SMS Supporter Number</label>
+                                        <input type="tel" id="smssuporternumber" class="form-control">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="groupSelect" class="form-label">Group</label>
+                                        <select id="groupSelect" class="form-select"></select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="grouptypeSelect" class="form-label">Group Type</label>
+                                        <select id="grouptypeSelect" class="form-select"></select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dates Tab -->
+                        <div class="tab-pane fade" id="dates" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="datainiciotarv" class="form-label">TARV Start Date</label>
+                                        <input type="datetime-local" id="datainiciotarv" class="form-control">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="dataconsulta" class="form-label">Consultation Date</label>
+                                        <input type="datetime-local" id="dataconsulta" class="form-control">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="dataenvio" class="form-label">SMS Send Date</label>
+                                        <input type="datetime-local" id="dataenvio" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="datalevantamento" class="form-label">Collection Date</label>
+                                        <input type="datetime-local" id="datalevantamento" class="form-control">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="dataproximaconsulta" class="form-label">Next Consultation</label>
+                                        <input type="datetime-local" id="dataproximaconsulta" class="form-control">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="dataalocacao" class="form-label">Allocation Date</label>
+                                        <input type="datetime-local" id="dataalocacao" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Common Fields -->
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="locationSelect" class="form-label">
+                                    <i class="fas fa-hospital me-1 text-primary"></i> Health Facility
+                                </label>
+                                <select id="locationSelect" class="form-select"></select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="userSelect" class="form-label">
+                                    <i class="fas fa-user-md me-1 text-primary"></i> User
+                                </label>
+                                <select id="userSelect" class="form-select"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Save Observation
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="modal-body">
-          <input type="hidden" id="obsId">
-          <div class="row">
-            <div class="col-md-6">
-              <input class="form-control mb-2" id="nid" placeholder="NID" required>
-              <input class="form-control mb-2" id="fullname" placeholder="Full Name" required>
-              <select class="form-select mb-2" id="gender">
-                <option value="M">M</option><option value="F">F</option>
-              </select>
-              <input class="form-control mb-2" id="age" placeholder="Age" required>
-              <input class="form-control mb-2" id="contact" placeholder="Contact" required>
-              <select class="form-select mb-2" id="occupation" required>
-                <option value="">Select Occupation</option><option>Militar</option><option>Civil</option>
-              </select>
-              <input class="form-control mb-2" id="datainiciotarv" type="datetime-local">
-              <input class="form-control mb-2" id="datalevantamento" type="datetime-local">
-              <input class="form-control mb-2" id="dataproximolevantamento" type="datetime-local">
-              <input class="form-control mb-2" id="dataconsulta" type="datetime-local">
-              <input class="form-control mb-2" id="dataproximaconsulta" type="datetime-local">
-              <input class="form-control mb-2" id="dataalocacao" type="datetime-local">
-            </div>
-            <div class="col-md-6">
-              <input class="form-control mb-2" id="dataenvio" type="datetime-local">
-              <input class="form-control mb-2" id="smssendernumber" placeholder="SMS Sender Number">
-              <input class="form-control mb-2" id="smssuporternumber" placeholder="SMS Supporter Number">
-              <input class="form-control mb-2" id="dataprimeiracv" type="datetime-local">
-              <input class="form-control mb-2" id="dataultimacv" type="datetime-local">
-              <input class="form-control mb-2" id="valorprimeiracv" type="number" placeholder="Valor 1st CV">
-              <input class="form-control mb-2" id="valorultimacv" type="number" placeholder="Valor Last CV">
-              <input class="form-control mb-2" id="linhaterapeutica" placeholder="Linha Terapêutica">
-              <input class="form-control mb-2" id="regime" placeholder="Regime">
-              <select class="form-select mb-2" id="stateSelect"></select>
-              <select class="form-select mb-2" id="textmessageSelect"></select>
-              <select class="form-select mb-2" id="grouptypeSelect"></select>
-              <select class="form-select mb-2" id="groupSelect"></select>
-              <select class="form-select mb-2" id="locationSelect"></select>
-              <select class="form-select mb-2" id="userSelect"></select>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-primary" type="submit">Save</button>
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
 
-<!-- ============== MODAL INSERIR NO GRUPO ============== -->
+<!-- ============== MODAL INSERT TO GROUP ============== -->
 <div class="modal fade" id="insertGroupModal" tabindex="-1">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i> Add Patients to Group
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Group Name</label>
+                        <input class="form-control" id="txtGroupName" placeholder="Ex: Grupo A">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">SMS Message</label>
+                        <select class="form-select" id="selectTextMessage"></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Start Date</label>
+                        <input class="form-control" id="dateStart" type="date">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">End Date</label>
+                        <input class="form-control" id="dateEnd" type="date">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Observation</label>
+                        <textarea class="form-control" id="txtObservation" rows="2"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Select Existing Group (optional)</label>
+                        <select class="form-select" id="selectGroupInsert"></select>
+                    </div>
+                </div>
 
-      <div class="modal-header">
-        <h5 class="modal-title">Criar Grupo e Inserir Pacientes</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">Nome do Grupo</label>
-            <input class="form-control" id="txtGroupName" placeholder="Ex: Grupo A">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Text Message</label>
-            <select class="form-select" id="selectTextMessage"></select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Data Inicial</label>
-            <input class="form-control" id="dateStart" type="date">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Data Final</label>
-            <input class="form-control" id="dateEnd" type="date">
-          </div>
-          <div class="col-12">
-            <label class="form-label">Observação</label>
-            <textarea class="form-control" id="txtObservation" rows="2"></textarea>
-          </div>
-
-          <div class="col-md-6">
-            <label class="form-label">Selecione grupo já existente (opcional)</label>
-            <select class="form-select" id="selectGroupInsert"></select>
-          </div>
+                <hr>
+                <h6><i class="fas fa-users me-1"></i> Selected Patients (<span id="selectedPatientsCount">0</span>):</h6>
+                <div class="table-responsive mt-2">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Full Name</th>
+                                <th>NID</th>
+                                <th>Gender</th>
+                                <th>Age</th>
+                                <th>Contact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="selectedPatientsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+                <button class="btn btn-primary" onclick="confirmAddMembers()">
+                    <i class="fas fa-save me-1"></i> Save Changes
+                </button>
+            </div>
         </div>
-
-        <hr>
-        <h6>Pacientes selecionados:</h6>
-        <table class="table table-bordered">
-          <thead>
-            <tr><th>ID</th><th>Full Name</th><th>NID</th><th>Gender</th><th>Age</th><th>Contact</th></tr>
-          </thead>
-          <tbody id="selectedPatientsBody"></tbody>
-        </table>
-      </div>
-
-      <div class="modal-footer">
-        <!-- Modal footer -->
-        <div class="modal-footer">
-            <button class="btn btn-primary" onclick="confirmAddMembers()">Guardar</button>
-            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        </div>
-      </div>
-
     </div>
-  </div>
 </div>
 
-<!-- Loader -->
+<!-- Progress Loader -->
 <div id="overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:2000;justify-content:center;align-items:center">
   <div class="circular-progress" style="width:120px;height:120px;border-radius:50%;background:conic-gradient(#007bff 0% 0%,#e0e0e0 0% 100%);display:flex;justify-content:center;align-items:center;font-size:20px;font-weight:bold;color:#007bff;">
     <span id="progressText">0%</span>
   </div>
 </div>
+
+<style>
+/* Progress Loader */
+.circular-progress {
+    animation: progress-animation 0.5s ease-out;
+}
+
+@keyframes progress-animation {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* Status badges */
+.status-badge {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75em;
+    font-weight: 500;
+}
+
+.bg-pending { background-color: #ffc107; color: #000; }
+.bg-completed { background-color: #198754; color: #fff; }
+.bg-active { background-color: #0d6efd; color: #fff; }
+.bg-inactive { background-color: #6c757d; color: #fff; }
+
+/* Patient card */
+.patient-card {
+    border-left: 4px solid #0d6efd;
+    padding-left: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Filter tags */
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.85rem;
+    margin-right: 8px;
+    margin-bottom: 4px;
+}
+
+.filter-tag .remove-filter {
+    margin-left: 6px;
+    cursor: pointer;
+    color: #666;
+}
+
+.filter-tag .remove-filter:hover {
+    color: #dc3545;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+    .btn-group {
+        flex-wrap: wrap;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.25rem;
+    }
+}
+</style>
 
 <script>
 /* ======== API ENDPOINTS ======== */
@@ -245,371 +625,869 @@ let currentPage = 1;
 const pageSize = 50;
 let observationsData = [];
 let filteredData = [];
+let currentFilters = {};
 
-/* --- PROGRESS BAR --- */
-function updateProgress(percent){
-  document.querySelector('.circular-progress').style.background =
-    `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
-  document.getElementById('progressText').innerText = percent + "%";
-}
-
-/* --- Load Dropdowns --- */
-async function loadDropdown(url, selectId, field='description'){
-  const res = await fetch(url);
-  const data = await res.json();
-  const select = document.getElementById(selectId);
-  select.innerHTML = '';
-  data.forEach(i => select.innerHTML += `<option value="${i.id}">${i[field]}</option>`);
-}
-
-/* --- Load Observations With Loader --- */
-async function loadObservationsWithProgress(){
-  document.getElementById('overlay').style.display = "flex";
-
-  let progress = 0;
-  const interval = setInterval(() => {
-    if(progress < 90) updateProgress(++progress);
-  }, 25);
-
-  try{
-    const res = await fetch(apiObs);
-    const data = await res.json();
-    clearInterval(interval);
-    updateProgress(100);
-
-    observationsData = filteredData = data;
-    renderTablePage(filteredData, currentPage);
-  } catch(e){
-    alert("Erro ao carregar observações.");
-  } finally {
-    setTimeout(() => {
-      document.getElementById('overlay').style.display = "none";
-      updateProgress(0);
-    }, 400);
-  }
-}
-
-/* --- Table & Pagination --- */
-function renderTablePage(data, page){
-  const tbody = document.getElementById('obsTableBody');
-  tbody.innerHTML = '';
-  const start = (page-1)*pageSize;
-  data.slice(start, start+pageSize).forEach(o=>{
-    tbody.innerHTML += `
-      <tr>
-        <td><input type="checkbox" class="rowCheck" value="${o.id}"></td>
-        <td>${o.id}</td>
-        <td>${o.fullname}</td>
-        <td>${o.nid}</td>
-        <td>${o.gender}</td>
-        <td>${o.age}</td>
-        <td>${o.contact}</td>
-        <td>${o.occupation}</td>
-        <td>${o.textMessageDescription}</td>
-        <td>${o.status}</td>
-        <td>${o.userFullName}</td>
-        <td>${o.locationName}</td>
-        <td>
-          <button class="btn btn-warning btn-sm" onclick="editObs(${o.id})">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteObs(${o.id})">Delete</button>
-        </td>
-      </tr>`;
-  });
-  renderPagination(data,page);
-}
-
-function renderPagination(data,page){
-  const c = document.getElementById('pagination');
-  c.innerHTML = '';
-  const total = Math.ceil(data.length / pageSize);
-  for(let i=1;i<=total;i++){
-    const b = document.createElement('button');
-    b.className = 'btn btn-sm ' + (i===page? 'btn-primary':'btn-outline-primary') + ' me-1';
-    b.innerText = i;
-    b.onclick = () => { currentPage = i; renderTablePage(filteredData, currentPage); };
-    c.appendChild(b);
-  }
-}
-
-/* --- Open Modal for New Record --- */
-function openObsModal(){
-  document.getElementById('modalTitle').innerText = "Add Observation";
-  document.getElementById('obsForm').reset();
-  document.getElementById('obsId').value = "";
-}
-
-/* --- Edit Observation --- */
-async function editObs(id){
-  const res = await fetch(`${apiObs}/${id}`);
-  const o = await res.json();
-  document.getElementById('modalTitle').innerText = "Edit Observation";
-  document.getElementById('obsId').value = o.id;
-
-  for(const k in o){
-    if(document.getElementById(k)) document.getElementById(k).value = o[k];
-  }
-
-  new bootstrap.Modal(document.getElementById('obsModal')).show();
-}
-
-/* --- Save Observation --- */
-document.getElementById('obsForm').addEventListener('submit', async e=>{
-  e.preventDefault();
-  const id = obsId.value;
-  const payload = {};
-
-  document.querySelectorAll('#obsForm input,#obsForm select').forEach(el=>{
-    if(el.id !== 'obsId' && el.value!=="") payload[el.id.replace("Select","Id")] = isNaN(el.value)? el.value : Number(el.value);
-  });
-
-  await fetch(id ? `${apiObs}/${id}` : apiObs, {
-    method: id? 'PUT':'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(payload)
-  });
-
-  bootstrap.Modal.getInstance(document.getElementById('obsModal')).hide();
-  loadObservationsWithProgress();
-});
-
-/* --- Delete observation single / bulk --- */
-async function deleteObs(id){
-  if(!confirm("Eliminar?")) return;
-  await fetch(`${apiObs}/${id}`,{method:'DELETE'});
-  loadObservationsWithProgress();
-}
-
-function getSelectedIds(){
-  return [...document.querySelectorAll(".rowCheck:checked")].map(e=>Number(e.value));
-}
-
-async function deleteSelected(){
-  const ids = getSelectedIds();
-  if(!ids.length) return alert("Nenhum selecionado");
-  if(!confirm(`Apagar ${ids.length} registros?`)) return;
-  for(const id of ids) await fetch(`${apiObs}/${id}`,{method:'DELETE'});
-  loadObservationsWithProgress();
-}
-
-/* --- Filters --- */
-async function filterObservations(){
-  const p = new URLSearchParams();
-
-  // Filtros existentes
-  ["filterTextmessage","filterState","filterGroupType","filterGroup","filterLocation"].forEach(id=>{
-    const v = document.getElementById(id).value;
-    if(v) p.append(id.replace("filter","").toLowerCase()+"Id", v);
-  });
-
-  // Novos filtros de datas
-  const startDate = document.getElementById('filterStartDate').value;
-  const endDate = document.getElementById('filterEndDate').value;
-
-  if(startDate) p.append('startDate', startDate);
-  if(endDate) p.append('endDate', endDate);
-
-  // Chamada à API
-  const res = await fetch(p.toString()? `${apiObs}?${p}` : apiObs);
-  const data = await res.json();
-
-  filteredData = data;
-  currentPage = 1;
-  renderTablePage(filteredData, currentPage);
-}
-
-function clearFilters(){
-  ["filterTextmessage","filterState","filterGroupType","filterGroup","filterLocation","filterStartDate","filterEndDate"]
-    .forEach(id => document.getElementById(id).value = "");
-  loadObservationsWithProgress();
-}
-
-// --- Adicionar membros ao grupo ---
-async function confirmAddMembers() {
-    const selectedPatientIds = getSelectedIds(); // array de pacientes
-    if (!selectedPatientIds.length) return alert("Selecione pacientes.");
-
-    const groupName = document.getElementById('txtGroupName').value;
-    if (!groupName) return alert("Digite o nome do grupo.");
-
-    const textMessageId = Number(document.getElementById('selectTextMessage').value);
-    if (!textMessageId) return alert("Selecione Text Message.");
-
-    // Outros campos opcionais do grupo
-    const dateStart = document.getElementById('dateStart').value || null;
-    const dateEnd = document.getElementById('dateEnd').value || null;
-    const observation = document.getElementById('txtObservation').value || null;
-
-    // 1️⃣ Criar grupo via API
-    const resGroup = await fetch('/api/group', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            description: groupName,
-            dateStart: dateStart,
-            dateEnd: dateEnd,
-            observation: observation
-        })
-    });
-
-    if (!resGroup.ok) {
-        const err = await resGroup.json();
-        return alert("Erro ao criar grupo: " + (err.message || err.error));
+/* ======== PROGRESS BAR ======== */
+function updateProgress(percent) {
+    const progressBar = document.querySelector('.circular-progress');
+    if (progressBar) {
+        progressBar.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
     }
+    const progressText = document.getElementById('progressText');
+    if (progressText) {
+        progressText.innerText = percent + "%";
+    }
+}
 
-    const newGroup = await resGroup.json();
-    const groupId = newGroup.id;
+/* ======== LOADING STATES ======== */
+function showLoading() {
+    const tbody = document.getElementById('obsTableBody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 mb-0">Loading observations...</p>
+                </td>
+            </tr>
+        `;
+    }
+}
 
-    // 2️⃣ Atualizar cada observação selecionada
-    for (const obsId of selectedPatientIds) {
-        await fetch(`/api/observation/updategroup/${obsId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupId: groupId, textmessageId: textMessageId })
+function hideLoading() {
+    // Loading is removed when data is loaded
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    alertDiv.innerHTML = `
+        <strong>${type === 'success' ? '✓' : '⚠'} ${type.charAt(0).toUpperCase() + type.slice(1)}!</strong> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }
+    }, 5000);
+}
+
+/* ======== LOAD DROPDOWNS ======== */
+async function loadDropdown(url, selectId, field = 'description', placeholder = '') {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const data = await res.json();
+        const select = document.getElementById(selectId);
+        
+        if (!select) return;
+        
+        select.innerHTML = placeholder || `<option value="">-- Select --</option>`;
+        
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            option.textContent = item[field] || item.name || item.description;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error(`Error loading dropdown ${selectId}:`, error);
+        showAlert('error', `Error loading ${selectId.replace('filter', '')} options`);
+    }
+}
+
+/* ======== LOAD OBSERVATIONS ======== */
+async function loadObservationsWithProgress() {
+    showLoading();
+    
+    // Show progress overlay for large datasets
+    if (observationsData.length > 100) {
+        document.getElementById('overlay').style.display = "flex";
+        let progress = 0;
+        const interval = setInterval(() => {
+            if (progress < 90) updateProgress(++progress);
+        }, 25);
+        
+        try {
+            await loadObservationsData();
+            clearInterval(interval);
+            updateProgress(100);
+        } catch (error) {
+            clearInterval(interval);
+            throw error;
+        } finally {
+            setTimeout(() => {
+                document.getElementById('overlay').style.display = "none";
+                updateProgress(0);
+            }, 400);
+        }
+    } else {
+        await loadObservationsData();
+    }
+}
+
+async function loadObservationsData() {
+    try {
+        const res = await fetch(apiObs);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const data = await res.json();
+        observationsData = data;
+        
+        // Apply any existing filters
+        if (Object.keys(currentFilters).length > 0) {
+            applyFilters();
+        } else {
+            filteredData = data;
+        }
+        
+        updateSummaryCards();
+        renderTablePage(filteredData, currentPage);
+        hideLoading();
+        
+    } catch (error) {
+        console.error('Error loading observations:', error);
+        const tbody = document.getElementById('obsTableBody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-5">
+                    <i class="fas fa-exclamation-triangle fs-1 text-danger mb-3"></i>
+                    <h5 class="text-danger">Error Loading Data</h5>
+                    <p class="text-muted">${error.message}</p>
+                    <button class="btn btn-primary mt-2" onclick="loadObservationsWithProgress()">
+                        <i class="fas fa-redo me-1"></i> Try Again
+                    </button>
+                </td>
+            </tr>
+        `;
+        hideLoading();
+    }
+}
+
+/* ======== SUMMARY CARDS ======== */
+function updateSummaryCards() {
+    const totalObservations = observationsData.length;
+    const activePatients = observationsData.filter(o => o.status === 'Active').length;
+    const pendingActions = observationsData.filter(o => 
+        ['Pending', 'Awaiting', 'Scheduled'].includes(o.status)
+    ).length;
+    const inGroups = observationsData.filter(o => o.groupId).length;
+    
+    document.getElementById('totalObservations').textContent = totalObservations;
+    document.getElementById('activePatients').textContent = activePatients;
+    document.getElementById('pendingActions').textContent = pendingActions;
+    document.getElementById('inGroups').textContent = inGroups;
+}
+
+/* ======== TABLE & PAGINATION ======== */
+function renderTablePage(data, page) {
+    const tbody = document.getElementById('obsTableBody');
+    const start = (page - 1) * pageSize;
+    const pageData = data.slice(start, start + pageSize);
+    
+    if (pageData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-5">
+                    <i class="fas fa-search fs-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">No observations found</h5>
+                    ${Object.keys(currentFilters).length > 0 ? 
+                        `<p class="text-muted">Try changing your filters or 
+                         <button class="btn btn-link p-0" onclick="clearFilters()">clear all filters</button>.</p>` : 
+                        `<p class="text-muted">Click "Add New Observation" to create your first record.</p>`}
+                </td>
+            </tr>
+        `;
+    } else {
+        tbody.innerHTML = '';
+        
+        pageData.forEach(obs => {
+            const statusClass = getStatusClass(obs.status);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <input type="checkbox" class="form-check-input rowCheck" value="${obs.id}">
+                </td>
+                <td><strong>#${obs.id}</strong></td>
+                <td>
+                    <div class="fw-bold">${obs.fullname || 'N/A'}</div>
+                    <small class="text-muted">NID: ${obs.nid || 'N/A'}</small>
+                </td>
+                <td>${obs.contact || 'N/A'}</td>
+                <td>
+                    <span class="badge ${statusClass} status-badge">${obs.status || 'Unknown'}</span>
+                </td>
+                <td>
+                    <div class="text-truncate" style="max-width: 200px;">
+                        ${obs.textMessageDescription || 'No message'}
+                    </div>
+                </td>
+                <td>${obs.groupName || 'No Group'}</td>
+                <td>${obs.locationName || 'N/A'}</td>
+                <td>
+                    <small class="text-muted">${formatDate(obs.updateAt || obs.createdAt)}</small>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-primary" onclick="editObs(${obs.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-success" onclick="viewObs(${obs.id})" title="View">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="deleteObs(${obs.id})" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
         });
     }
-
-    alert("Pacientes inseridos no grupo com sucesso!");
-    bootstrap.Modal.getInstance(document.getElementById('insertGroupModal')).hide();
-    loadObservationsWithProgress();
+    
+    updatePagination(data, page);
+    updateSelectedCount();
 }
 
-/* --- Confirm Action (State + Text) --- */
-async function confirmAction(){
-  const textId = filterTextmessage.value;
-  const stateId = filterState.value;
-  const stateText = filterState.options[filterState.selectedIndex].text; // pega o texto do dropdown
-  const ids = getSelectedIds();
-
-  if(!ids.length) return alert("Selecione pacientes.");
-  if(!textId) return alert("Selecione Text Message.");
-  if(!stateId) return alert("Selecione State.");
-  if(!confirm(`Confirmar ação para ${ids.length} pacientes?`)) return;
-
-  for(const id of ids){
-    await fetch(`/api/observation/confirm/${id}`, {
-      method:'PUT', 
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({stateId:Number(stateId), textmessageId:Number(textId)})
-    });
-
-    // Atualiza localmente o campo status
-    const obs = observationsData.find(o => o.id === id);
-    if(obs) obs.status = stateText;
-  }
-
-  alert("Ação concluída!");
-  renderTablePage(filteredData, currentPage); // atualiza a tabela com os novos status
-}
-
-
-/* --- Insert into Group --- */
-async function openInsertToGroupModal(){
-  const ids = getSelectedIds();
-  if(!ids.length) return alert("Selecione pacientes.");
-
-  selectedPatientsBody.innerHTML = "";
-  observationsData.filter(o=>ids.includes(o.id)).forEach(o=>{
-    selectedPatientsBody.innerHTML += `<tr><td>${o.id}</td><td>${o.fullname}</td><td>${o.nid}</td><td>${o.gender}</td><td>${o.age}</td><td>${o.contact}</td></tr>`;
-  });
-
-  /* load dropdowns */
-  await loadDropdown(apiTextMessage,'selectTextMessage','messagetext');
-  new bootstrap.Modal(document.getElementById('insertGroupModal')).show();
-}
-
-// Criar grupo
-async function createGroup() {
-    const description = document.getElementById('txtGroupName').value;
-    if(!description) return alert("Digite o nome do grupo.");
-
-    const payload = {
-        description: description,
-        dateStart: document.getElementById('dateStart').value,
-        dateEnd: document.getElementById('dateEnd').value,
-        observation: document.getElementById('txtObservation').value
+function getStatusClass(status) {
+    if (!status) return 'bg-secondary';
+    
+    const statusMap = {
+        'active': 'bg-success',
+        'inactive': 'bg-secondary',
+        'pending': 'bg-warning',
+        'completed': 'bg-primary',
+        'cancelled': 'bg-danger'
     };
-
-    console.log("Criar grupo payload:", payload);
-
-
-    const res = await fetch('/api/group', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    console.log(data);
+    
+    const lowerStatus = status.toLowerCase();
+    for (const [key, value] of Object.entries(statusMap)) {
+        if (lowerStatus.includes(key)) return value;
+    }
+    
+    return 'bg-secondary';
 }
 
-// Adicionar membros
-async function addMembers(groupId, selectedPatientIds) {
-    const payload = {
-        groupId: groupId,
-        patients: selectedPatientIds
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-PT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    });
+}
+
+function updatePagination(data, page) {
+    const totalPages = Math.ceil(data.length / pageSize);
+    const startIndex = (page - 1) * pageSize + 1;
+    const endIndex = Math.min(page * pageSize, data.length);
+    
+    document.getElementById('paginationInfo').textContent = 
+        `Showing ${startIndex} to ${endIndex} of ${data.length} observations`;
+    
+    document.getElementById('prevBtn').disabled = page === 1;
+    document.getElementById('nextBtn').disabled = page === totalPages;
+    
+    // Update results info
+    const resultsInfo = document.getElementById('resultsInfo');
+    if (Object.keys(currentFilters).length > 0) {
+        resultsInfo.textContent = `Found ${data.length} observations matching your filters`;
+    } else {
+        resultsInfo.textContent = `Showing ${data.length} observations`;
+    }
+}
+
+function changePage(direction) {
+    const newPage = currentPage + direction;
+    const totalPages = Math.ceil(filteredData.length / pageSize);
+    
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        renderTablePage(filteredData, currentPage);
+    }
+}
+
+/* ======== SELECTION FUNCTIONS ======== */
+function updateSelectedCount() {
+    const selected = getSelectedIds().length;
+    document.getElementById('selectedCount').textContent = selected;
+    
+    // Update select all checkbox
+    const allRows = document.querySelectorAll('.rowCheck');
+    const allChecked = allRows.length > 0 && [...allRows].every(cb => cb.checked);
+    document.getElementById('selectAll').checked = allChecked;
+    document.getElementById('selectAllHeader').checked = allChecked;
+}
+
+function getSelectedIds() {
+    return [...document.querySelectorAll('.rowCheck:checked')].map(el => Number(el.value));
+}
+
+function selectAllRows(checked) {
+    document.querySelectorAll('.rowCheck').forEach(cb => {
+        cb.checked = checked;
+    });
+    updateSelectedCount();
+}
+
+/* ======== FILTER FUNCTIONS ======== */
+async function filterObservations() {
+    // Collect filter values
+    const filters = {
+        textmessageId: document.getElementById('filterTextmessage').value,
+        stateId: document.getElementById('filterState').value,
+        locationId: document.getElementById('filterLocation').value,
+        startDate: document.getElementById('filterStartDate').value,
+        endDate: document.getElementById('filterEndDate').value
     };
-
-    const res = await fetch('/api/group/addmembersingrup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+    
+    // Build query params
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
     });
-
-    const data = await res.json();
-    console.log(data);
+    
+    currentFilters = filters;
+    
+    try {
+        showLoading();
+        const queryString = params.toString();
+        const url = queryString ? `${apiObs}?${queryString}` : apiObs;
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const data = await res.json();
+        filteredData = data;
+        currentPage = 1;
+        
+        updateActiveFiltersDisplay();
+        renderTablePage(filteredData, currentPage);
+        hideLoading();
+        
+    } catch (error) {
+        console.error('Error filtering observations:', error);
+        showAlert('error', 'Error applying filters: ' + error.message);
+        hideLoading();
+    }
 }
 
-
-async function submitInsertToGroup(){
-  const ids = getSelectedIds();
-
-  /* create group if name filled */
-  if(txtGroupName.value){
-    const res = await fetch(apiGroup, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        name: txtGroupName.value,
-        textmessageId:Number(selectTextMessage.value),
-        dateStart: dateStart.value,
-        dateEnd: dateEnd.value,
-        observation: txtObservation.value
-      })
-    });
-    const newGroup = await res.json();
-    finalGroupId = newGroup.id;
-  }
-
-  /* add members */
-  await fetch('/api/group/addmembersingrup', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({ groupId:finalGroupId, patients: ids })
-  });
-
-  alert("Pacientes inseridos com sucesso!");
-  bootstrap.Modal.getInstance(document.getElementById('insertGroupModal')).hide();
+function clearFilters() {
+    // Clear filter inputs
+    document.getElementById('filterTextmessage').value = '';
+    document.getElementById('filterState').value = '';
+    document.getElementById('filterLocation').value = '';
+    document.getElementById('filterStartDate').value = '';
+    document.getElementById('filterEndDate').value = '';
+    
+    // Reset filters
+    currentFilters = {};
+    filteredData = observationsData;
+    currentPage = 1;
+    
+    // Update UI
+    updateActiveFiltersDisplay();
+    renderTablePage(filteredData, currentPage);
 }
 
-/* --- Init Page --- */
-window.onload = async ()=>{
-  await loadDropdown(apiState,'filterState');
-  await loadDropdown(apiTextMessage,'filterTextmessage','messagetext');
-  await loadDropdown(apiGrouptype,'filterGroupType');
-  await loadDropdown(apiGroup,'filterGroup');
-  await loadDropdown(apiLocation,'filterLocation','name');
+function updateActiveFiltersDisplay() {
+    const activeFiltersDiv = document.getElementById('activeFilters');
+    const filterTagsDiv = document.getElementById('filterTags');
+    
+    const activeFilters = [];
+    
+    if (currentFilters.textmessageId) {
+        const select = document.getElementById('filterTextmessage');
+        const selectedOption = select.options[select.selectedIndex];
+        activeFilters.push({
+            label: `SMS: ${selectedOption.text}`,
+            clearFn: "clearFilter('filterTextmessage')"
+        });
+    }
+    
+    if (currentFilters.stateId) {
+        const select = document.getElementById('filterState');
+        const selectedOption = select.options[select.selectedIndex];
+        activeFilters.push({
+            label: `State: ${selectedOption.text}`,
+            clearFn: "clearFilter('filterState')"
+        });
+    }
+    
+    if (currentFilters.locationId) {
+        const select = document.getElementById('filterLocation');
+        const selectedOption = select.options[select.selectedIndex];
+        activeFilters.push({
+            label: `Location: ${selectedOption.text}`,
+            clearFn: "clearFilter('filterLocation')"
+        });
+    }
+    
+    if (currentFilters.startDate || currentFilters.endDate) {
+        const start = currentFilters.startDate || 'Any';
+        const end = currentFilters.endDate || 'Any';
+        activeFilters.push({
+            label: `Date: ${start} to ${end}`,
+            clearFn: "clearDateFilters()"
+        });
+    }
+    
+    if (activeFilters.length > 0) {
+        activeFiltersDiv.style.display = 'block';
+        filterTagsDiv.innerHTML = '';
+        
+        activeFilters.forEach(filter => {
+            const tag = document.createElement('span');
+            tag.className = 'filter-tag';
+            tag.innerHTML = `
+                ${filter.label}
+                <span class="remove-filter" onclick="${filter.clearFn}">
+                    <i class="fas fa-times"></i>
+                </span>
+            `;
+            filterTagsDiv.appendChild(tag);
+        });
+        
+        // Add clear all button
+        const clearAllBtn = document.createElement('button');
+        clearAllBtn.className = 'btn btn-sm btn-outline-danger ms-2';
+        clearAllBtn.innerHTML = '<i class="fas fa-times"></i> Clear All';
+        clearAllBtn.onclick = clearFilters;
+        filterTagsDiv.appendChild(clearAllBtn);
+    } else {
+        activeFiltersDiv.style.display = 'none';
+        filterTagsDiv.innerHTML = '';
+    }
+}
 
-  await loadDropdown(apiState,'stateSelect');
-  await loadDropdown(apiTextMessage,'textmessageSelect','messagetext');
-  await loadDropdown(apiGrouptype,'grouptypeSelect');
-  await loadDropdown(apiGroup,'groupSelect');
-  await loadDropdown(apiLocation,'locationSelect','name');
-  await loadDropdown(apiUser,'userSelect','fullname');
+function clearFilter(filterId) {
+    document.getElementById(filterId).value = '';
+    filterObservations();
+}
 
-  document.getElementById('selectAll').addEventListener('change',()=> {
-    document.querySelectorAll('.rowCheck').forEach(c=>c.checked = selectAll.checked);
-  });
+function clearDateFilters() {
+    document.getElementById('filterStartDate').value = '';
+    document.getElementById('filterEndDate').value = '';
+    filterObservations();
+}
 
-  await loadObservationsWithProgress();
+/* ======== OBSERVATION CRUD ======== */
+function openObsModal(observation = null) {
+    const modal = document.getElementById('obsModal');
+    const form = document.getElementById('obsForm');
+    const title = document.getElementById('modalTitle');
+    
+    form.reset();
+    
+    if (observation) {
+        title.innerHTML = '<i class="fas fa-edit me-2"></i> Edit Observation';
+        document.getElementById('obsId').value = observation.id;
+        
+        // Fill form fields
+        Object.keys(observation).forEach(key => {
+            const field = document.getElementById(key);
+            if (field) field.value = observation[key];
+        });
+        
+        // Select dropdown values
+        ['stateSelect', 'textmessageSelect', 'groupSelect', 'grouptypeSelect', 'locationSelect', 'userSelect'].forEach(selectId => {
+            const select = document.getElementById(selectId);
+            const fieldName = selectId.replace('Select', 'Id');
+            if (observation[fieldName] && select) {
+                select.value = observation[fieldName];
+            }
+        });
+    } else {
+        title.innerHTML = '<i class="fas fa-plus me-2"></i> Add Observation';
+        document.getElementById('obsId').value = '';
+    }
+    
+    new bootstrap.Modal(modal).show();
+}
+
+async function editObs(id) {
+    try {
+        showLoading();
+        const res = await fetch(`${apiObs}/${id}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        const observation = await res.json();
+        openObsModal(observation);
+        hideLoading();
+        
+    } catch (error) {
+        console.error('Error fetching observation:', error);
+        showAlert('error', 'Error loading observation data');
+        hideLoading();
+    }
+}
+
+function viewObs(id) {
+    // Implementation for view mode
+    alert(`View observation ${id} - Implement detailed view modal`);
+}
+
+async function deleteObs(id) {
+    if (!confirm('Are you sure you want to delete this observation? This action cannot be undone.')) return;
+    
+    try {
+        const res = await fetch(`${apiObs}/${id}`, { method: 'DELETE' });
+        
+        if (res.ok) {
+            showAlert('success', 'Observation deleted successfully.');
+            loadObservationsWithProgress();
+        } else {
+            throw new Error('Failed to delete observation');
+        }
+    } catch (error) {
+        console.error('Error deleting observation:', error);
+        showAlert('error', 'Error deleting observation: ' + error.message);
+    }
+}
+
+async function deleteSelected() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        showAlert('warning', 'Please select observations to delete.');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete ${ids.length} observation(s)? This action cannot be undone.`)) return;
+    
+    try {
+        showLoading();
+        
+        // Delete each observation
+        for (const id of ids) {
+            await fetch(`${apiObs}/${id}`, { method: 'DELETE' });
+        }
+        
+        showAlert('success', `${ids.length} observation(s) deleted successfully.`);
+        loadObservationsWithProgress();
+        
+    } catch (error) {
+        console.error('Error deleting selected observations:', error);
+        showAlert('error', 'Error deleting observations: ' + error.message);
+        hideLoading();
+    }
+}
+
+/* ======== FORM SUBMISSION ======== */
+document.getElementById('obsForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+    submitBtn.disabled = true;
+    
+    const id = document.getElementById('obsId').value;
+    const isEdit = !!id;
+    
+    // Collect form data
+    const formData = {};
+    document.querySelectorAll('#obsForm input, #obsForm select, #obsForm textarea').forEach(el => {
+        if (el.id && el.id !== 'obsId' && el.value !== '') {
+            // Convert numeric fields
+            const numericFields = ['age', 'valorprimeiracv', 'valorultimacv'];
+            const value = numericFields.includes(el.id) ? Number(el.value) : el.value;
+            
+            // Handle dropdown IDs
+            const idField = el.id.replace('Select', 'Id');
+            formData[idField] = value;
+        }
+    });
+    
+    try {
+        const url = isEdit ? `${apiObs}/${id}` : apiObs;
+        const method = isEdit ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        if (!res.ok) {
+            const error = await res.text();
+            throw new Error(error);
+        }
+        
+        showAlert('success', isEdit ? 'Observation updated successfully!' : 'Observation created successfully!');
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('obsModal'));
+        modal.hide();
+        
+        loadObservationsWithProgress();
+        
+    } catch (error) {
+        console.error('Error saving observation:', error);
+        showAlert('error', 'Error saving observation: ' + error.message);
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+});
+
+/* ======== GROUP FUNCTIONS ======== */
+async function openInsertToGroupModal() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        showAlert('warning', 'Please select patients to add to group.');
+        return;
+    }
+    
+    // Load selected patients
+    const selectedPatients = observationsData.filter(o => ids.includes(o.id));
+    const tbody = document.getElementById('selectedPatientsBody');
+    tbody.innerHTML = '';
+    
+    selectedPatients.forEach(patient => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${patient.id}</td>
+            <td>${patient.fullname}</td>
+            <td>${patient.nid}</td>
+            <td>${patient.gender}</td>
+            <td>${patient.age}</td>
+            <td>${patient.contact}</td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    document.getElementById('selectedPatientsCount').textContent = selectedPatients.length;
+    
+    // Load dropdowns
+    await loadDropdown(apiTextMessage, 'selectTextMessage', 'messagetext');
+    await loadDropdown(apiGroup, 'selectGroupInsert', 'description', '<option value="">Create New Group</option>');
+    
+    // Reset form
+    document.getElementById('txtGroupName').value = '';
+    document.getElementById('dateStart').value = '';
+    document.getElementById('dateEnd').value = '';
+    document.getElementById('txtObservation').value = '';
+    document.getElementById('selectGroupInsert').value = '';
+    
+    new bootstrap.Modal(document.getElementById('insertGroupModal')).show();
+}
+
+async function confirmAddMembers() {
+    const selectedPatientIds = getSelectedIds();
+    if (selectedPatientIds.length === 0) {
+        showAlert('warning', 'No patients selected.');
+        return;
+    }
+    
+    const groupName = document.getElementById('txtGroupName').value.trim();
+    const existingGroupId = document.getElementById('selectGroupInsert').value;
+    const textMessageId = document.getElementById('selectTextMessage').value;
+    
+    if (!existingGroupId && !groupName) {
+        showAlert('warning', 'Please enter a group name or select an existing group.');
+        return;
+    }
+    
+    if (!textMessageId) {
+        showAlert('warning', 'Please select an SMS message.');
+        return;
+    }
+    
+    let groupId = existingGroupId;
+    
+    // Create new group if needed
+    if (!existingGroupId && groupName) {
+        try {
+            const groupData = {
+                description: groupName,
+                dateStart: document.getElementById('dateStart').value || null,
+                dateEnd: document.getElementById('dateEnd').value || null,
+                observation: document.getElementById('txtObservation').value || null
+            };
+            
+            const res = await fetch(apiGroup, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(groupData)
+            });
+            
+            if (!res.ok) throw new Error('Failed to create group');
+            
+            const newGroup = await res.json();
+            groupId = newGroup.id;
+            
+        } catch (error) {
+            console.error('Error creating group:', error);
+            showAlert('error', 'Error creating group: ' + error.message);
+            return;
+        }
+    }
+    
+    // Add patients to group
+    try {
+        for (const obsId of selectedPatientIds) {
+            await fetch(`/api/observation/updategroup/${obsId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    groupId: groupId, 
+                    textmessageId: textMessageId 
+                })
+            });
+        }
+        
+        showAlert('success', `${selectedPatientIds.length} patient(s) added to group successfully.`);
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('insertGroupModal'));
+        modal.hide();
+        
+        loadObservationsWithProgress();
+        
+    } catch (error) {
+        console.error('Error adding patients to group:', error);
+        showAlert('error', 'Error adding patients to group: ' + error.message);
+    }
+}
+
+/* ======== CONFIRM ACTION ======== */
+async function confirmAction() {
+    const selectedIds = getSelectedIds();
+    if (selectedIds.length === 0) {
+        showAlert('warning', 'Please select patients to update.');
+        return;
+    }
+    
+    const textId = document.getElementById('filterTextmessage').value;
+    const stateId = document.getElementById('filterState').value;
+    
+    if (!textId || !stateId) {
+        showAlert('warning', 'Please select both SMS Message and State from filters.');
+        return;
+    }
+    
+    if (!confirm(`Confirm action for ${selectedIds.length} selected patient(s)?`)) return;
+    
+    try {
+        showLoading();
+        
+        for (const id of selectedIds) {
+            await fetch(`/api/observation/confirm/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    stateId: Number(stateId),
+                    textmessageId: Number(textId)
+                })
+            });
+        }
+        
+        showAlert('success', `${selectedIds.length} patient(s) updated successfully.`);
+        loadObservationsWithProgress();
+        
+    } catch (error) {
+        console.error('Error confirming action:', error);
+        showAlert('error', 'Error updating patients: ' + error.message);
+        hideLoading();
+    }
+}
+
+/* ======== EXPORT FUNCTION ======== */
+function exportSelected() {
+    const selectedIds = getSelectedIds();
+    const data = observationsData.filter(o => selectedIds.includes(o.id));
+    
+    if (data.length === 0) {
+        showAlert('warning', 'No observations selected to export.');
+        return;
+    }
+    
+    // Convert to CSV
+    const headers = ['ID', 'Full Name', 'NID', 'Gender', 'Age', 'Contact', 'Status', 'SMS Message', 'Group', 'Location'];
+    const csv = [
+        headers.join(','),
+        ...data.map(o => [
+            o.id,
+            `"${o.fullname || ''}"`,
+            o.nid || '',
+            o.gender || '',
+            o.age || '',
+            o.contact || '',
+            o.status || '',
+            `"${o.textMessageDescription || ''}"`,
+            o.groupName || '',
+            o.locationName || ''
+        ].join(','))
+    ].join('\n');
+    
+    // Create download link
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `observations_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    
+    showAlert('success', `${data.length} observation(s) exported successfully.`);
+}
+
+/* ======== INITIALIZATION ======== */
+window.onload = async function() {
+    // Initialize select all checkboxes
+    document.getElementById('selectAll').addEventListener('change', function() {
+        selectAllRows(this.checked);
+    });
+    
+    document.getElementById('selectAllHeader').addEventListener('change', function() {
+        selectAllRows(this.checked);
+    });
+    
+    // Update selected count when checkboxes change
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('rowCheck')) {
+            updateSelectedCount();
+        }
+    });
+    
+    // Load dropdowns
+    await Promise.all([
+        loadDropdown(apiState, 'filterState', 'description', '<option value="">All States</option>'),
+        loadDropdown(apiTextMessage, 'filterTextmessage', 'messagetext', '<option value="">All Messages</option>'),
+        loadDropdown(apiLocation, 'filterLocation', 'name', '<option value="">All Locations</option>'),
+        loadDropdown(apiState, 'stateSelect'),
+        loadDropdown(apiTextMessage, 'textmessageSelect', 'messagetext'),
+        loadDropdown(apiGrouptype, 'grouptypeSelect'),
+        loadDropdown(apiGroup, 'groupSelect', 'description'),
+        loadDropdown(apiLocation, 'locationSelect', 'name'),
+        loadDropdown(apiUser, 'userSelect', 'fullname')
+    ]);
+    
+    // Load observations
+    await loadObservationsWithProgress();
+    
+    // Add event listeners for filters
+    document.getElementById('filterStartDate').addEventListener('change', filterObservations);
+    document.getElementById('filterEndDate').addEventListener('change', filterObservations);
+    document.getElementById('filterTextmessage').addEventListener('change', filterObservations);
+    document.getElementById('filterState').addEventListener('change', filterObservations);
+    document.getElementById('filterLocation').addEventListener('change', filterObservations);
 };
 </script>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 {% endblock %}

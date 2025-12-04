@@ -1,0 +1,36 @@
+<!-- templates/partials/language_selector.html -->
+<div class="language-selector">
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            {% if current_language == 'pt' %}🇵🇹 Português
+            {% elif current_language == 'en' %}🇺🇸 English
+            {% elif current_language == 'es' %}🇪🇸 Español
+            {% elif current_language == 'fr' %}🇫🇷 Français
+            {% else %}🌐 {{ current_language }}
+            {% endif %}
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="languageDropdown">
+            <li>
+                <a class="dropdown-item" href="{{ url_for('set_language', lang='pt') }}">
+                    🇵🇹 Português
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="{{ url_for('set_language', lang='en') }}">
+                    🇺🇸 English
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="{{ url_for('set_language', lang='es') }}">
+                    🇪🇸 Español
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="{{ url_for('set_language', lang='fr') }}">
+                    🇫🇷 Français
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>

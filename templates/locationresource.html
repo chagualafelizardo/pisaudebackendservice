@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}PI-SAÚDE / Recursos nas Localizações{% endblock %}
+
+{% block content %}
+<h2>Gestão de Recursos por Localização</h2>
+
+<!-- 🔍 Pesquisa -->
+<div class="mb-3" style="max-width: 400px;">
+    <input type="text" id="searchInput" class="form-control" placeholder="Pesquisar recurso..." oninput="filtrarTabela(this.value)">
+</div>
+
+<!-- ➕ Botão flutuante -->
+<button class="btn btn-success rounded-circle position-fixed"
+        style="bottom:20px; right:20px; width:60px; height:60px; font-size:28px; z-index:1000"
+        onclick="openModal()">
+    +
+</button>
+
+<!-- 📋 Tabela -->
+<table class="table table-bordered" id="locationResourceTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Localização</th>
+            <th>Imagem</th>
+            <th>Nome do Recurso</th>
+            <th>Recebido Por</th>
+            <th>Data Recepção</th>
+            <th>Quantidade</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="locationResourceTableBody"></tbody>
+</table>
+
+<!-- 🧾 Modal -->
+<div class="modal fade" id="locationResourceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form id="locationResourceForm" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar / Editar Recurso</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="locationResourceId">
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Localização</label>
+                        <select id="resourceLocation" class="form-select" required></select>
+
+                        <label class="form-label mt-3">Nome do Recurso</label>
+                        <input type="text" id="resourceName" class="form-control" required>
+
+                        <label class="form-label mt-3">Descrição</label>
+                        <textarea id="resourceDescription" class="form-control"></textarea>
+                    </div>
+
+                    <hr>
+
+                    <label class="form-label">Imagem Principal (URL / Base64)</label>
+                    <input type="text" id="resourceImagemPrincipal" class="form-control" placeholder="link / caminho / base64">
+
+                    <label class="form-label mt-3">Outras Imagens (separar por vírgula)</label>
+                    <input type="text" id="resourceImagens" class="form-control" placeholder="img1.jpg, img2.jpg">
+
+
+                    <div class="col-md-6">
+                        <label class="form-label">Recebido por</label>
+                        <input type="text" id="resourceRecebidoPor" class="form-control">
+
+                        <label class="form-label mt-3">Data de Recepção</label>
+                        <input type="date" id="resourceDataRecepcao" class="form-control">
+
+                        <label class="form-label mt-3">Quantidade</label>
+                        <input type="number" id="resourceQuantidade" class="form-control" min="0">
+                    </div>
+                </div>
+
+                <hr>
+
+                <label class="form-label">Anexos PDF (paths separados por vírgula)</label>
+                <input type="text" id="resourcePDF" class="form-control">
+
+                <label class="form-label mt-3">Imagens (paths separados por vírgula)</label>
+                <input type="text" id="resourceImagens" class="form-control">
+
+            </div>
+
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+/* ------ Variáveis globais ------ */
+let allResources = [];
+let allLocations = [];
+
+const apiUrl = "/api/location-resources";
+const apiLocationUrl = "/api/location";
+
+/* ------ Carregar Localizações no select ------ */
+async function loadLocations() {
+    const res = await fetch(apiLocationUrl);
+    allLocations = await res.json();
+    const sel = document.getElementById("resourceLocation");
+    sel.innerHTML = '<option value="">Selecione a localização</option>';
+    allLocations.forEach(l => sel.innerHTML += `<option value="${l.id}">${l.name}</option>`);
+}
+
+/* ------ Carregar Recursos ------ */
+async function loadResources() {
+    const res = await fetch(apiUrl);
+    allResources = await res.json();
+    filtrarTabela(document.getElementById("searchInput").value);
+}
+
+/* ------ Renderizar tabela com filtro ------ */
+function filtrarTabela(query) {
+    const tbody = document.getElementById("locationResourceTableBody");
+    tbody.innerHTML = "";
+    const termo = query.toLowerCase().trim();
+
+    allResources
+        .filter(r => (r.name||'').toLowerCase().includes(termo))
+        .forEach(r => {
+            const loc = allLocations.find(l => l.id == r.location_id);
+            tbody.innerHTML += `
+                <tr>
+                    <td>${r.id}</td>
+                    <td>${loc?.name || ''}</td>
+                    <td><img src="${r.imagem_principal || ''}" style="width:45px; height:45px; object-fit:cover; border-radius:5px;"></td>
+                    <td>${r.name}</td>
+                    <td>${r.recebidopor || ''}</td>
+                    <td>${r.datarecepcao || ''}</td>
+                    <td>${r.quantidade || 0}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="editResource(${r.id})">Editar</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteResource(${r.id})">Eliminar</button>
+                    </td>
+                </tr>`;
+        });
+}
+
+/* ------ Abrir modal para criar ------ */
+function openModal() {
+    document.getElementById("locationResourceForm").reset();
+    document.getElementById("locationResourceId").value = "";
+    loadLocations();
+    new bootstrap.Modal(document.getElementById("locationResourceModal")).show();
+}
+
+/* ------ Editar ------ */
+function editResource(id) {
+    const r = allResources.find(r => r.id == id);
+    loadLocations();
+
+    document.getElementById("locationResourceId").value = r.id;
+    document.getElementById("resourceLocation").value = r.location_id;
+    document.getElementById("resourceName").value = r.name;
+    document.getElementById("resourceDescription").value = r.description;
+    document.getElementById("resourceRecebidoPor").value = r.recebidopor;
+    document.getElementById("resourceDataRecepcao").value = r.datarecepcao || '';
+    document.getElementById("resourceQuantidade").value = r.quantidade;
+    document.getElementById("resourcePDF").value = r.anexospdf || '';
+    document.getElementById("resourceImagemPrincipal").value = r.imagem_principal || '';
+    document.getElementById("resourceImagens").value = r.imagens || '';
+
+    new bootstrap.Modal(document.getElementById("locationResourceModal")).show();
+}
+
+/* ------ Submit (criar ou atualizar) ------ */
+document.getElementById("locationResourceForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const id = document.getElementById("locationResourceId").value;
+
+    const payload = {
+        location_id: parseInt(document.getElementById("resourceLocation").value),
+        name: document.getElementById("resourceName").value,
+        description: document.getElementById("resourceDescription").value,
+        recebidopor: document.getElementById("resourceRecebidoPor").value,
+        datarecepcao: document.getElementById("resourceDataRecepcao").value,
+        quantidade: parseInt(document.getElementById("resourceQuantidade").value),
+        anexospdf: document.getElementById("resourcePDF").value,
+
+        // 🆕 CAMPOS NOVOS
+        imagem_principal: document.getElementById("resourceImagemPrincipal").value,
+        imagens: document.getElementById("resourceImagens").value
+    };
+
+    const res = await fetch(id ? `${apiUrl}/${id}` : apiUrl, {
+        method: id ? "PUT" : "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) return alert("Erro ao salvar");
+    bootstrap.Modal.getInstance(document.getElementById("locationResourceModal")).hide();
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    loadResources();
+});
+
+/* ------ Excluir ------ */
+async function deleteResource(id) {
+    if (!confirm("Deseja eliminar este recurso?")) return;
+    await fetch(`${apiUrl}/${id}`, { method: "DELETE" });
+    loadResources();
+}
+
+/* ------ Inicializar ------ */
+window.onload = () => {
+    loadLocations();
+    loadResources();
+};
+</script>
+
+{% endblock %}

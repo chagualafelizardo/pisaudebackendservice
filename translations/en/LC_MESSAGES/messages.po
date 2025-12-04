@@ -1,0 +1,95 @@
+# English translations for PROJECT.
+# Copyright (C) 2025 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-12-03 08:46+0000\n"
+"PO-Revision-Date: 2025-12-03 08:46+0000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: en\n"
+"Language-Team: en <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.14.0\n"
+
+#: app.py:102
+#, python-format
+msgid "Idioma alterado para %(lang)s"
+msgstr ""
+
+#: app.py:206
+msgid "Por favor, forneça uma mensagem."
+msgstr ""
+
+#: app.py:222
+msgid "Ocorreu um erro ao processar sua pergunta. Tente novamente."
+msgstr ""
+
+#: app.py:264
+msgid "Nenhum arquivo enviado"
+msgstr ""
+
+#: app.py:268
+msgid "Nome de arquivo vazio"
+msgstr ""
+
+#: app.py:276
+#, python-format
+msgid "Documento %(filename)s carregado com sucesso"
+msgstr ""
+
+#: app.py:278
+msgid "Tipo de arquivo não suportado"
+msgstr ""
+
+#: app.py:344
+msgid "Online"
+msgstr ""
+
+#: app.py:353
+msgid "Por favor, faça login primeiro."
+msgstr ""
+
+#: app.py:362 app.py:457
+#, python-format
+msgid "Erro ao carregar a página %(page)s"
+msgstr ""
+
+#: app.py:450
+msgid "Você não tem permissão para acessar esta página."
+msgstr ""
+
+#: app.py:480
+msgid "Login efetuado com sucesso!"
+msgstr ""
+
+#: app.py:483
+msgid "Usuário ou senha inválidos."
+msgstr ""
+
+#: app.py:490
+msgid "Sessão terminada com sucesso."
+msgstr ""
+
+#: app.py:532
+msgid "Content-Type deve ser application/json"
+msgstr ""
+
+#: app.py:536
+msgid "JSON inválido ou payload vazio"
+msgstr ""
+
+#: app.py:593
+msgid "Falha no commit do banco de dados"
+msgstr ""
+
+#: app.py:596
+msgid "Importação concluída"
+msgstr ""
+

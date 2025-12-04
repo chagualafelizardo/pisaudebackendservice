@@ -112,3 +112,27 @@ docker exec -it pisaude-api flask db init      # só na primeira vez
 docker exec -it pisaude-api flask db migrate -m "Alterações nos modelos"
 docker exec -it pisaude-api flask db upgrade
 python -m compileall .
+
+
+# -------- Para migracao dos dados em python Flash
+# migration_script.py
+from app import db, create_app
+from models import Location, Resource, LocationResource
+
+app = create_app()
+
+with app.app_context():
+    # Migrar dados da tabela associativa antiga para o novo modelo
+    result = db.engine.execute('SELECT * FROM location_resource_old')  # se renomeou a tabela antiga
+    
+    for row in result:
+        lr = LocationResource(
+            location_id=row.location_id,
+            resource_id=row.resource_id,
+            quantidade=row.quantity,
+            name=f"Resource {row.resource_id}",  # ajuste conforme necessário
+            description="Migrado da tabela antiga"
+        )
+        db.session.add(lr)
+    
+    db.session.commit()

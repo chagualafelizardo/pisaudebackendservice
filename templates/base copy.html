@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{ current_locale }}">
+<html lang="{{ get_locale() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ _('PI-SAÚDE') }}{% endblock %}</title>
+    <title>{% block title %}PI-SAÚDE{% endblock %}</title>
     
     <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -158,7 +158,7 @@
         /* AI Assistant Avatar */
         .ai-assistant-container {
             position: fixed;
-            bottom: 100px;
+            bottom: 100px; /* subiu 10px */
             right: 20px;
             z-index: 1000;
         }
@@ -636,44 +636,36 @@
                 <i class="bi bi-list"></i>
             </button>
             <a class="navbar-brand fw-bold" href="/dashboard">
-                <i class="bi bi-heart-pulse me-2"></i>{{ _('PI-SAÚDE Tool') }}
+                <i class="bi bi-heart-pulse me-2"></i>PI-SAÚDE Tool
             </a>
 
             <div class="navbar-nav ms-auto">
-                <!-- Language Selector Updated -->
+                <!-- Language -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
-                        <i class="bi bi-translate me-1"></i>
-                        {% if current_locale == 'pt' %}🇵🇹 PT
-                        {% elif current_locale == 'en' %}🇺🇸 EN
-                        {% elif current_locale == 'es' %}🇪🇸 ES
-                        {% elif current_locale == 'fr' %}🇫🇷 FR
-                        {% else %}{{ current_locale|upper }}
-                        {% endif %}
+                        <i class="bi bi-translate me-1"></i> {{ session.get('lang', 'PT').upper() }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="{{ url_for('set_language', lang='pt') }}">🇵🇹 Português</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('set_language', lang='en') }}">🇺🇸 English</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('set_language', lang='es') }}">🇪🇸 Español</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('set_language', lang='fr') }}">🇫🇷 Français</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('set_language', lang='pt') }}">Português</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('set_language', lang='en') }}">English</a></li>
                     </ul>
                 </li>
 
-                <!-- User Menu (atualizado com traduções) -->
+                <!-- User -->
                 <li class="nav-item dropdown" id="userMenus">
                     <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                         <i class="bi bi-person-circle me-2"></i>{{ username }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="/content/user"><i class="bi bi-person me-2"></i> {{ _('Perfil') }}</a></li>
-                        <li><a class="dropdown-item" href="/content/roles"><i class="bi bi-shield-check me-2"></i> {{ _('Roles') }}</a></li>
-                        <li><a class="dropdown-item" href="/content/componente"><i class="bi bi-gear me-2"></i> {{ _('Componentes') }}</a></li>
+                        <li><a class="dropdown-item" href="/content/user"><i class="bi bi-person me-2"></i> Perfil</a></li>
+                        <li><a class="dropdown-item" href="/content/roles"><i class="bi bi-shield-check me-2"></i> Roles</a></li>
+                        <li><a class="dropdown-item" href="/content/componente"><i class="bi bi-gear me-2"></i> Componentes</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/settings"><i class="bi bi-sliders me-2"></i> {{ _('Configurações') }}</a></li>
+                        <li><a class="dropdown-item" href="/settings"><i class="bi bi-sliders me-2"></i> Configurações</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i> {{ _('Logout') }}</a></li>
+                        <li><a class="dropdown-item" href="/logout"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/about"><i class="bi bi-info-circle me-2"></i> {{ _('Acerca do Sistema') }}</a></li>
+                        <li><a class="dropdown-item" href="/about"><i class="bi bi-box-arrow-right me-2"></i> Acerca do Sistema</a></li>
                     </ul>
                 </li>
             </div>
@@ -688,20 +680,21 @@
         <div class="pt-3 flex-grow-1">
             <!-- Dashboard (Sempre visível) -->
             <a href="/dashboard" class="mb-2 main-menu">
-                <i class="bi bi-speedometer2"></i>{{ _('Dashboard') }}
+                <i class="bi bi-speedometer2"></i>Dashboard
             </a>
 
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#locationMenu">
-                    <span><i class="bi bi-clipboard-data"></i>{{ _('Gestão de Localizações') }}</span>
+                    <span><i class="bi bi-clipboard-data"></i>Gestão de Localizações</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="locationMenu">
-                    <a href="/content/pais" class="submenu">{{ _('Pais') }}</a>
-                    <a href="/content/provincia" class="submenu">{{ _('Provincia') }}</a>
+                    <a href="/content/pais" class="submenu">Pais</a>
+                    <a href="/content/provincia" class="submenu">Provincia</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/location" class="submenu">{{ _('Health Facility') }}</a>
-                    <a href="/content/subunidade" class="submenu">{{ _('Subunidade') }}</a>
+
+                    <a href="/content/location" class="submenu">Health Facility</a>
+                    <a href="/content/subunidade" class="submenu">Subunidade</a>
                     <li><hr class="dropdown-divider"></li>
                 </div>
             </div>
@@ -710,18 +703,20 @@
             {% if 'registoMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#registoMenu">
-                    <span><i class="bi bi-clipboard-data"></i>{{ _('Registo') }}</span>
+                    <span><i class="bi bi-clipboard-data"></i>Registo</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="registoMenu">
-                    <a href="/content/portatestagem" class="submenu">{{ _('Porta de Testagem') }}</a>
-                    <a href="/content/keypopulation" class="submenu">{{ _('Key Populations') }}</a>
+                    <a href="/content/portatestagem" class="submenu">Porta de Testagem</a>
+                    <a href="/content/keypopulation" class="submenu">Key Populations</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/grouptype" class="submenu">{{ _('Group Types') }}</a>
-                    <a href="/content/group" class="submenu">{{ _('Groups') }}</a>
+
+                    <a href="/content/grouptype" class="submenu">Group Types</a>
+                    <a href="/content/group" class="submenu">Groups</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/states" class="submenu">{{ _('States') }}</a>
-                    <a href="/content/textmessage" class="submenu">{{ _('Text Messages') }}</a>
+
+                    <a href="/content/states" class="submenu">States</a>
+                    <a href="/content/textmessage" class="submenu">Text Messages</a>
                 </div>
             </div>
             {% endif %}
@@ -730,29 +725,29 @@
             {% if 'alosaudeMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#alosaudeMenu">
-                    <span><i class="bi bi-heart-pulse"></i>{{ _('Linha Alo-Saúde') }}</span>
+                    <span><i class="bi bi-heart-pulse"></i>Linha Alo-Saúde</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="alosaudeMenu">
-                    <a href="/content/pisaudedashboard" class="submenu">{{ _('PI-Saúde DashBoard') }}</a>
-                    <a href="/content/iniciotarv" class="submenu">{{ _('Início TARV') }}</a>
-                    <a href="/content/adesaotarv" class="submenu">{{ _('Adesão ao TARV') }}</a>
-                    <a href="/content/marcadoslevantamento" class="submenu">{{ _('Marcados Para Levantamento de ARVs') }}</a>
-                    <a href="/content/cargaviral" class="submenu">{{ _('Carga Viral') }}</a>
-                    <a href="/content/faltosos" class="submenu">{{ _('Faltosos') }}</a>
-                    <a href="/content/abandonos" class="submenu">{{ _('Abandonos') }}</a>
-                    <a href="/content/observations" class="submenu">{{ _('Observations') }}</a>
+                    <a href="/content/pisaudedashboard" class="submenu">PI-Saúde DashBoard</a>
+                    <a href="/content/iniciotarv" class="submenu">Início TARV</a>
+                    <a href="/content/adesaotarv" class="submenu">Adesão ao TARV</a>
+                    <a href="/content/marcadoslevantamento" class="submenu">Marcados Para Levantamento de ARVs</a>
+                    <a href="/content/cargaviral" class="submenu">Carga Viral</a>
+                    <a href="/content/faltosos" class="submenu">Faltosos</a>
+                    <a href="/content/abandonos" class="submenu">Abandonos</a>
+                    <a href="/content/observations" class="submenu">Observations</a>
                 </div>
             </div>
             {% endif %}
 
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#testagemMenu">
-                    <span><i class="bi bi-heart-pulse"></i>{{ _('Testagem HIV') }}</span>
+                    <span><i class="bi bi-heart-pulse"></i>Testagem HIV</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="testagemMenu">
-                    <a href="/content/pisaudedashboard" class="submenu">{{ _('PI-Saúde DashBoard') }}</a>
+                    <a href="/content/pisaudedashboard" class="submenu">PI-Saúde DashBoard</a>
                 </div>
             </div>
 
@@ -760,13 +755,13 @@
             {% if 'mappingMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#mappingMenu">
-                    <span><i class="bi bi-folder2-open"></i>{{ _('Resources Mapping') }}</span>
+                    <span><i class="bi bi-folder2-open"></i>Resources Mapping</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="mappingMenu">                
-                    <a href="/content/mapping" class="submenu">{{ _('Resource Mapping') }}</a>
-                    <a href="/content/resourcetype" class="submenu">{{ _('Resource Type') }}</a>
-                    <a href="/content/resource" class="submenu">{{ _('Resource') }}</a>
+                    <a href="/content/mapping" class="submenu">Resource Mapping</a>
+                    <a href="/content/resourcetype" class="submenu">Resource Type</a>
+                    <a href="/content/resource" class="submenu">Resource</a>
                 </div>
             </div>
             {% endif %}
@@ -775,12 +770,12 @@
             {% if 'gestaoAlocacaoMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#gestaoAlocacaoMenu">
-                    <span><i class="bi bi-diagram-3"></i>{{ _('Gestão de Alocação') }}</span>
+                    <span><i class="bi bi-diagram-3"></i>Gestão de Alocação</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="gestaoAlocacaoMenu">
-                    <a href="/content/afetacao" class="submenu">{{ _('Afetação') }}</a>
-                    <a href="/content/transferencia" class="submenu">{{ _('Transferência') }}</a>
+                    <a href="/content/afetacao" class="submenu">Afetação</a>
+                    <a href="/content/transferencia" class="submenu">Transferência</a>
                 </div>
             </div>
             {% endif %}
@@ -789,13 +784,13 @@
             {% if 'gestaoFormacaoMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#gestaoFormacaoMenu">
-                    <span><i class="bi bi-journal-text"></i>{{ _('Gestão de Formações') }}</span>
+                    <span><i class="bi bi-journal-text"></i>Gestão de Formações</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="gestaoFormacaoMenu">
-                    <a href="/content/especialidadesaude" class="submenu">{{ _('Especialidades Saúde') }}</a>
-                    <a href="/content/candidato" class="submenu">{{ _('Registar Candidatos') }}</a>
-                    <a href="/content/formacao" class="submenu">{{ _('Militar em Formação') }}</a>
+                    <a href="/content/especialidadesaude" class="submenu">Especialidades Saúde</a>
+                    <a href="/content/candidato" class="submenu">Registar Candidatos</a>
+                    <a href="/content/formacao" class="submenu">Militar em Formação</a>
                 </div>
             </div>
             {% endif %}
@@ -804,29 +799,30 @@
             {% if 'trackingMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#trackingMenu">
-                    <span><i class="bi bi-box-seam"></i>{{ _('Items Tracking') }}</span>
+                    <span><i class="bi bi-box-seam"></i>Items Tracking</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="trackingMenu">
-                    <a href="/content/dashboarddistribuicao" class="submenu">{{ _('Dashboard Distribuição') }}</a>
-                    <a href="/content/porto" class="submenu">{{ _('Porto') }}</a>
-                    <a href="/content/armazem" class="submenu">{{ _('Armazem') }}</a>
-                    <a href="/content/notaenvio" class="submenu">{{ _('Notas de Envio') }}</a>
+                    <a href="/content/dashboarddistribuicao" class="submenu">Dashboard Distribuição</a>
+                    <a href="/content/porto" class="submenu">Porto</a>
+                    <a href="/content/armazem" class="submenu">Armazem</a>
+                    <a href="/content/notaenvio" class="submenu">Notas de Envio</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/tipoitem" class="submenu">{{ _('Tipos de Item') }}</a>
-                    <a href="/content/item" class="submenu">{{ _('Item') }}</a>
-                    <a href="/content/distribuicao" class="submenu">{{ _('Distribuição') }}</a>
+
+                    <a href="/content/tipoitem" class="submenu">Tipos de Item</a>
+                    <a href="/content/item" class="submenu">Item</a>
+                    <a href="/content/distribuicao" class="submenu">Distribuição</a>
                 </div>
             </div>
             {% endif %}
 
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#DODtrackingMenu">
-                    <span><i class="bi bi-box-seam"></i>{{ _('DOD Tracking') }}</span>
+                    <span><i class="bi bi-box-seam"></i>DOD Tracking</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="DODtrackingMenu">
-                    <a href="/content/dashboarddoddistribuicao" class="submenu">{{ _('Distribuição de Recursos') }}</a>
+                    <a href="/content/dashboarddoddistribuicao" class="submenu">Distribuição de Recursos</a>
                 </div>
             </div>
 
@@ -834,28 +830,34 @@
             {% if 'rhMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#rhMenu">
-                    <span><i class="bi bi-people"></i>{{ _('Recursos Humanos') }}</span>
+                    <span><i class="bi bi-people"></i>Recursos Humanos</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="rhMenu">
-                    <a href="/content/ramo" class="submenu">{{ _('Ramo') }}</a>
+                    <a href="/content/ramo" class="submenu">Ramo</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/funcao" class="submenu">{{ _('Função') }}</a>
+
+                    <a href="/content/funcao" class="submenu">Função</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/especialidade" class="submenu">{{ _('Especialidade') }}</a>
-                    <a href="/content/subespecialidade" class="submenu">{{ _('SubEspecialidade') }}</a>
+
+                    <a href="/content/especialidade" class="submenu">Especialidade</a>
+                    <a href="/content/subespecialidade" class="submenu">SubEspecialidade</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/patent" class="submenu">{{ _('Patente') }}</a>
-                    <a href="/content/person" class="submenu">{{ _('Militar') }}</a>
-                    <a href="/content/situacaogeral" class="submenu">{{ _('Situação Geral') }}</a>
+
+                    <a href="/content/patent" class="submenu">Patente</a>
+                    <a href="/content/person" class="submenu">Militar</a>
+                    <a href="/content/situacaogeral" class="submenu">Situação Geral</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/formaprestacaoservico" class="submenu">{{ _('Formas de Prestação') }}</a>
-                    <a href="/content/situacaoprestacaoservico" class="submenu">{{ _('Situação Prestação Serviço') }}</a>
+
+                    <a href="/content/formaprestacaoservico" class="submenu">Formas de Prestação</a>
+                    <a href="/content/situacaoprestacaoservico" class="submenu">Situação Prestação Serviço</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/tipolicenca" class="submenu">{{ _('Tipo de Licença') }}</a>
-                    <a href="/content/licenca" class="submenu">{{ _('Registar Licença') }}</a>
+                    
+                    <a href="/content/tipolicenca" class="submenu">Tipo de Licença</a>
+                    <a href="/content/licenca" class="submenu">Registar Licença</a>
                     <li><hr class="dropdown-divider"></li>
-                    <a href="/content/despacho" class="submenu">{{ _('Despacho') }}</a>
+                    
+                    <a href="/content/despacho" class="submenu">Despacho</a>
                 </div>
             </div>
             {% endif %}
@@ -863,14 +865,14 @@
             <!-- User Management -->
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#userMenu">
-                    <span><i class="bi bi-person-gear"></i>{{ _('Gestão de Usuários') }}</span>
+                    <span><i class="bi bi-person-gear"></i>Gestão de Usuários</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="userMenu">
-                    <a href="/content/user" class="submenu">{{ _('Usuários') }}</a>
-                    <a href="/content/roles" class="submenu">{{ _('Roles') }}</a>
-                    <a href="/content/componente" class="submenu">{{ _('Componentes') }}</a>
-                    <a href="/content/settings" class="submenu">{{ _('Configurações') }}</a>
+                    <a href="/content/user" class="submenu">Usuários</a>
+                    <a href="/content/roles" class="submenu">Roles</a>
+                    <a href="/content/componente" class="submenu">Componentes</a>
+                    <a href="/content/settings" class="submenu">Configurações</a>
                 </div>
             </div>
         </div>
@@ -882,11 +884,11 @@
             <small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ location_name }}</small>
             <br>
             <small class="text-muted user-components">
-                {{ _('Components') }}: 
+                Components: 
                 {% for component in user_components %}
                     <span class="badge bg-primary">{{ component }}</span>
                 {% else %}
-                    <span class="badge bg-secondary">{{ _('Sem componentes') }}</span>
+                    <span class="badge bg-secondary">Sem componentes</span>
                 {% endfor %}
             </small>
         </div>
@@ -902,7 +904,7 @@
     <!-- AI Assistant Container -->
     <div class="ai-assistant-container">
         <!-- Jhpiego AI Avatar -->
-        <div class="ai-avatar" id="jhpiegoAiAvatar" title="{{ _('Jhpiego AI Assistant') }}">
+        <div class="ai-avatar" id="jhpiegoAiAvatar" title="Jhpiego AI Assistant">
             <i class="bi bi-robot"></i>
             <div class="pulse"></div>
         </div>
@@ -915,8 +917,8 @@
                 <i class="bi bi-robot"></i>
             </div>
             <div>
-                <h6 class="mb-0">{{ _('Jhpiego AI Assistant') }}</h6>
-                <small>{{ _('Inteligência Artificial para suporte avançado') }}</small>
+                <h6 class="mb-0">Jhpiego AI Assistant</h6>
+                <small>Inteligência Artificial para suporte avançado</small>
             </div>
             <button class="ai-dialog-close" onclick="closeAiDialog('jhpiegoAiDialog')">
                 <i class="bi bi-x"></i>
@@ -928,7 +930,7 @@
                     <i class="bi bi-robot"></i>
                 </div>
                 <div class="ai-message-text">
-                    {{ _('Olá! Sou o Jhpiego AI Assistant. Como posso ajudá-lo hoje? Escolha uma opção ou digite sua pergunta:') }}
+                    Olá! Sou o Jhpiego AI Assistant. Como posso ajudá-lo hoje? Escolha uma opção ou digite sua pergunta:
                 </div>
             </div>
             
@@ -953,13 +955,13 @@
             </div>
         </div>
         <div class="ai-dialog-input">
-            <input type="text" placeholder="{{ _('Digite sua mensagem para o Jhpiego AI...') }}" 
+            <input type="text" placeholder="Digite sua mensagem para o Jhpiego AI..." 
                 id="jhpiegoAiInput" onkeypress="handleAiInput(event, 'jhpiegoAi')">
         </div>
     </div>
 
     <footer>
-        <small>&copy; {{ current_year }} - {{ _('Developed by Felizardo Chaguala | Powered by Flask') }}</small>
+        <small>&copy; {{ current_year }} - Developed by Felizardo Chaguala | Powered by Flask</small>
     </footer>
 
 <script>
@@ -1138,7 +1140,7 @@
                 <div class="ai-message-avatar">
                     <i class="bi bi-robot"></i>
                 </div>
-                <div class="ai-message-text">{{ _("Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.") }}</div>
+                <div class="ai-message-text">Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.</div>
             `;
             content.appendChild(errorMessage);
             content.scrollTop = content.scrollHeight;
@@ -1193,86 +1195,38 @@
     }
 
     function loadFaq() {
-        // Mensagens de FAQ por idioma
-        const faqMessages = {
-            'pt': [
-                'Como marcar uma consulta?',
-                'Quais são os horários de funcionamento?',
-                'Como acessar resultados de exames?',
-                'Quais documentos são necessários para atendimento?',
-                'Como funciona o sistema de agendamento?'
-            ],
-            'en': [
-                'How to schedule an appointment?',
-                'What are the working hours?',
-                'How to access exam results?',
-                'What documents are needed for service?',
-                'How does the scheduling system work?'
-            ],
-            'es': [
-                '¿Cómo programar una cita?',
-                '¿Cuáles son los horarios de trabajo?',
-                '¿Cómo acceder a los resultados de los exámenes?',
-                '¿Qué documentos se necesitan para el servicio?',
-                '¿Cómo funciona el sistema de programación?'
-            ],
-            'fr': [
-                'Comment prendre rendez-vous?',
-                'Quelles sont les heures d\'ouverture?',
-                'Comment accéder aux résultats des examens?',
-                'Quels documents sont nécessaires pour le service?',
-                'Comment fonctionne le système de rendez-vous?'
-            ]
-        };
-        
-        const introTexts = {
-            'pt': 'Aqui estão algumas perguntas frequentes que pode selecionar:',
-            'en': 'Here are some frequently asked questions you can select:',
-            'es': 'Aquí hay algunas preguntas frecuentes que puede seleccionar:',
-            'fr': 'Voici quelques questions fréquemment posées que vous pouvez sélectionner:'
-        };
-        
-        const currentLang = document.documentElement.lang || 'pt';
-        const faq = faqMessages[currentLang] || faqMessages['pt'];
-        const intro = introTexts[currentLang] || introTexts['pt'];
-        
-        const container = document.getElementById('jhpiegoAiContent');
+        fetch('/api/ai/faq')
+            .then(r => r.json())
+            .then(data => {
+                const container = document.getElementById('jhpiegoAiContent');
 
-        let html = `
-            <div class="ai-message bot">
-                <div class="ai-message-avatar"><i class="bi bi-robot"></i></div>
-                <div class="ai-message-text">
-                    ${intro}
-                </div>
-            </div>
-            <div class="ai-options-container">
-        `;
+                let html = `
+                    <div class="ai-message bot">
+                        <div class="ai-message-avatar"><i class="bi bi-robot"></i></div>
+                        <div class="ai-message-text">
+                            Aqui estão algumas perguntas frequentes que pode selecionar:
+                        </div>
+                    </div>
+                    <div class="ai-options-container">
+                `;
 
-        faq.forEach(q => {
-            html += `
-            <div class="ai-option-button" onclick="sendFaqQuestion('${q.replace(/'/g, "\\'")}')">
-                <i class="bi bi-chat-dots"></i>
-                <span>${q}</span>
-            </div>`;
-        });
+                data.faq.forEach(q => {
+                    html += `
+                    <div class="ai-option-button" onclick="sendFaqQuestion('${q.replace(/'/g, "\\'")}')">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>${q}</span>
+                    </div>`;
+                });
 
-        html += `</div>`;
-        container.insertAdjacentHTML('beforeend', html);
-        container.scrollTop = container.scrollHeight;
+                html += `</div>`;
+                container.insertAdjacentHTML('beforeend', html);
+                container.scrollTop = container.scrollHeight;
+            });
     }
 
     function sendFaqQuestion(q) {
-        const input = document.getElementById('jhpiegoAiInput');
-        input.value = q;
-        
-        const event = new KeyboardEvent('keypress', {
-            key: 'Enter',
-            code: 'Enter',
-            keyCode: 13,
-            which: 13,
-            bubbles: true
-        });
-        input.dispatchEvent(event);
+        addUserMessage(q);
+        processAiQuery(q);
     }
 
     </script>

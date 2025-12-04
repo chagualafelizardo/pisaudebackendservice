@@ -28,7 +28,7 @@
 #     )
 #     # NOVO CAMPO: Observações (texto livre, sem relacionamento)
 #     observacoes = db.Column(db.Text, nullable=True)
-
+    
 #     # Relacionamentos
 #     observations = db.relationship('Observation', back_populates='location')
 #     users = db.relationship('User', back_populates='location')

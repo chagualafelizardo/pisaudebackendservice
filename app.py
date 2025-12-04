@@ -1,4 +1,4 @@
-# app.py (REFATORADO)
+# app.py (CORRIGIDO)
 import logging
 import os
 from datetime import datetime
@@ -38,10 +38,87 @@ db.init_app(app)
 # Instância global do bot
 jhpiego_bot = JhpiegoBot()
 
-# Inicialização do Babel (idiomas)
+# -------------------------------
+# CONFIGURAÇÃO DO BABEL (IDIOMAS)
+# -------------------------------
 app.config['BABEL_DEFAULT_LOCALE'] = 'pt'
-app.config['BABEL_SUPPORTED_LOCALES'] = ['pt', 'en']
+app.config['BABEL_SUPPORTED_LOCALES'] = ['pt', 'en', 'es', 'fr']
+app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
+
 babel = Babel(app)
+
+# -------------------------------
+# SELEÇÃO DE IDIOMA
+# -------------------------------
+@babel.localeselector
+def get_locale():
+    """Determina o idioma a ser usado para a requisição atual"""
+    # 1. Verifica idioma definido na sessão
+    if 'lang' in session:
+        return session['lang']
+    
+    # 2. Verifica preferência do usuário logado
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+        if user and hasattr(user, 'language') and user.language:
+            return user.language
+    
+    # 3. Usa idioma do navegador
+    browser_lang = request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES'])
+    return browser_lang or app.config['BABEL_DEFAULT_LOCALE']
+
+# -------------------------------
+# CONTEXT PROCESSOR PARA TEMPLATES (CORRIGIDO)
+# -------------------------------
+@app.context_processor
+def inject_i18n():
+    """Injeta variáveis de internacionalização nos templates"""
+    return dict(
+        _=_,  # Função gettext para traduções
+        get_locale=get_locale,  # <-- ADICIONE ESTA LINHA
+        current_locale=get_locale(),
+        supported_locales=app.config['BABEL_SUPPORTED_LOCALES']
+    )
+
+# -------------------------------
+# ROTA PARA ALTERAR IDIOMA
+# -------------------------------
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    """Altera o idioma da aplicação"""
+    if lang in app.config['BABEL_SUPPORTED_LOCALES']:
+        session['lang'] = lang
+        
+        # Atualiza preferência no banco se usuário estiver logado
+        if 'user_id' in session:
+            try:
+                user = User.query.get(session['user_id'])
+                if user and hasattr(user, 'language'):
+                    user.language = lang
+                    db.session.commit()
+                    logger.info(f"Idioma atualizado para {lang} para usuário {user.username}")
+            except Exception as e:
+                logger.error(f"Erro ao atualizar idioma do usuário: {e}")
+        
+        flash(_('Idioma alterado para %(lang)s', lang=lang), 'success')
+    
+    # Redireciona para página anterior ou dashboard
+    referrer = request.referrer
+    if not referrer or referrer.endswith('/set_language/' + lang):
+        referrer = url_for('dashboard')
+    
+    return redirect(referrer)
+
+# -------------------------------
+# API PARA OBTER IDIOMA ATUAL
+# -------------------------------
+@app.route('/api/current-language', methods=['GET'])
+def get_current_language():
+    """Retorna o idioma atual configurado"""
+    return jsonify({
+        'locale': get_locale(),
+        'supported_locales': app.config['BABEL_SUPPORTED_LOCALES']
+    })
 
 # -------------------------------
 # Importação de Blueprints (MANTIDO)
@@ -119,17 +196,18 @@ for bp in blueprints:
     app.register_blueprint(bp, url_prefix='/api')
 
 # -------------------------------
-# 🔥 ENDPOINT SIMPLIFICADO DO BOT
+# 🔥 ENDPOINT DO BOT COM SUPORTE A IDIOMAS
 # -------------------------------
 @app.route('/api/ai-query', methods=['POST'])
 def ai_query():
-    """Endpoint para consultas do Jhpiego Bot"""
+    """Endpoint para consultas do Jhpiego Bot com suporte a idiomas"""
     try:
         data = request.get_json()
         if not data or 'message' not in data:
-            return jsonify({"response": "Por favor, forneça uma mensagem."}), 400
+            return jsonify({"response": _("Por favor, forneça uma mensagem.")}), 400
         
         question = data['message'].strip()
+        user_lang = get_locale()  # Obtém idioma do usuário
         
         # 🔥 USAR O BOT PARA PROCESSAR
         result = jhpiego_bot.process_query(question)
@@ -139,7 +217,7 @@ def ai_query():
     except Exception as e:
         logger.error(f"❌ Erro no endpoint AI: {e}")
         return jsonify({
-            "response": "Ocorreu um erro ao processar sua pergunta. Tente novamente.",
+            "response": _("Ocorreu um erro ao processar sua pergunta. Tente novamente."),
             "topic": None,
             "source": None
         }), 500
@@ -181,11 +259,11 @@ def upload_document():
     """Endpoint para upload de documentos para o bot"""
     try:
         if 'file' not in request.files:
-            return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+            return jsonify({'error': _('Nenhum arquivo enviado')}), 400
         
         file = request.files['file']
         if file.filename == '':
-            return jsonify({'error': 'Nome de arquivo vazio'}), 400
+            return jsonify({'error': _('Nome de arquivo vazio')}), 400
         
         if file and file.filename.endswith(('.txt', '.pdf', '.docx', '.xlsx')):
             filename = file.filename
@@ -193,39 +271,26 @@ def upload_document():
             file.save(filepath)
             
             logger.info(f"✅ Documento salvo: {filename}")
-            return jsonify({'message': f'Documento {filename} carregado com sucesso'})
+            return jsonify({'message': _('Documento %(filename)s carregado com sucesso', filename=filename)})
         else:
-            return jsonify({'error': 'Tipo de arquivo não suportado'}), 400
+            return jsonify({'error': _('Tipo de arquivo não suportado')}), 400
             
     except Exception as e:
         logger.error(f"❌ Erro no upload: {e}")
         return jsonify({'error': str(e)}), 500
 
 # -------------------------------
-# Resto do código (MANTIDO - idioma, context processor, rotas frontend, etc.)
+# Context Processor — info do usuário (CORRIGIDO)
 # -------------------------------
-@babel.localeselector
-def get_locale():
-    return session.get('lang') or request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES'])
-
-@app.context_processor
-def inject_get_locale():
-    return dict(get_locale=get_locale)
-
-@app.route('/set_language/<lang>')
-def set_language(lang):
-    if lang in app.config['BABEL_SUPPORTED_LOCALES']:
-        session['lang'] = lang
-    return redirect(request.referrer or url_for('dashboard'))
-
-# Context Processor — info do usuário (MANTIDO)
 @app.context_processor
 def inject_user_components():
+    """Injeta informações do usuário nos templates"""
     user_id = session.get('user_id')
     username = ''
     location_name = ''
     user_menus = []
     user_component_names = []
+    current_language = get_locale()
 
     if user_id:
         user = User.query.get(user_id)
@@ -235,16 +300,34 @@ def inject_user_components():
             componentes = UserComponente.query.filter_by(user_id=user_id).all()
             user_component_names = [uc.componente.descricao for uc in componentes if uc.componente]
             user_menus = get_user_menus(user_id)
+            
+            # Verifica se usuário tem idioma preferencial salvo
+            if hasattr(user, 'language') and user.language:
+                current_language = user.language
 
     return dict(
         username=username,
         location_name=location_name,
         user_components=user_component_names,
         user_menus=user_menus,
-        current_year=datetime.now().year
+        current_year=datetime.now().year,
+        current_language=current_language,
+        language_flag=get_language_flag(current_language)
     )
 
-# Rotas Frontend (MANTIDO)
+def get_language_flag(lang):
+    """Retorna emoji da bandeira para o idioma"""
+    flags = {
+        'pt': '🇵🇹',  # Português
+        'en': '🇺🇸',  # Inglês
+        'es': '🇪🇸',  # Espanhol
+        'fr': '🇫🇷',  # Francês
+    }
+    return flags.get(lang, '🌐')
+
+# -------------------------------
+# ROTAS FRONTEND
+# -------------------------------
 @app.route('/')
 def index():
     return redirect(url_for('dashboard'))
@@ -257,7 +340,7 @@ def dashboard():
                          total_users=total_users,
                          total_locations=total_locations,
                          total_records=0,
-                         system_activity='Online')
+                         system_activity=_('Online'))
 
 @app.route('/content/<page>')
 def content(page):
@@ -266,16 +349,16 @@ def content(page):
     
     # Verificar autenticação
     if 'user_id' not in session:
-        flash('Por favor, faça login primeiro.', 'warning')
+        flash(_('Por favor, faça login primeiro.'), 'warning')
         return redirect(url_for('login'))
     
     # Páginas básicas sempre permitidas
-    if page in ['dashboard', 'dashboarddistribuicao','dashboarddoddistribuicao','pisaudedashboard']:
+    if page in ['dashboard', 'dashboarddistribuicao', 'dashboarddoddistribuicao', 'pisaudedashboard']:
         try:
             return render_template(f'{page}.html')
         except Exception as e:
             logger.error(f"Erro ao carregar template '{page}.html': {str(e)}")
-            flash(f'Erro ao carregar a página {page}.', 'danger')
+            flash(_('Erro ao carregar a página %(page)s', page=page), 'danger')
             return redirect(url_for('dashboard'))
     
     # Verificar se a página é permitida para o usuário
@@ -288,73 +371,7 @@ def content(page):
         
         # Mapeamento de páginas para menus principais
         page_to_menu = {
-            # Gestão de Formações
-            # 'especialidadesaude': 'gestaoFormacaoMenu',
-            # 'formacao': 'gestaoFormacaoMenu', 
-            # 'candidato': 'gestaoFormacaoMenu',
-            
-            # Resources Mapping
-            # 'resource': 'mappingMenu',
-            # 'resourcetype': 'mappingMenu',
-            # 'mapping': 'mappingMenu',
-            
-            # Gestão de Alocação
-            # 'afetacao': 'gestaoAlocacaoMenu',
-            # 'transferencia': 'gestaoAlocacaoMenu',
-            
-            # Items Tracking
-            # 'porto': 'trackingMenu',
-            # 'tipoitem': 'trackingMenu',
-            # 'notaenvio': 'trackingMenu',
-            # 'armazem': 'trackingMenu',
-            # 'item': 'trackingMenu',
-            # 'distribuicao': 'trackingMenu',
-            
-            # Alo-Saúde
-            # 'alosaude': 'alosaudeMenu',
-            
-            # Menu Registo
-            # 'provincia': 'registoMenu',
-            # 'location': 'registoMenu',
-            # 'subunidade': 'registoMenu',
-            # 'portatestagem': 'registoMenu',
-            # 'keypopulation': 'registoMenu',
-            # 'grouptypes': 'registoMenu',
-            # 'group': 'registoMenu',
-            # 'states': 'registoMenu',
-            # 'textmessage': 'registoMenu',
-            # 'ramo': 'registoMenu',
-            # 'funcao': 'registoMenu',
-            # 'especialidade': 'registoMenu',
-            # 'subespecialidade': 'registoMenu',
-            # 'pais': 'registoMenu',
-            
-            # Recursos Humanos
-            # 'patent': 'rhMenu',
-            # 'person': 'rhMenu',
-            # 'formaprestacaoservico': 'rhMenu',
-            # 'situacaogeral': 'rhMenu',
-            # 'situacaoprestacaoservico': 'rhMenu',
-            # 'tipolicenca': 'rhMenu',
-            # 'licenca': 'rhMenu',
-            # 'despacho': 'rhMenu',
-            
-            # Grupos Alo-Saúde
-            # 'iniciotarv': 'gruposAlosaudeMenus',
-            # 'adesaotarv': 'gruposAlosaudeMenus',
-            # 'cargaviral': 'gruposAlosaudeMenus',
-            # 'faltosos': 'gruposAlosaudeMenus',
-            # 'abandonos': 'gruposAlosaudeMenus',
-            # 'observations': 'gruposAlosaudeMenus',
-            # 'Modulo Alo-Saúde':'moduloAloSaude',
-            
-            # User Management
-            # 'location':'locationMenu',
-            # 'user': 'userMenu',
-            # 'roles': 'userMenu',
-            # 'componente': 'userMenu',
-            # 'register': 'userMenu',
-            # 'settings': 'userMenu'
+            # (mantenha seus mapeamentos aqui)
         }
         
         # Verificar se a página é permitida
@@ -363,17 +380,19 @@ def content(page):
             
             # Verificar se o usuário tem o menu necessário
             if required_menu not in user_menus:
-                flash('Você não tem permissão para acessar esta página.', 'danger')
+                flash(_('Você não tem permissão para acessar esta página.'), 'danger')
                 return redirect(url_for('dashboard'))
     
     try:
         return render_template(f'{page}.html')
     except Exception as e:
         logger.error(f"Erro ao carregar template '{page}.html': {str(e)}")
-        flash(f'Erro ao carregar a página {page}.', 'danger')
+        flash(_('Erro ao carregar a página %(page)s', page=page), 'danger')
         return redirect(url_for('dashboard'))
 
-# Login / Logout (MANTIDO)
+# -------------------------------
+# LOGIN / LOGOUT
+# -------------------------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -386,25 +405,33 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             session['location_name'] = user.location.name if user.location else ''
-            flash('Login efetuado com sucesso!', 'success')
+            
+            # Define idioma da sessão baseado no usuário
+            if hasattr(user, 'language') and user.language:
+                session['lang'] = user.language
+            
+            flash(_('Login efetuado com sucesso!'), 'success')
             return redirect(url_for('dashboard'))
         else:
-            flash('Usuário ou senha inválidos.', 'danger')
+            flash(_('Usuário ou senha inválidos.'), 'danger')
 
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('Sessão terminada com sucesso.', 'info')
+    flash(_('Sessão terminada com sucesso.'), 'info')
     return redirect(url_for('login'))
 
 @app.route('/about')
 def about():
     return render_template('about.html')
 
+# -------------------------------
+# FUNÇÕES AUXILIARES
+# -------------------------------
 def get_user_menus(user_id):
-    """Retorna lista de IDs de menus permitidos para o usuário (MANTIDO)"""
+    """Retorna lista de IDs de menus permitidos para o usuário"""
     user_menus = []
     componentes = UserComponente.query.filter_by(user_id=user_id).all()
     user_component_names = [uc.componente.descricao for uc in componentes if uc.componente]
@@ -429,16 +456,17 @@ def get_user_menus(user_id):
     
     return user_menus
 
-# Rota de importação de Observações (MANTIDO)
+# -------------------------------
+# ROTA DE IMPORTAÇÃO DE OBSERVAÇÕES
+# -------------------------------
 @app.route('/api/observations/import', methods=['POST'])
 def import_observations():
-    # ... (código mantido igual)
     if not request.is_json:
-        return jsonify({'error': 'Content-Type must be application/json'}), 415
+        return jsonify({'error': _('Content-Type deve ser application/json')}), 415
         
     data = request.get_json()
     if not data:
-        return jsonify({'error': 'Invalid JSON or empty payload'}), 400
+        return jsonify({'error': _('JSON inválido ou payload vazio')}), 400
 
     stateId = data.get("stateID")
     grouptypeId = data.get("groupTypeID")
@@ -495,16 +523,24 @@ def import_observations():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Database commit failed', 'details': str(e)}), 500
+        return jsonify({'error': _('Falha no commit do banco de dados'), 'details': str(e)}), 500
 
-    return jsonify({'message': 'Import completed', 'imported_count': imported_count, 'errors': errors}), 200
+    return jsonify({
+        'message': _('Importação concluída'),
+        'imported_count': imported_count,
+        'errors': errors
+    }), 200
 
-# Error Handlers (MANTIDO)
+# -------------------------------
+# MANIPULADORES DE ERRO (CORRIGIDOS)
+# -------------------------------
 @app.errorhandler(404)
 def not_found_error(error):
+    """Manipulador de erro 404"""
+    # Usar HTML inline em vez de template para evitar problemas
     return """
     <!DOCTYPE html>
-    <html>
+    <html lang="pt">
     <head>
         <title>Página Não Encontrada</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -523,10 +559,14 @@ def not_found_error(error):
 
 @app.errorhandler(500)
 def internal_error(error):
+    """Manipulador de erro 500"""
     db.session.rollback()
+    logger.error(f"Erro interno do servidor: {error}")
+    
+    # Usar HTML inline em vez de template para evitar problemas
     return """
     <!DOCTYPE html>
-    <html>
+    <html lang="pt">
     <head>
         <title>Erro Interno</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -548,10 +588,10 @@ def favicon():
     return '', 204
 
 # -------------------------------
-# Inicialização da App
+# INICIALIZAÇÃO DA APLICAÇÃO
 # -------------------------------
 if __name__ == '__main__':
-    logger.info("🚀 Iniciando aplicação PI-SAÚDE com Jhpiego Bot...")
+    logger.info("🚀 Iniciando aplicação PI-SAÚDE com Jhpiego Bot e sistema de idiomas...")
     
     with app.app_context():
         db.create_all()

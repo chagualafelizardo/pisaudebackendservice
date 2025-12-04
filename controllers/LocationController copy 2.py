@@ -26,29 +26,10 @@ def encode_if_bytes(value):
     if isinstance(value, bytes):
         return base64.b64encode(value).decode('utf-8')
     return value
-
-def decode_file(value):
-    if not value:
-        return None
-    if isinstance(value, bytes):
-        return value
-
-    # Tentar Base64
-    try:
-        return base64.b64decode(value)
-    except Exception:
-        pass
-
-    # Tentar HEX
-    try:
-        return bytes.fromhex(value)
-    except Exception:
-        pass
-
-    # Se não for nenhum formato conhecido
-    return None
   
 class LocationController:
+
+        
     @staticmethod
     def get_all():
         try:
@@ -57,11 +38,7 @@ class LocationController:
             locations = Location.query.all()
             result = []
 
-            def encode_if_bytes(value):
-                if isinstance(value, bytes):
-                    return base64.b64encode(value).decode("utf-8")
-                return value
-
+            # Função reutilizável para serializar os recursos
             def serialize_resource(link):
                 return {
                     'id': link.id,
@@ -69,9 +46,9 @@ class LocationController:
                     'name': getattr(link, 'name', None),
                     'description': getattr(link, 'description', None),
                     'recebidopor': getattr(link, 'recebidopor', None),
-                    'imagem_principal': encode_if_bytes(getattr(link, 'imagem_principal', None)),
-                    'imagens': encode_if_bytes(getattr(link, 'imagens', None)),
-                    'anexospdf': encode_if_bytes(getattr(link, 'anexospdf', None)),
+                    'imagem_principal': getattr(link, 'imagem_principal', None),
+                    'imagens': getattr(link, 'imagens', None),
+                    'anexospdf': getattr(link, 'anexospdf', None),
                     'datarecepcao': link.datarecepcao.isoformat() if getattr(link, "datarecepcao", None) else None,
                     'quantity': getattr(link, 'quantity', None),
                     'createAt': link.createAt.isoformat() if getattr(link, "createAt", None) else None,
@@ -102,7 +79,6 @@ class LocationController:
             logger.error(f"[GET ALL] Failed to fetch locations: {e}")
             return jsonify({'error': str(e)}), 500
 
-
     @staticmethod
     def get_by_id(id):
         try:
@@ -112,11 +88,6 @@ class LocationController:
             if not loc:
                 return jsonify({'message': 'Location not found'}), 404
 
-            def encode_if_bytes(value):
-                if isinstance(value, bytes):
-                    return base64.b64encode(value).decode("utf-8")
-                return value
-
             def serialize_resource(link):
                 return {
                     'id': link.id,
@@ -124,9 +95,9 @@ class LocationController:
                     'name': getattr(link, 'name', None),
                     'description': getattr(link, 'description', None),
                     'recebidopor': getattr(link, 'recebidopor', None),
-                    'imagem_principal': encode_if_bytes(getattr(link, 'imagem_principal', None)),
-                    'imagens': encode_if_bytes(getattr(link, 'imagens', None)),
-                    'anexospdf': encode_if_bytes(getattr(link, 'anexospdf', None)),
+                    'imagem_principal': getattr(link, 'imagem_principal', None),
+                    'imagens': getattr(link, 'imagens', None),
+                    'anexospdf': getattr(link, 'anexospdf', None),
                     'datarecepcao': link.datarecepcao.isoformat() if getattr(link, "datarecepcao", None) else None,
                     'quantity': getattr(link, 'quantity', None),
                     'createAt': link.createAt.isoformat() if getattr(link, "createAt", None) else None,
@@ -153,7 +124,6 @@ class LocationController:
         except Exception as e:
             logger.error(f"[GET BY ID] Error fetching location ID {id}: {e}")
             return jsonify({'error': str(e)}), 500
-
 
     @staticmethod
     def create():
@@ -189,9 +159,7 @@ class LocationController:
 
             # Inserir recursos
             for resource_data in resources:
-                # imagem_principal = decode_if_base64(resource_data.get('imagem_principal'))
-                imagem_principal = decode_file(resource_data.get('imagem_principal'))
-                imagem_principal = decode_file(resource_data.get('imagem_principal'))
+                imagem_principal = decode_if_base64(resource_data.get('imagem_principal'))
                 imagens = decode_if_base64(resource_data.get('imagens'))
                 anexospdf = decode_if_base64(resource_data.get('anexospdf'))
 
@@ -258,8 +226,7 @@ class LocationController:
 
             # Inserir novamente com os dados atualizados
             for resource_data in resources:
-                # imagem_principal = decode_if_base64(resource_data.get('imagem_principal'))
-                imagem_principal = decode_file(resource_data.get('imagem_principal'))
+                imagem_principal = decode_if_base64(resource_data.get('imagem_principal'))
                 imagens = decode_if_base64(resource_data.get('imagens'))
                 anexospdf = decode_if_base64(resource_data.get('anexospdf'))
 
