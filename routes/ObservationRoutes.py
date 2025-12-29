@@ -28,6 +28,10 @@ def delete_observation(id):
 def confirm_action(id):
     return ObservationController.confirm_action(id)
 
+@observation_bp.route('/observation/smsstatus/<int:id>', methods=['PUT'])
+def update_status(id):
+    return ObservationController.update_message_status_simplified(id)
+
 # Nova rota para atualizar groupId + textmessageId
 @observation_bp.route('/observation/updategroup/<int:id>', methods=['PUT'])
 def update_group(id):

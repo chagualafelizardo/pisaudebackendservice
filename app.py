@@ -470,6 +470,7 @@ def import_observations():
 
     stateId = data.get("stateID")
     grouptypeId = data.get("groupTypeID")
+    grupoPacientes = data.get("grupoPacientes")
     observations = data.get("observations", [])
 
     batch, imported_count, errors = [], 0, []
@@ -477,13 +478,115 @@ def import_observations():
 
     for idx, row in enumerate(observations):
         try:
+            # Função auxiliar para converter datas
+            def parse_date(date_str):
+                if not date_str:
+                    return None
+                try:
+                    # Tentar vários formatos de data
+                    formats = [
+                        '%Y-%m-%d',
+                        '%d/%m/%Y',
+                        '%m/%d/%Y',
+                        '%d-%m-%Y',
+                        '%Y-%m-%dT%H:%M:%S',
+                        '%d/%m/%YT%H:%M:%S'
+                    ]
+                    
+                    # Limpar a string
+                    date_str = str(date_str).strip()
+                    
+                    # Remover "T00:00:00" se existir
+                    if 'T00:00:00' in date_str:
+                        date_str = date_str.replace('T00:00:00', '')
+                    elif 'T00:00' in date_str:
+                        date_str = date_str.replace('T00:00', '')
+                    
+                    for fmt in formats:
+                        try:
+                            return datetime.strptime(date_str, fmt)
+                        except ValueError:
+                            continue
+                    
+                    # Se nenhum formato funcionar, tentar converter como datetime do Excel
+                    try:
+                        # Para timestamps do Excel (números)
+                        if isinstance(date_str, (int, float)):
+                            return datetime.fromtimestamp(date_str)
+                    except:
+                        pass
+                    
+                    return None
+                except Exception:
+                    return None
+            
+            # Função auxiliar para converter valores numéricos
+            def parse_float(value):
+                if value is None or value == '':
+                    return None  # IMPORTANTE: NULL para campos vazios
+                
+                try:
+                    if isinstance(value, (int, float)):
+                        return float(value)
+                    elif isinstance(value, str):
+                        # Limpar a string
+                        cleaned = value.strip()
+                        
+                        # Se estiver vazio após limpeza
+                        if cleaned == '':
+                            return None
+                        
+                        # Substituir vírgula por ponto
+                        cleaned = cleaned.replace(',', '.')
+                        
+                        # Remover caracteres não numéricos exceto ponto e sinal negativo
+                        import re
+                        cleaned = re.sub(r'[^\d\.\-]', '', cleaned)
+                        
+                        if cleaned == '':
+                            return None
+                        
+                        return float(cleaned)
+                    return None
+                except Exception:
+                    return None
+            
+            # Obter valores do CSV (mapear nomes das colunas)
+            nid = row.get('nid', '')
+            fullname = row.get('fullname', row.get('NomeCompleto', ''))
+            gender = row.get('gender', '')
+            age = row.get('age', row.get('idade_actual', 0))
+            contact = row.get('contact', row.get('Telefone', ''))
+            occupation = row.get('occupation', '')
+            
+            # Campos de carga viral - usar os nomes corretos do seu CSV
+            dataprimeiracv = parse_date(row.get('dataprimeiracv', row.get('data_primeiro_carga', row.get('data_primeira_carga', ''))))
+            valorprimeiracv = parse_float(row.get('valorprimeiracv', row.get('valor_primeira_carga', row.get('valor_primeiro_carga', ''))))
+            dataultimacv = parse_date(row.get('dataultimacv', row.get('data_ultima_carga', row.get('data_ultimo_carga', ''))))
+            valorultimacv = parse_float(row.get('valorultimacv', row.get('valor_ultima_carga', row.get('valor_ultimo_carga', ''))))
+            
+            # Debug: mostrar o que está sendo processado
+            print(f"Processando linha {idx}:")
+            print(f"  valor_primeira_carga original: {row.get('valor_primeira_carga')}")
+            print(f"  valorprimeiracv convertido: {valorprimeiracv}")
+            print(f"  valor_ultima_carga original: {row.get('valor_ultima_carga')}")
+            print(f"  valorultimacv convertido: {valorultimacv}")
+            
+            # Validar campos obrigatórios
+            if not nid or not fullname:
+                errors.append({'row': idx, 'error': 'NID e Nome Completo são obrigatórios'})
+                continue
+            
+            # Criar observação com os valores reais
             obs = Observation(
-                nid=row.get('nid', ''),
-                fullname=row.get('fullname', ''),
-                gender=row.get('gender', ''),
-                age=row.get('age', 0),
-                contact=row.get('contact', ''),
-                occupation=row.get('occupation', ''),
+                nid=str(nid),
+                fullname=str(fullname),
+                gender=str(gender)[:1] if gender else '',  # Apenas primeira letra
+                age=str(age) if age else '0',
+                contact=str(contact),
+                occupation=str(occupation),
+                
+                # Datas padrão (obrigatórias)
                 datainiciotarv=datetime.now(),
                 datalevantamento=datetime.now(),
                 dataproximolevantamento=datetime.now(),
@@ -491,46 +594,72 @@ def import_observations():
                 dataproximaconsulta=datetime.now(),
                 dataalocacao=datetime.now(),
                 dataenvio=datetime.now(),
+                
+                # Campos SMS
                 smssendernumber='',
                 smssuporternumber='',
-                dataprimeiracv=datetime.now(),
-                valorprimeiracv=0,
-                dataultimacv=datetime.now(),
-                valorultimacv=0,
+                
+                # Campos de carga viral - usar os valores reais!
+                dataprimeiracv=dataprimeiracv if dataprimeiracv else None,  # Pode ser NULL
+                valorprimeiracv=valorprimeiracv,  # Pode ser NULL se vazio
+                dataultimacv=dataultimacv if dataultimacv else None,  # Pode ser NULL
+                valorultimacv=valorultimacv,  # Pode ser NULL se vazio
+                
+                # Outros campos
                 linhaterapeutica='',
                 regime='',
-                status='',
+                status=grupoPacientes or 'Inicial',  # Usar grupoPacientes como status
+                
+                # IDs
                 stateId=stateId,
-                textmessageId=1,
+                textmessageId=1,  # Default
                 grouptypeId=grouptypeId,
-                groupId=1,
-                locationId=1,
-                userId=1
+                groupId=1,  # Default
+                locationId=1,  # Default
+                userId=1,  # Default
+                
+                # Campos de sincronização
+                syncStatus='Not Syncronized',
+                smsStatus=None
             )
+            
             batch.append(obs)
             imported_count += 1
+            
             if len(batch) >= BATCH_SIZE:
                 db.session.add_all(batch)
                 db.session.flush()
                 batch = []
+                
         except Exception as e:
-            errors.append({'row': idx, 'error': str(e)})
-
-    if batch:
-        db.session.add_all(batch)
-
+            errors.append({'row': idx, 'error': str(e), 'data': row})
+    
     try:
+        # Adicionar batch restante
+        if batch:
+            db.session.add_all(batch)
+            db.session.flush()
+        
+        # Commit final
         db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'imported': imported_count,
+            'errors': errors[:10],  # Limitar a 10 erros
+            'total': len(observations),
+            'message': f'Importação concluída: {imported_count} de {len(observations)} registos importados com sucesso'
+        }), 200
+        
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': _('Falha no commit do banco de dados'), 'details': str(e)}), 500
-
-    return jsonify({
-        'message': _('Importação concluída'),
-        'imported_count': imported_count,
-        'errors': errors
-    }), 200
-
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'imported': 0,
+            'errors': errors
+        }), 500
+    
 # -------------------------------
 # MANIPULADORES DE ERRO (CORRIGIDOS)
 # -------------------------------

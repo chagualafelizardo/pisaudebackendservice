@@ -1,30 +1,287 @@
 {% extends 'base.html' %}
-{% block title %}PI-SAÚDE/ Observations Import{% endblock %}
+{% block title %}PI-SAÚDE / Importar Observações - Pacientes com Carga Viral{% endblock %}
 
 {% block content %}
-<!-- {% include 'navbar.html' %} -->
 
-<h2>Import Observations - Carga Viral</h2>
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📥 Importar Observações - Pacientes com Carga Viral</h2>
+            <p class="text-muted mb-0">Importar dados de pacientes de ficheiros Excel/CSV</p>
+        </div>
+        <div class="btn-group" role="group">
+            <a href="/content/observations" class="btn btn-outline-primary">
+                <i class="fas fa-list me-1"></i> Ver Todas Observações
+            </a>
+            <a href="/dashboard" class="btn btn-outline-success">
+                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
 
-<!-- Upload File -->
-<div class="mb-3">
-    <input type="file" id="fileInput" class="form-control" accept=".xlsx,.xls,.csv">
-    <button id="importBtn" class="btn btn-primary mt-2">Import Data</button>
+    <!-- Import Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-file-import me-2"></i> Importar Dados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-file-excel me-1 text-success"></i> Selecionar Ficheiro
+                        </label>
+                        <div class="input-group">
+                            <input type="file" id="fileInput" class="form-control" 
+                                   accept=".xlsx,.xls,.csv,.txt">
+                            <button class="btn btn-outline-secondary" type="button" onclick="clearFile()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            Formatos suportados: Excel (.xlsx, .xls), CSV (.csv), Texto (.txt)
+                            <span id="fileInfo" class="ms-2 text-info"></span>
+                        </small>
+                    </div>
+
+                    <!-- Import Settings -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="stateDropdown" class="form-label">
+                                <i class="fas fa-tag me-1 text-primary"></i> Estado
+                            </label>
+                            <select id="stateDropdown" class="form-select">
+                                <option value="">Selecionar Estado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="grouptypeDropdown" class="form-label">
+                                <i class="fas fa-users me-1 text-primary"></i> Tipo de Grupo
+                            </label>
+                            <select id="grouptypeDropdown" class="form-select">
+                                <option value="">Selecionar Tipo de Grupo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Import Options -->
+                    <div class="mt-4">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="updateExisting" checked>
+                            <label class="form-check-label" for="updateExisting">
+                                Atualizar registos existentes (baseado no NID)
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="skipInvalid" checked>
+                            <label class="form-check-label" for="skipInvalid">
+                                Ignorar registos inválidos (continuar em caso de erro)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div id="importStatus" class="text-muted">
+                            Pronto para importar
+                        </div>
+                        <div class="btn-group">
+                            <button id="previewBtn" class="btn btn-outline-info" onclick="previewFile()">
+                                <i class="fas fa-eye me-1"></i> Pré-visualizar
+                            </button>
+                            <button id="importBtn" class="btn btn-primary" onclick="startImport()">
+                                <i class="fas fa-upload me-1"></i> Importar Dados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Requirements - ATUALIZADO -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i> Requisitos do Ficheiro
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-info">Campos Obrigatórios:</h6>
+                    <div class="mb-3">
+                        <span class="badge bg-success">✓ NID</span>
+                        <span class="badge bg-success">✓ NomeCompleto</span>
+                        <span class="badge bg-success">✓ gender</span>
+                        <span class="badge bg-success">✓ idade_actual</span>
+                        <span class="badge bg-success">✓ Telefone</span>
+                    </div>
+
+                    <h6 class="text-info mt-3">Campos de Carga Viral:</h6>
+                    <small class="text-muted d-block">
+                        <span class="badge bg-warning">✓ data_primeiro_carga</span>
+                        <small>(Data da primeira carga viral)</small>
+                    </small>
+                    <small class="text-muted d-block">
+                        <span class="badge bg-warning">✓ valor_primeira_carga</span>
+                        <small>(Valor numérico da primeira CV)</small>
+                    </small>
+                    <small class="text-muted d-block">
+                        <span class="badge bg-warning">✓ data_ultima_carga</span>
+                        <small>(Data da última carga viral)</small>
+                    </small>
+                    <small class="text-muted d-block">
+                        <span class="badge bg-warning">✓ valor_ultima_carga</span>
+                        <small>(Valor numérico da última CV)</small>
+                    </small>
+
+                    <h6 class="text-info mt-3">Exemplo do seu ficheiro:</h6>
+                    <div class="bg-light p-2 rounded small">
+                        <code>
+                            NID,NomeCompleto,gender,idade_actual,data_primeiro_carga,valor_primeira_carga,data_ultima_carga,valor_ultima_carga,Telefone
+                        </code>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Nota:</strong> O sistema mapeia automaticamente os nomes das colunas.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Preview -->
+    <div class="card mb-4" id="previewSection" style="display: none;">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-table me-2"></i> Pré-visualização dos Dados
+                <small class="ms-2">(<span id="previewCount">0</span> registos)</small>
+            </h5>
+            <button class="btn btn-sm btn-outline-light" onclick="closePreview()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-bordered table-sm mb-0 preview-table">
+                    <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                        <tr id="previewHeaders">
+                            <!-- Headers will be populated by JavaScript -->
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <div class="text-center">
+                <button class="btn btn-primary" onclick="confirmImport()">
+                    <i class="fas fa-check me-1"></i> Confirmar & Importar
+                </button>
+                <button class="btn btn-outline-secondary ms-2" onclick="closePreview()">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Observations Table -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i> Lista de Observações - Pacientes com Carga Viral
+                    </h5>
+                    <small class="text-muted">A mostrar <span id="currentCount">0</span> de <span id="totalCount">0</span> observações</small>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-outline-primary" onclick="loadObservations()">
+                            <i class="fas fa-redo me-1"></i> Atualizar
+                        </button>
+                        <button class="btn btn-outline-info" onclick="showAllCargaViralObservations()">
+                            <i class="fas fa-eye me-1"></i> Ver Todos Carga Viral
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="filterCargaViralInicialObservations()">
+                            <i class="fas fa-filter me-1"></i> Filtrar Inicial
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                        <tr>
+                            <th>ID</th>
+                            <th>Grupo de Pacientes</th>
+                            <th>Nome Completo</th>
+                            <th>NID</th>
+                            <th>Género</th>
+                            <th>Idade</th>
+                            <th>Contacto</th>
+                            <th>Data 1ª CV</th>
+                            <th>Valor 1ª CV</th>
+                            <th>Data Última CV</th>
+                            <th>Valor Última CV</th>
+                            <th>Status</th>
+                            <th>Estado</th>
+                            <th>Profissão</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="observationsTableBody">
+                        <tr>
+                            <td colspan="15" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">A carregar...</span>
+                                </div>
+                                <p class="mt-2 mb-0">A carregar observações...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <!-- Pagination -->
+            <nav aria-label="Observations pagination">
+                <ul class="pagination justify-content-center mb-0" id="pagination">
+                    <li class="page-item disabled" id="prevPage">
+                        <a class="page-link" href="#" onclick="changePage(currentPage - 1)" tabindex="-1">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item active">
+                        <a class="page-link" href="#" id="currentPageIndicator">1</a>
+                    </li>
+                    <li class="page-item disabled" id="nextPage">
+                        <a class="page-link" href="#" onclick="changePage(currentPage + 1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        Página <span id="pageInfo">1</span> de <span id="totalPages">1</span>
+                        | A mostrar <span id="itemsPerPage">50</span> por página
+                        | Filtro: <span id="currentFilter" class="badge bg-purple">Carga Viral + Inicial</span>
+                    </small>
+                </div>
+            </nav>
+        </div>
+    </div>
 </div>
 
-<!-- Dropdowns -->
-<div class="row mb-3">
-    <div class="col-md-6">
-        <label for="stateDropdown" class="form-label">State</label>
-        <select id="stateDropdown" class="form-select"></select>
-    </div>
-    <div class="col-md-6">
-        <label for="grouptypeDropdown" class="form-label">Group Type</label>
-        <select id="grouptypeDropdown" class="form-select"></select>
-    </div>
-</div>
-
-<!-- Loader Circular Overlay Centralizado -->
+<!-- Loader Overlay -->
 <div id="overlay" style="
     position: fixed;
     top: 0;
@@ -37,260 +294,1686 @@
     justify-content: center;
     align-items: center;
 ">
-    <div class="circular-progress" id="progressCircle" style="
+    <div style="
         position: relative;
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background: conic-gradient(#007bff 0% 0%, #e0e0e0 0% 100%);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-weight: bold;
-        font-size: 20px;
-        color: #007bff;
+        width: 300px;
+        padding: 30px;
         background-color: white;
-        box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        text-align: center;
     ">
-        <span id="progressText">0%</span>
+        <h5 id="progressTitle" class="mb-3">Processando...</h5>
+        
+        <!-- Progress Bar -->
+        <div class="progress mb-3" style="height: 20px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                 role="progressbar" style="width: 0%;"></div>
+        </div>
+        
+        <!-- Circular Progress -->
+        <div style="position: relative; display: inline-block;">
+            <div id="circularProgress" style="
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                background: conic-gradient(#007bff 0% 0%, #e0e0e0 0% 100%);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0 auto 15px;
+            ">
+                <span id="progressPercentage" style="
+                    font-weight: bold;
+                    font-size: 20px;
+                    color: #007bff;
+                ">0%</span>
+            </div>
+        </div>
+        
+        <div id="progressDetails" class="mt-2">
+            <p id="progressMessage" class="mb-1">A iniciar processo...</p>
+            <small id="progressStats" class="text-muted">0 de 0 registos</small>
+        </div>
+        
+        <!-- Cancel Button -->
+        <button class="btn btn-outline-danger btn-sm mt-3" onclick="cancelImport()">
+            <i class="fas fa-times me-1"></i> Cancelar
+        </button>
     </div>
 </div>
 
-<!-- Tabela de Observações -->
-<table class="table table-bordered mt-3">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Full Name</th>
-            <th>NID</th>
-            <th>Gender</th>
-            <th>Age</th>
-            <th>Contact</th>
-            <th>Occupation</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody id="observationsTableBody"></tbody>
-</table>
+<!-- Import Results Modal -->
+<div class="modal fade" id="resultsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Importação Concluída</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-primary" id="resultsTotal">0</h3>
+                            <small>Total Processado</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-success" id="resultsSuccess">0</h3>
+                            <small>Sucesso</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-warning" id="resultsSkipped">0</h3>
+                            <small>Ignorados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-danger" id="resultsFailed">0</h3>
+                            <small>Falhados</small>
+                        </div>
+                    </div>
+                </div>
 
-<!-- SheetJS -->
+                <div id="errorsSection" style="display: none;">
+                    <h6 class="text-danger">
+                        <i class="fas fa-exclamation-circle me-1"></i> Erros de Importação:
+                    </h6>
+                    <div class="alert alert-danger">
+                        <ul id="errorList" class="mb-0"></ul>
+                    </div>
+                </div>
+
+                <div id="warningsSection" style="display: none;">
+                    <h6 class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Avisos de Importação:
+                    </h6>
+                    <div class="alert alert-warning">
+                        <ul id="warningList" class="mb-0"></ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Nota:</strong> Os dados importados foram guardados na base de dados.
+                    Pode agora ver as observações na lista principal.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Fechar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="loadObservations()">
+                    <i class="fas fa-redo me-1"></i> Atualizar Lista
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load SheetJS -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-<script>
-const fileInput = document.getElementById('fileInput');
-const importBtn = document.getElementById('importBtn');
-const overlay = document.getElementById('overlay');
-const progressCircle = document.getElementById('progressCircle');
-const progressText = document.getElementById('progressText');
-const observationsTableBody = document.getElementById('observationsTableBody');
-
-const stateDropdown = document.getElementById('stateDropdown');
-const grouptypeDropdown = document.getElementById('grouptypeDropdown');
-
-let observationsData = [];
-
-const requiredFields = {
-    nid: ['nid', 'NID'],
-    fullname: ['fullname', 'FullName', 'NomeCompleto'],
-    gender: ['gender', 'Gender', 'sexo', 'Sexo'],
-    age: ['age', 'Age', 'idade_actual', 'Idade'],
-    contact: ['telefone','Telefone','contact', 'Contact', 'contacto_paciente'],
-    occupation: ['occupation', 'Occupation', 'Profissao'],
-};
-
-function updateProgress(percent) {
-    progressCircle.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
-    progressText.innerText = `${percent}%`;
+<style>
+.highlight-row {
+    background-color: #fff3cd !important;
 }
 
-function populateTable(data) {
-    observationsTableBody.innerHTML = '';
-    data.forEach((obs, index) => {
-        observationsTableBody.innerHTML += `
-            <tr>
-                <td>${obs.id || index + 1}</td>
-                <td>${obs.fullname || ''}</td>
-                <td>${obs.nid || ''}</td>
-                <td>${obs.gender || ''}</td>
-                <td>${obs.age || ''}</td>
-                <td>${obs.contact || ''}</td>
-                <td>${obs.occupation || ''}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="editObservation(${index})">Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteObservation(${index})">Delete</button>
-                </td>
-            </tr>
+.success-row {
+    background-color: #d1e7dd !important;
+}
+
+.error-row {
+    background-color: #f8d7da !important;
+}
+
+.numeric-warning {
+    background-color: #fff8e1 !important;
+}
+
+/* Status badges */
+.status-inicial {
+    background-color: #c8e6c9 !important;
+    color: #2e7d32 !important;
+}
+
+.status-carga-viral {
+    background-color: #e1bee7 !important;
+    color: #4a148c !important;
+}
+
+.status-viral {
+    background-color: #d1c4e9 !important;
+    color: #311b92 !important;
+}
+
+/* Cor roxa para carga viral */
+.bg-purple {
+    background-color: #6f42c1 !important;
+}
+
+.text-purple {
+    color: #6f42c1 !important;
+}
+
+.btn-outline-purple {
+    color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.btn-outline-purple:hover {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: white;
+}
+
+/* Melhorar a barra de rolagem */
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Garantir que os cabeçalhos ficam fixos */
+.table-responsive thead th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Progress Bar Animation */
+.progress-bar-striped {
+    background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-size: 1rem 1rem;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+/* Pagination */
+.page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* Filter info */
+.filter-info {
+    background-color: #e7f1ff;
+    border-left: 4px solid #0d6efd;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+/* Estilos para valores numéricos */
+.numeric-cell {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+}
+
+.date-cell {
+    font-family: 'Courier New', monospace;
+}
+
+.cv-high {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.cv-low {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.cv-value {
+    min-width: 100px;
+    text-align: center;
+}
+
+.badge-cv-high {
+    background-color: #dc3545 !important;
+    color: white !important;
+}
+
+.badge-cv-low {
+    background-color: #28a745 !important;
+    color: white !important;
+}
+
+.badge-cv-medium {
+    background-color: #ffc107 !important;
+    color: black !important;
+}
+
+/* Estilos para células com valores inválidos */
+.invalid-numeric {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+    border: 1px solid #f5c6cb !important;
+}
+
+/* Estilos para a tabela de preview */
+.preview-table th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.preview-table td {
+    vertical-align: middle;
+}
+
+.validation-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    cursor: help;
+}
+
+/* Debug info */
+.debug-info {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.debug-title {
+    font-weight: bold;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+/* Importante: mostrar campos vazios */
+.empty-field {
+    color: #999;
+    font-style: italic;
+}
+</style>
+
+<script>
+// Global variables
+let fileData = [];
+let mappedData = [];
+let allObservationsData = [];
+let filteredObservationsData = [];
+let displayObservationsData = [];
+let currentPage = 1;
+let itemsPerPage = 50;
+let totalPages = 1;
+let totalObservations = 0;
+let currentFilterMode = 'carga-viral-inicial';
+
+let currentImportStats = {
+    total: 0,
+    success: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [],
+    warnings: []
+};
+
+// Field mapping configuration for Carga Viral patients - ATUALIZADO COM TODOS OS NOMES DO SEU FICHEIRO
+const requiredFields = {
+    nid: ['nid', 'NID', 'numero_identificacao', 'Número Identificação'],
+    fullname: ['fullname', 'FullName', 'NomeCompleto', 'nome_completo', 'paciente_nome'],
+    gender: ['gender', 'Gender', 'genero', 'sexo', 'Sexo'],
+    age: ['age', 'Age', 'idade', 'idade_actual', 'Idade'],
+    contact: ['contact', 'Contact', 'contacto', 'telefone', 'celular', 'contacto_paciente', 'Telefone'],
+    occupation: ['occupation', 'Occupation', 'profissao', 'ocupacao', 'Profissao'],
+    // Campos numéricos específicos para Carga Viral - NOMES EXATOS DO SEU FICHEIRO
+    dataprimeiracv: ['dataprimeiracv', 'data_primeira_cv', 'data_cv1', 'data_1_cv', 'primeira_cv_data', 
+                     'data_primeiro_carga', 'data_primeira_carga', 'data_primeiro_cv'],
+    valorprimeiracv: ['valorprimeiracv', 'valor_primeira_cv', 'cv1_valor', 'valor_1_cv', 'primeira_cv_valor',
+                     'valor_primeira_carga', 'valor_primeiro_carga', 'valor_primeiro_cv'],
+    dataultimacv: ['dataultimacv', 'data_ultima_cv', 'data_cv2', 'data_2_cv', 'ultima_cv_data',
+                   'data_ultima_carga', 'data_ultimo_cv'],
+    valorultimacv: ['valorultimacv', 'valor_ultima_cv', 'cv2_valor', 'valor_2_cv', 'ultima_cv_valor',
+                   'valor_ultima_carga', 'valor_ultimo_cv']
+};
+
+// Campos adicionais que podem estar no ficheiro
+const additionalFields = {
+    data_inicio: ['data_inicio', 'data_inicio_tarv'],
+    data_seguimento: ['data_seguimento', 'data_seguimento_tarv']
+};
+
+// Campos numéricos que devem ser validados
+const numericFields = ['valorprimeiracv', 'valorultimacv', 'age'];
+
+// Campos de data que devem ser validados
+const dateFields = ['dataprimeiracv', 'dataultimacv'];
+
+// DOM Elements
+const overlay = document.getElementById('overlay');
+const progressBar = document.getElementById('progressBar');
+const progressPercentage = document.getElementById('progressPercentage');
+const circularProgress = document.getElementById('circularProgress');
+const progressMessage = document.getElementById('progressMessage');
+const progressStats = document.getElementById('progressStats');
+const progressTitle = document.getElementById('progressTitle');
+
+// Cancel flag
+let importCancelled = false;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
+    loadObservations();
+});
+
+async function initializePage() {
+    await Promise.all([
+        loadDropdown('/api/state', 'stateDropdown', 'Inicial'),
+        loadDropdown('/api/grouptype', 'grouptypeDropdown', 'Pacientes com Carga Viral')
+    ]);
+    
+    // Update file info when file is selected
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        updateFileInfo(e.target.files[0]);
+    });
+    
+    // Set items per page selector
+    document.getElementById('itemsPerPage').addEventListener('click', function() {
+        const newPerPage = prompt('Número de itens por página (1-100):', itemsPerPage);
+        if (newPerPage && !isNaN(newPerPage)) {
+            const perPage = parseInt(newPerPage);
+            if (perPage >= 1 && perPage <= 100) {
+                itemsPerPage = perPage;
+                updatePagination();
+            } else {
+                showAlert('error', 'Por favor insira um número entre 1 e 100');
+            }
+        }
+    });
+}
+
+function updateFileInfo(file) {
+    const fileInfo = document.getElementById('fileInfo');
+    if (file) {
+        const fileSize = (file.size / 1024).toFixed(2);
+        fileInfo.textContent = `${file.name} (${fileSize} KB)`;
+        document.getElementById('importStatus').textContent = 'Ficheiro selecionado. Pronto para importar.';
+        document.getElementById('importStatus').className = 'text-success';
+    } else {
+        fileInfo.textContent = '';
+        document.getElementById('importStatus').textContent = 'Pronto para importar';
+        document.getElementById('importStatus').className = 'text-muted';
+    }
+}
+
+function clearFile() {
+    document.getElementById('fileInput').value = '';
+    updateFileInfo(null);
+    closePreview();
+}
+
+function updateProgress(percent, message = '', stats = '') {
+    if (progressBar && progressPercentage && circularProgress) {
+        progressBar.style.width = `${percent}%`;
+        progressPercentage.textContent = `${percent}%`;
+        circularProgress.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
+        
+        if (message) progressMessage.textContent = message;
+        if (stats) progressStats.textContent = stats;
+    }
+}
+
+async function loadDropdown(url, selectId, defaultDescription) {
+    try {
+        const select = document.getElementById(selectId);
+        select.innerHTML = `<option value="">A carregar...</option>`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        select.innerHTML = `<option value="">Selecionar...</option>`;
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            const description = item.description || item.name;
+            option.textContent = description;
+            
+            // Check if this is the default option
+            if (defaultDescription && normalizeText(description).includes(normalizeText(defaultDescription))) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error(`Error loading dropdown ${selectId}:`, error);
+        document.getElementById(selectId).innerHTML = `<option value="">Erro ao carregar opções</option>`;
+    }
+}
+
+function normalizeText(text) {
+    if (!text) return '';
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+function validateNumericField(value, fieldName) {
+    if (value === undefined || value === null || value === '') {
+        return { valid: true, value: null }; // Campos numéricos podem ser opcionais
+    }
+    
+    // Converter para número
+    const numValue = Number(value);
+    
+    if (isNaN(numValue)) {
+        return { valid: false, error: `Campo ${fieldName} deve ser numérico (valor: "${value}")` };
+    }
+    
+    // Validações específicas para campos de carga viral
+    if (fieldName.includes('valor') && (fieldName.includes('cv') || fieldName.includes('carga'))) {
+        if (numValue < 0) {
+            return { valid: false, error: `Valor de carga viral não pode ser negativo (${numValue})` };
+        }
+        if (numValue > 10000000) {
+            return { valid: false, error: `Valor de carga viral muito alto (${numValue})` };
+        }
+    }
+    
+    // Validação para idade
+    if (fieldName === 'age') {
+        if (numValue < 0 || numValue > 150) {
+            return { valid: false, error: `Idade inválida (${numValue})` };
+        }
+        return { valid: true, value: Math.round(numValue) };
+    }
+    
+    return { valid: true, value: numValue };
+}
+
+function validateDateField(value, fieldName) {
+    if (!value || value === '') return { valid: true, value: null }; // Data pode ser opcional
+    
+    // Remover espaços em branco
+    value = value.toString().trim();
+    
+    if (value === '' || value === 'NULL' || value === 'null') {
+        return { valid: true, value: null };
+    }
+    
+    // Tentar diferentes formatos de data
+    let date = null;
+    
+    // Primeiro tentar parse como Date
+    date = new Date(value);
+    
+    // Se não for uma data válida, tentar formatos comuns
+    if (isNaN(date.getTime())) {
+        // Tentar formato DD/MM/YYYY ou DD-MM-YYYY
+        const parts = value.split(/[/\-.]/);
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1;
+            let year = parseInt(parts[2]);
+            
+            // Se ano tem 2 dígitos, assumir século 20
+            if (year < 100) {
+                year += 2000;
+            }
+            
+            date = new Date(year, month, day);
+        }
+    }
+    
+    // Se ainda não for válido, tentar formato com timestamp
+    if (isNaN(date.getTime())) {
+        // Tentar remover "T00:00:00" do final
+        const cleanedValue = value.replace(/T00:00:00$/, '').replace(/T00:00$/, '');
+        date = new Date(cleanedValue);
+    }
+    
+    if (isNaN(date.getTime())) {
+        return { valid: false, error: `Data inválida para ${fieldName}: "${value}"` };
+    }
+    
+    // Verificar se a data é razoável (não no futuro muito distante ou passado muito distante)
+    const currentYear = new Date().getFullYear();
+    const dateYear = date.getFullYear();
+    
+    if (dateYear < 1900 || dateYear > currentYear + 5) {
+        return { valid: false, error: `Ano inválido para ${fieldName}: ${dateYear}` };
+    }
+    
+    // Formatar como YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return { valid: true, value: `${year}-${month}-${day}` };
+}
+
+async function previewFile() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) {
+        showAlert('warning', 'Por favor selecione um ficheiro primeiro.');
+        return;
+    }
+    
+    try {
+        showOverlay('Pré-visualizando Ficheiro', 'A ler ficheiro...');
+        updateProgress(30, 'A ler ficheiro...');
+        
+        fileData = await readFile(file);
+        
+        if (!fileData || fileData.length === 0) {
+            showAlert('error', 'O ficheiro parece estar vazio ou não pode ser lido.');
+            return;
+        }
+        
+        updateProgress(70, 'A mapear e validar dados...');
+        
+        // Mostrar debug das colunas encontradas
+        if (fileData.length > 0) {
+            console.log('Colunas encontradas no ficheiro:', Object.keys(fileData[0]));
+            console.log('Primeira linha do ficheiro:', fileData[0]);
+        }
+        
+        // Map the data with validation
+        mappedData = fileData.map((row, index) => {
+            const mapped = mapRow(row);
+            const validation = validateRow(mapped, index + 2);
+            
+            // Log para debug
+            console.log(`Linha ${index + 2}:`, {
+                original: { 
+                    nid: row.NID, 
+                    nome: row.NomeCompleto,
+                    data_primeiro: row.data_primeiro_carga,
+                    valor_primeiro: row.valor_primeira_carga,
+                    data_ultima: row.data_ultima_carga,
+                    valor_ultima: row.valor_ultima_carga
+                },
+                mapeado: mapped,
+                validacao: validation
+            });
+            
+            return { ...mapped, _validation: validation };
+        });
+        
+        // Show preview
+        displayPreview(mappedData);
+        
+        // Show preview section
+        document.getElementById('previewSection').style.display = 'block';
+        
+        // Update status
+        document.getElementById('importStatus').textContent = `${mappedData.length} registos prontos para importar`;
+        document.getElementById('importStatus').className = 'text-success';
+        
+        // Mostrar estatísticas de validação
+        const totalErrors = mappedData.reduce((sum, row) => sum + (row._validation?.errors?.length || 0), 0);
+        const totalWarnings = mappedData.reduce((sum, row) => sum + (row._validation?.warnings?.length || 0), 0);
+        const totalValid = mappedData.filter(row => !row._validation?.hasErrors).length;
+        
+        if (totalErrors > 0 || totalWarnings > 0) {
+            let message = `Validação: ${totalValid} válidos de ${mappedData.length} `;
+            if (totalErrors > 0) message += `<span class="badge bg-danger">${totalErrors} erros</span> `;
+            if (totalWarnings > 0) message += `<span class="badge bg-warning">${totalWarnings} avisos</span>`;
+            
+            showAlert('info', message, false);
+        } else {
+            showAlert('success', `Todos os ${mappedData.length} registos estão válidos!`, true);
+        }
+        
+        // Mostrar debug das colunas mapeadas
+        showDebugInfo(mappedData);
+        
+    } catch (error) {
+        console.error('Error previewing file:', error);
+        showAlert('error', `Erro ao ler ficheiro: ${error.message}`);
+    } finally {
+        hideOverlay();
+    }
+}
+
+function showDebugInfo(data) {
+    // Criar elemento de debug se não existir
+    let debugDiv = document.getElementById('debugInfo');
+    if (!debugDiv) {
+        debugDiv = document.createElement('div');
+        debugDiv.id = 'debugInfo';
+        debugDiv.className = 'debug-info mt-3';
+        document.getElementById('previewSection').appendChild(debugDiv);
+    }
+    
+    if (data.length > 0) {
+        const sampleRow = data[0];
+        const mappedKeys = Object.keys(sampleRow).filter(key => key !== '_validation');
+        
+        // Contar campos mapeados vs não mapeados
+        const cvFieldsMapped = ['dataprimeiracv', 'valorprimeiracv', 'dataultimacv', 'valorultimacv']
+            .filter(field => sampleRow[field] !== undefined)
+            .length;
+        
+        debugDiv.innerHTML = `
+            <div class="debug-title">Debug Info - Mapeamento:</div>
+            <div>Total de linhas: ${data.length}</div>
+            <div>Campos de CV mapeados: ${cvFieldsMapped} de 4</div>
+            <div>Colunas mapeadas: ${mappedKeys.join(', ')}</div>
+            <div>Exemplo de mapeamento (primeira linha):</div>
+            <pre style="font-size: 10px; margin-top: 5px; max-height: 200px; overflow-y: auto;">${JSON.stringify(sampleRow, null, 2)}</pre>
+            <div class="mt-2">
+                <button class="btn btn-sm btn-outline-info" onclick="testMapping()">
+                    <i class="fas fa-test-tube me-1"></i> Testar Mapeamento
+                </button>
+            </div>
         `;
+    }
+}
+
+function testMapping() {
+    if (fileData && fileData.length > 0) {
+        console.log('=== TESTE DE MAPEAMENTO ===');
+        console.log('Colunas originais:', Object.keys(fileData[0]));
+        
+        // Testar mapeamento da primeira linha
+        const testRow = fileData[0];
+        const mapped = mapRow(testRow);
+        
+        console.log('Primeira linha original:', testRow);
+        console.log('Primeira linha mapeada:', mapped);
+        
+        // Verificar campos específicos
+        console.log('Verificação de campos:');
+        console.log('- NID:', testRow.NID, '→', mapped.nid);
+        console.log('- NomeCompleto:', testRow.NomeCompleto, '→', mapped.fullname);
+        console.log('- data_primeiro_carga:', testRow.data_primeiro_carga, '→', mapped.dataprimeiracv);
+        console.log('- valor_primeira_carga:', testRow.valor_primeira_carga, '→', mapped.valorprimeiracv);
+        console.log('- data_ultima_carga:', testRow.data_ultima_carga, '→', mapped.dataultimacv);
+        console.log('- valor_ultima_carga:', testRow.valor_ultima_carga, '→', mapped.valorultimacv);
+        console.log('- Telefone:', testRow.Telefone, '→', mapped.contact);
+        
+        showAlert('info', 'Teste de mapeamento realizado. Verifique o console do navegador (F12).', false);
+    }
+}
+
+function readFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                resolve(jsonData);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        
+        reader.onerror = function(error) {
+            reject(error);
+        };
+        
+        reader.readAsArrayBuffer(file);
     });
 }
 
 function mapRow(row) {
     let mapped = {};
+    
+    // DEBUG: Mostrar o que está na linha
+    console.log('Mapeando linha:', row);
+    
+    // Mapear todos os campos obrigatórios
     for (let key in requiredFields) {
+        let valueFound = false;
         for (let col of requiredFields[key]) {
+            if (row[col] !== undefined && row[col] !== null && row[col] !== '') {
+                mapped[key] = row[col];
+                valueFound = true;
+                console.log(`  ${key} → ${col}: ${row[col]}`);
+                break;
+            }
+        }
+        if (!valueFound && key !== 'occupation') { // occupation pode ser opcional
+            console.log(`  ${key}: NÃO ENCONTRADO`);
+        }
+    }
+    
+    // Mapear campos adicionais
+    for (let key in additionalFields) {
+        for (let col of additionalFields[key]) {
             if (row[col] !== undefined) {
                 mapped[key] = row[col];
                 break;
             }
         }
     }
+    
+    // Garantir que campos numéricos vazios sejam null
+    if (mapped.valorprimeiracv === '' || mapped.valorprimeiracv === undefined) {
+        mapped.valorprimeiracv = null;
+    }
+    if (mapped.valorultimacv === '' || mapped.valorultimacv === undefined) {
+        mapped.valorultimacv = null;
+    }
+    
     return mapped;
 }
 
-async function loadObservationsWithProgress() {
-    overlay.style.display = 'flex';
-    let progress = 0;
-
-    const interval = setInterval(() => {
-        if (progress < 90) {
-            progress++;
-            updateProgress(progress);
+function validateRow(row, rowNumber) {
+    const errors = [];
+    const warnings = [];
+    
+    // Validar campos obrigatórios básicos
+    const basicRequired = ['nid', 'fullname', 'gender', 'age', 'contact'];
+    basicRequired.forEach(field => {
+        if (!row[field] && row[field] !== 0 && row[field] !== '0') {
+            errors.push(`Linha ${rowNumber}: Campo "${field}" é obrigatório`);
         }
-    }, 30);
+    });
+    
+    // Validar campos numéricos
+    numericFields.forEach(field => {
+        if (row[field] !== undefined && row[field] !== null && row[field] !== '') {
+            const validation = validateNumericField(row[field], field);
+            if (!validation.valid) {
+                errors.push(`Linha ${rowNumber}: ${validation.error}`);
+            } else {
+                // Atualizar valor validado
+                row[field] = validation.value;
+            }
+        }
+    });
+    
+    // Validar campos de data
+    dateFields.forEach(field => {
+        if (row[field] !== undefined && row[field] !== null && row[field] !== '') {
+            const validation = validateDateField(row[field], field);
+            if (!validation.valid) {
+                warnings.push(`Linha ${rowNumber}: ${validation.error}`);
+            } else {
+                row[field] = validation.value;
+            }
+        }
+    });
+    
+    // Verificar consistência das datas de carga viral
+    if (row.dataprimeiracv && row.dataultimacv) {
+        const primeiraCV = new Date(row.dataprimeiracv);
+        const ultimaCV = new Date(row.dataultimacv);
+        
+        if (primeiraCV > ultimaCV) {
+            warnings.push(`Linha ${rowNumber}: Data da primeira CV (${row.dataprimeiracv}) é posterior à data da última CV (${row.dataultimacv})`);
+        }
+    }
+    
+    return { errors, warnings, hasErrors: errors.length > 0 };
+}
 
-    try {
-        const res = await fetch('/api/observation');
-        const data = await res.json();
-
-        clearInterval(interval);
-        updateProgress(100);
-
-        observationsData = data;
-        populateTable(data);
-
-        await new Promise(r => setTimeout(r, 500));
-    } catch (err) {
-        alert("Failed to load observations.");
-        console.error(err);
-    } finally {
-        overlay.style.display = 'none';
-        updateProgress(0);
+function displayPreview(data) {
+    const headersDiv = document.getElementById('previewHeaders');
+    const bodyDiv = document.getElementById('previewBody');
+    const countSpan = document.getElementById('previewCount');
+    
+    // Clear previous data
+    headersDiv.innerHTML = '';
+    bodyDiv.innerHTML = '';
+    
+    // Ordem preferencial dos cabeçalhos
+    const preferredOrder = [
+        'nid', 'fullname', 'gender', 'age', 'contact',
+        'dataprimeiracv', 'valorprimeiracv', 'dataultimacv', 'valorultimacv',
+        'occupation', 'data_inicio', 'data_seguimento'
+    ];
+    
+    // Get all unique headers from the first 5 rows
+    const sampleRows = data.slice(0, Math.min(5, data.length));
+    let allHeaders = new Set();
+    
+    sampleRows.forEach(row => {
+        Object.keys(row).forEach(header => {
+            if (header !== '_validation') {
+                allHeaders.add(header);
+            }
+        });
+    });
+    
+    // Ordenar cabeçalhos
+    const sortedHeaders = Array.from(allHeaders).sort((a, b) => {
+        const indexA = preferredOrder.indexOf(a);
+        const indexB = preferredOrder.indexOf(b);
+        
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        return a.localeCompare(b);
+    });
+    
+    // Create headers
+    sortedHeaders.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        th.style.whiteSpace = 'nowrap';
+        headersDiv.appendChild(th);
+    });
+    
+    // Add validation header
+    const validationTh = document.createElement('th');
+    validationTh.textContent = 'Validação';
+    validationTh.style.width = '100px';
+    headersDiv.appendChild(validationTh);
+    
+    // Create rows (limit to 20 for preview)
+    const previewData = data.slice(0, 20);
+    previewData.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        const validation = row._validation || { errors: [], warnings: [] };
+        
+        // Add data cells
+        sortedHeaders.forEach(header => {
+            const td = document.createElement('td');
+            let value = row[header];
+            
+            // Formatação especial para campos numéricos
+            if (numericFields.includes(header) && (value || value === 0)) {
+                td.className = 'numeric-cell';
+                td.textContent = formatNumber(value);
+                
+                // Destacar valores de carga viral
+                if ((header === 'valorprimeiracv' || header === 'valorultimacv')) {
+                    if (value > 1000) {
+                        td.classList.add('cv-high');
+                    } else if (value < 50 && value > 0) {
+                        td.classList.add('cv-low');
+                    }
+                }
+            } else if (dateFields.includes(header) && value) {
+                td.className = 'date-cell';
+                td.textContent = formatDate(value);
+            } else {
+                td.textContent = value || '<vazio>';
+                if (!value) {
+                    td.classList.add('empty-field');
+                }
+            }
+            
+            td.style.maxWidth = '150px';
+            td.style.overflow = 'hidden';
+            td.style.textOverflow = 'ellipsis';
+            td.style.whiteSpace = 'nowrap';
+            tr.appendChild(td);
+        });
+        
+        // Add validation cell
+        const validationTd = document.createElement('td');
+        validationTd.style.maxWidth = '200px';
+        validationTd.style.minWidth = '100px';
+        
+        if (validation.hasErrors) {
+            const errorCount = validation.errors.length;
+            const warningCount = validation.warnings.length;
+            validationTd.innerHTML = `
+                <span class="badge bg-danger validation-badge" 
+                      title="${validation.errors.concat(validation.warnings).join('\n')}">
+                    ${errorCount} erro${errorCount !== 1 ? 's' : ''}
+                    ${warningCount > 0 ? ` + ${warningCount} aviso${warningCount !== 1 ? 's' : ''}` : ''}
+                </span>`;
+            tr.className = 'error-row';
+        } else if (validation.warnings.length > 0) {
+            validationTd.innerHTML = `
+                <span class="badge bg-warning validation-badge" 
+                      title="${validation.warnings.join('\n')}">
+                    ${validation.warnings.length} aviso${validation.warnings.length !== 1 ? 's' : ''}
+                </span>`;
+            tr.className = 'numeric-warning';
+        } else {
+            validationTd.innerHTML = `<span class="badge bg-success validation-badge">OK</span>`;
+            tr.className = 'success-row';
+        }
+        
+        tr.appendChild(validationTd);
+        bodyDiv.appendChild(tr);
+    });
+    
+    countSpan.textContent = data.length;
+    
+    // Show warning if data was truncated
+    if (data.length > 20) {
+        const infoRow = document.createElement('tr');
+        const infoCell = document.createElement('td');
+        infoCell.colSpan = sortedHeaders.length + 1;
+        infoCell.className = 'text-center text-muted bg-light';
+        infoCell.textContent = `... a mostrar 20 de ${data.length} registos`;
+        infoRow.appendChild(infoCell);
+        bodyDiv.appendChild(infoRow);
     }
 }
 
-function normalize(text) {
-    return text
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // remove acentos
-        .trim();
+function formatNumber(num) {
+    if (num === null || num === undefined) return '<vazio>';
+    return new Intl.NumberFormat('pt-PT', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(num);
 }
 
-async function loadDropdown(url, selectElement, defaultDescription) {
+function formatDate(dateStr) {
+    if (!dateStr) return '<vazio>';
     try {
-        const res = await fetch(url);
-        const data = await res.json();
-
-        const normalizedDefault = normalize(defaultDescription);
-
-        selectElement.innerHTML = data.map(item => {
-            const isSelected = normalize(item.description) === normalizedDefault;
-            return `<option value="${item.id}" ${isSelected ? 'selected' : ''}>
-                        ${item.description}
-                    </option>`;
-        }).join('');
-    } catch (err) {
-        console.error(`Failed to load ${url}`, err);
-        selectElement.innerHTML = '<option disabled>Error loading</option>';
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return dateStr;
+        return date.toLocaleDateString('pt-PT');
+    } catch {
+        return dateStr;
     }
 }
 
+function closePreview() {
+    document.getElementById('previewSection').style.display = 'none';
+    const debugDiv = document.getElementById('debugInfo');
+    if (debugDiv) debugDiv.remove();
+}
 
-importBtn.addEventListener('click', async () => {
-    const file = fileInput.files[0];
+function startImport() {
+    const file = document.getElementById('fileInput').files[0];
     if (!file) {
-        alert("Please select a file first.");
+        showAlert('warning', 'Por favor selecione um ficheiro para importar.');
         return;
     }
-
-    const selectedStateID = stateDropdown.value;
-    const selectedGroupTypeID = grouptypeDropdown.value;
-
-    overlay.style.display = 'flex';
-    let progress = 0;
-
-    const interval = setInterval(() => {
-        if (progress < 90) {
-            progress++;
-            updateProgress(progress);
-        }
-    }, 25);
-
-    const reader = new FileReader();
-
-    reader.onload = async function (e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-
-            if (!sheetData.length) throw new Error("Empty sheet");
-
-            const mappedData = sheetData.map(mapRow);
-
-            const payload = {
-                stateID: selectedStateID,
-                groupTypeID: selectedGroupTypeID,
-                observations: mappedData
-            };
-
-            const res = await fetch('/api/observations/import', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                clearInterval(interval);
-                updateProgress(100);
-                alert("Data imported successfully.");
-                await loadObservationsWithProgress();
-            } else {
-                const err = await res.json();
-                throw new Error(err.message || "Import failed");
+    
+    const stateId = document.getElementById('stateDropdown').value;
+    const groupTypeId = document.getElementById('grouptypeDropdown').value;
+    
+    if (!stateId || !groupTypeId) {
+        showAlert('warning', 'Por favor selecione ambos Estado e Tipo de Grupo antes de importar.');
+        return;
+    }
+    
+    const skipInvalid = document.getElementById('skipInvalid').checked;
+    const invalidCount = mappedData.filter(row => row._validation?.hasErrors).length;
+    
+    if (invalidCount > 0) {
+        if (!skipInvalid) {
+            if (!confirm(`Existem ${invalidCount} registos com erros de validação. Deseja continuar a importação ignorando estes registos?`)) {
+                return;
             }
-        } catch (err) {
-            console.error("Import failed:", err);
-            alert("Error during import: " + err.message);
-        } finally {
-            clearInterval(interval);
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                updateProgress(0);
-            }, 1000);
+        } else {
+            showAlert('warning', `${invalidCount} registos serão ignorados devido a erros de validação.`, false);
         }
-    };
+    }
+    
+    if (!confirm(`Pronto para importar ${mappedData.length} registos de pacientes com carga viral?`)) {
+        return;
+    }
+    
+    importCancelled = false;
+    performImport(file, stateId, groupTypeId, 'Pacientes com Carga Viral');
+}
 
-    reader.onerror = function (err) {
-        clearInterval(interval);
-        console.error("File reading error:", err);
-        alert("Failed to read file.");
-        overlay.style.display = 'none';
-    };
+async function performImport(file, stateId, groupTypeId, grupoPacientes) {
+    try {
+        showOverlay('Importando Dados', 'A iniciar processo de importação...');
+        updateProgress(10, 'A iniciar processo de importação...');
+        
+        const reader = new FileReader();
+        
+        reader.onload = async function(e) {
+            try {
+                if (importCancelled) {
+                    showAlert('info', 'Importação cancelada pelo utilizador.');
+                    return;
+                }
+                
+                updateProgress(30, 'A ler ficheiro...');
+                
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-    reader.readAsArrayBuffer(file);
-});
+                if (!sheetData.length) throw new Error("Ficheiro vazio");
 
-function editObservation(index) {
-    const obs = observationsData[index];
-    const newName = prompt("Edit Full Name:", obs.fullname || '');
-    if (newName !== null) {
-        observationsData[index].fullname = newName;
-        populateTable(observationsData);
+                updateProgress(50, 'A validar dados...', `A validar ${sheetData.length} registos...`);
+                
+                // Mapear e validar os dados
+                const mappedData = sheetData.map((row, index) => {
+                    const mapped = mapRow(row);
+                    const validation = validateRow(mapped, index + 2);
+                    return { ...mapped, _validation: validation };
+                });
+                
+                // Separar dados válidos e inválidos
+                const skipInvalid = document.getElementById('skipInvalid').checked;
+                const validData = skipInvalid 
+                    ? mappedData.filter(row => !row._validation.hasErrors)
+                    : mappedData;
+                
+                const invalidData = skipInvalid 
+                    ? mappedData.filter(row => row._validation.hasErrors)
+                    : [];
+                
+                // Reset import statistics
+                currentImportStats = {
+                    total: mappedData.length,
+                    success: 0,
+                    skipped: invalidData.length,
+                    failed: 0,
+                    errors: [],
+                    warnings: []
+                };
+                
+                // Coletar todos os erros e avisos
+                mappedData.forEach((row, index) => {
+                    const validation = row._validation;
+                    currentImportStats.errors.push(...validation.errors);
+                    currentImportStats.warnings.push(...validation.warnings);
+                });
+                
+                // Preparar dados para envio (remover _validation)
+                const dataToSend = validData.map(row => {
+                    const { _validation, ...cleanRow } = row;
+                    
+                    // Garantir que os campos numéricos estão no formato correto
+                    if (cleanRow.valorprimeiracv === '' || cleanRow.valorprimeiracv === undefined) {
+                        cleanRow.valorprimeiracv = null;
+                    }
+                    if (cleanRow.valorultimacv === '' || cleanRow.valorultimacv === undefined) {
+                        cleanRow.valorultimacv = null;
+                    }
+                    
+                    return cleanRow;
+                });
+                
+                // Debug: mostrar o que será enviado
+                console.log('Dados a serem enviados (primeiros 3):', dataToSend.slice(0, 3));
+                console.log('Total de registos válidos:', dataToSend.length);
+                
+                if (dataToSend.length === 0) {
+                    throw new Error("Nenhum registo válido para importar. Verifique os dados do ficheiro.");
+                }
+                
+                updateProgress(70, 'A enviar para o servidor...', `A enviar ${dataToSend.length} registos válidos...`);
+                
+                const payload = {
+                    stateID: stateId,
+                    groupTypeID: groupTypeId,
+                    grupoPacientes: grupoPacientes,
+                    observations: dataToSend
+                };
+
+                console.log('Payload completo:', payload);
+
+                const res = await fetch('/api/observations/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                updateProgress(90, 'A processar resposta...');
+                
+                const responseText = await res.text();
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error(`Resposta inválida do servidor: ${responseText.substring(0, 100)}`);
+                }
+                
+                if (res.ok) {
+                    // Update statistics from server response
+                    if (result.success !== undefined) currentImportStats.success = result.success;
+                    if (result.skipped !== undefined) currentImportStats.skipped += result.skipped;
+                    if (result.failed !== undefined) currentImportStats.failed = result.failed;
+                    if (result.errors) currentImportStats.errors.push(...result.errors);
+                    if (result.warnings) currentImportStats.warnings.push(...result.warnings);
+                    
+                    updateProgress(100, 'Importação concluída!', `${currentImportStats.success} registos importados com sucesso`);
+                    
+                    await new Promise(r => setTimeout(r, 500));
+                    
+                    showResults();
+                    await loadObservations();
+                    
+                    showAlert('success', `Dados importados com sucesso! ${currentImportStats.success} registos processados.`);
+                } else {
+                    // Se tivermos resultados parciais do servidor
+                    if (result.success !== undefined) {
+                        currentImportStats.success = result.success || 0;
+                        currentImportStats.failed = result.failed || dataToSend.length;
+                        currentImportStats.errors.push(result.message || result.error || "Erro no servidor");
+                        
+                        updateProgress(100, 'Importação concluída com avisos');
+                        showResults();
+                        await loadObservations();
+                        
+                        showAlert('warning', `Importação concluída com ${currentImportStats.failed} falhas.`);
+                    } else {
+                        throw new Error(result.message || result.error || "Importação falhou");
+                    }
+                }
+            } catch (err) {
+                console.error("Import failed:", err);
+                currentImportStats.failed = currentImportStats.total;
+                currentImportStats.errors.push(err.message);
+                updateProgress(100, 'Importação falhou');
+                showAlert('error', "Erro durante a importação: " + err.message);
+                showResults();
+            } finally {
+                setTimeout(() => {
+                    hideOverlay();
+                }, 1000);
+            }
+        };
+
+        reader.onerror = function(err) {
+            console.error("File reading error:", err);
+            currentImportStats.failed = currentImportStats.total;
+            currentImportStats.errors.push('Falha ao ler ficheiro');
+            showAlert('error', "Falha ao ler ficheiro.");
+            hideOverlay();
+            showResults();
+        };
+
+        reader.readAsArrayBuffer(file);
+        
+    } catch (error) {
+        console.error('Import error:', error);
+        currentImportStats.failed = currentImportStats.total;
+        currentImportStats.errors.push(error.message);
+        showAlert('error', `Importação falhou: ${error.message}`);
+        hideOverlay();
+        showResults();
     }
 }
 
-function deleteObservation(index) {
-    if (!confirm("Are you sure?")) return;
-    observationsData.splice(index, 1);
-    populateTable(observationsData);
+function cancelImport() {
+    importCancelled = true;
+    hideOverlay();
+    showAlert('info', 'Importação cancelada.');
 }
 
-window.onload = async () => {
-    await loadObservationsWithProgress();
-    await loadDropdown('/api/state', stateDropdown, 'Inicial');
-    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Carga Viral');
-    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Pacientes com carga viral');
-};
+function confirmImport() {
+    startImport();
+    closePreview();
+}
+
+function showOverlay(title = 'Processando', message = 'Por favor aguarde...') {
+    if (overlay) {
+        progressTitle.textContent = title;
+        progressMessage.textContent = message;
+        overlay.style.display = 'flex';
+        updateProgress(0, message);
+    }
+}
+
+function hideOverlay() {
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function showResults() {
+    // Update result counts
+    document.getElementById('resultsTotal').textContent = currentImportStats.total;
+    document.getElementById('resultsSuccess').textContent = currentImportStats.success;
+    document.getElementById('resultsSkipped').textContent = currentImportStats.skipped;
+    document.getElementById('resultsFailed').textContent = currentImportStats.failed;
+    
+    // Show errors if any
+    const errorsSection = document.getElementById('errorsSection');
+    const errorList = document.getElementById('errorList');
+    
+    if (currentImportStats.errors && currentImportStats.errors.length > 0) {
+        errorsSection.style.display = 'block';
+        errorList.innerHTML = '';
+        currentImportStats.errors.slice(0, 20).forEach(error => {
+            const li = document.createElement('li');
+            li.textContent = error;
+            errorList.appendChild(li);
+        });
+        
+        if (currentImportStats.errors.length > 20) {
+            const li = document.createElement('li');
+            li.textContent = `... e mais ${currentImportStats.errors.length - 20} erros`;
+            errorList.appendChild(li);
+        }
+    } else {
+        errorsSection.style.display = 'none';
+    }
+    
+    // Show warnings if any
+    const warningsSection = document.getElementById('warningsSection');
+    const warningList = document.getElementById('warningList');
+    
+    if (currentImportStats.warnings && currentImportStats.warnings.length > 0) {
+        warningsSection.style.display = 'block';
+        warningList.innerHTML = '';
+        currentImportStats.warnings.slice(0, 20).forEach(warning => {
+            const li = document.createElement('li');
+            li.textContent = warning;
+            warningList.appendChild(li);
+        });
+        
+        if (currentImportStats.warnings.length > 20) {
+            const li = document.createElement('li');
+            li.textContent = `... e mais ${currentImportStats.warnings.length - 20} avisos`;
+            warningList.appendChild(li);
+        }
+    } else {
+        warningsSection.style.display = 'none';
+    }
+    
+    // Show results modal
+    const resultsModal = new bootstrap.Modal(document.getElementById('resultsModal'));
+    resultsModal.show();
+}
+
+async function loadObservations() {
+    try {
+        showOverlay('A Carregar Observações', 'A buscar dados do servidor...');
+        updateProgress(30, 'A buscar dados do servidor...');
+        
+        const response = await fetch('/api/observation');
+        if (!response.ok) {
+            throw new Error('Falha ao buscar observações');
+        }
+        
+        updateProgress(70, 'A processar dados...');
+        
+        allObservationsData = await response.json();
+        console.log('Total observations loaded:', allObservationsData.length);
+        
+        updateProgress(90, 'A aplicar filtros...');
+        
+        // Filtrar observações com groupTypeDescription contendo 'carga viral'
+        filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'carga viral');
+        console.log('Filtered observations (Carga Viral):', filteredObservationsData.length);
+        
+        // Aplicar o filtro atual
+        applyCurrentFilter();
+        
+        updatePagination();
+        
+        updateProgress(100, 'Dados carregados com sucesso!');
+        
+        await new Promise(r => setTimeout(r, 300));
+        
+    } catch (error) {
+        console.error('Error loading observations:', error);
+        showAlert('error', 'Falha ao carregar observações');
+        
+        const tbody = document.getElementById('observationsTableBody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="15" class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fs-1 text-danger mb-3"></i>
+                    <h5 class="text-danger">Falha ao carregar observações</h5>
+                    <p class="text-muted">${error.message}</p>
+                </td>
+            </tr>
+        `;
+    } finally {
+        hideOverlay();
+    }
+}
+
+function filterByGroupTypeDescription(data, groupTypeText) {
+    if (!groupTypeText) return data;
+    
+    const normalizedText = normalizeText(groupTypeText);
+    
+    return data.filter(obs => {
+        // Verificar todas as possíveis localizações do groupTypeDescription
+        let groupTypeDesc = '';
+        
+        if (obs.groupTypeDescription) {
+            groupTypeDesc = obs.groupTypeDescription;
+        } else if (obs.group && obs.group.grouptypeDescription) {
+            groupTypeDesc = obs.group.grouptypeDescription;
+        } else if (obs.group && obs.group.groupTypeDescription) {
+            groupTypeDesc = obs.group.groupTypeDescription;
+        }
+        
+        // Verificar se contém "carga viral"
+        const groupTypeNormalized = normalizeText(groupTypeDesc);
+        const matches = groupTypeNormalized.includes('carga') && 
+                       groupTypeNormalized.includes('viral');
+        
+        return matches;
+    });
+}
+
+function filterByStateInicial(data) {
+    // Filtrar por: state.description == 'Inicial' (case insensitive)
+    return data.filter(obs => {
+        const stateDescription = obs.stateDescription || '';
+        const stateNormalized = normalizeText(stateDescription);
+        
+        // Verificar se state.description é exatamente "inicial"
+        const hasInicialState = stateNormalized === 'inicial';
+        
+        return hasInicialState;
+    });
+}
+
+function applyCurrentFilter() {
+    switch(currentFilterMode) {
+        case 'all':
+            displayObservationsData = allObservationsData;
+            document.getElementById('currentFilter').textContent = 'Todas Observações';
+            document.getElementById('currentFilter').className = 'badge bg-secondary';
+            break;
+            
+        case 'carga-viral':
+            displayObservationsData = filteredObservationsData;
+            document.getElementById('currentFilter').textContent = 'Carga Viral';
+            document.getElementById('currentFilter').className = 'badge bg-purple';
+            break;
+            
+        case 'carga-viral-inicial':
+            // Primeiro filtra por "Carga Viral", depois por state "Inicial"
+            displayObservationsData = filterByStateInicial(filteredObservationsData);
+            document.getElementById('currentFilter').textContent = 'Carga Viral + Inicial';
+            document.getElementById('currentFilter').className = 'badge bg-purple';
+            break;
+    }
+    
+    totalObservations = displayObservationsData.length;
+}
+
+function updatePagination() {
+    totalPages = Math.ceil(totalObservations / itemsPerPage);
+    
+    // Update page info
+    document.getElementById('currentCount').textContent = Math.min(itemsPerPage, totalObservations);
+    document.getElementById('totalCount').textContent = totalObservations;
+    document.getElementById('itemsPerPage').textContent = itemsPerPage;
+    document.getElementById('pageInfo').textContent = currentPage;
+    document.getElementById('totalPages').textContent = totalPages;
+    
+    // Update pagination buttons
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    const currentPageIndicator = document.getElementById('currentPageIndicator');
+    
+    currentPageIndicator.textContent = currentPage;
+    
+    if (currentPage === 1) {
+        prevPage.classList.add('disabled');
+    } else {
+        prevPage.classList.remove('disabled');
+    }
+    
+    if (currentPage === totalPages || totalPages === 0) {
+        nextPage.classList.add('disabled');
+    } else {
+        nextPage.classList.remove('disabled');
+    }
+    
+    // Show current page data
+    showCurrentPage();
+}
+
+function changePage(page) {
+    if (page < 1 || page > totalPages) return;
+    
+    currentPage = page;
+    updatePagination();
+}
+
+function showCurrentPage() {
+    const tbody = document.getElementById('observationsTableBody');
+    
+    if (!displayObservationsData || displayObservationsData.length === 0) {
+        let message = '';
+        switch(currentFilterMode) {
+            case 'all':
+                message = 'Nenhuma observação no sistema.';
+                break;
+            case 'carga-viral':
+                message = 'Nenhuma observação encontrada com tipo de grupo "Carga Viral".';
+                break;
+            case 'carga-viral-inicial':
+                message = 'Nenhuma observação encontrada com tipo de grupo "Carga Viral" e estado "Inicial".';
+                break;
+        }
+        
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="15" class="text-center py-4">
+                    <i class="fas fa-inbox fs-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhuma observação encontrada</h5>
+                    <p class="text-muted">${message}</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Calculate start and end indices
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalObservations);
+    const currentData = displayObservationsData.slice(startIndex, endIndex);
+    
+    tbody.innerHTML = '';
+    
+    currentData.forEach((obs, index) => {
+        const globalIndex = startIndex + index;
+        const status = obs.status || 'Sem status';
+        const stateDescription = obs.stateDescription || 'Sem estado';
+        const statusClass = getStatusClass(status);
+        const stateClass = getStateClass(stateDescription);
+        
+        // Obter o groupTypeDescription de várias fontes possíveis
+        let groupTypeDesc = obs.groupTypeDescription || 
+                           (obs.group && obs.group.grouptypeDescription) || 
+                           (obs.group && obs.group.groupTypeDescription) || 
+                           'Pacientes com Carga Viral';
+        
+        // Determinar classes para valores de carga viral
+        const valorPrimeiraCV = obs.valorprimeiracv || obs.valor_primeira_cv;
+        const valorUltimaCV = obs.valorultimacv || obs.valor_ultima_cv;
+        const primeiraCVClass = getCVClass(valorPrimeiraCV);
+        const ultimaCVClass = getCVClass(valorUltimaCV);
+        
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${obs.id || globalIndex + 1}</td>
+            <td>${groupTypeDesc}</td>
+            <td>${obs.fullname || ''}</td>
+            <td>${obs.nid || ''}</td>
+            <td>${obs.gender || ''}</td>
+            <td class="numeric-cell">${obs.age || ''}</td>
+            <td>${obs.contact || ''}</td>
+            <td class="date-cell">${formatDate(obs.dataprimeiracv) || ''}</td>
+            <td class="numeric-cell ${primeiraCVClass}">${formatNumber(valorPrimeiraCV) || ''}</td>
+            <td class="date-cell">${formatDate(obs.dataultimacv) || ''}</td>
+            <td class="numeric-cell ${ultimaCVClass}">${formatNumber(valorUltimaCV) || ''}</td>
+            <td>
+                <span class="badge ${statusClass}">${status}</span>
+            </td>
+            <td>
+                <span class="badge ${stateClass}">${stateDescription}</span>
+            </td>
+            <td>${obs.occupation || ''}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editObservation(${obs.id || globalIndex})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger ms-1" onclick="deleteObservation(${obs.id || globalIndex})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Update count display
+    document.getElementById('currentCount').textContent = currentData.length;
+}
+
+function getStatusClass(status) {
+    const statusLower = normalizeText(status);
+    
+    if (statusLower === 'inicial') {
+        return 'status-inicial';
+    }
+    
+    return 'bg-secondary';
+}
+
+function getStateClass(stateDescription) {
+    const stateLower = normalizeText(stateDescription);
+    
+    if (stateLower === 'inicial') {
+        return 'status-inicial';
+    }
+    
+    if (stateLower.includes('carga') && stateLower.includes('viral')) {
+        return 'status-carga-viral';
+    }
+    
+    if (stateLower.includes('viral')) {
+        return 'status-viral';
+    }
+    
+    return 'bg-light text-dark';
+}
+
+function getCVClass(value) {
+    if (value === null || value === undefined || value === '') return '';
+    
+    const numValue = Number(value);
+    if (isNaN(numValue)) return 'invalid-numeric';
+    
+    if (numValue > 1000) return 'cv-high';
+    if (numValue < 50 && numValue > 0) return 'cv-low';
+    return '';
+}
+
+function editObservation(id) {
+    const obs = displayObservationsData.find(o => o.id === id) || displayObservationsData[id];
+    if (!obs) return;
+    
+    const newName = prompt("Editar Nome Completo:", obs.fullname || '');
+    if (newName !== null) {
+        showAlert('info', 'Funcionalidade de edição requer implementação no backend');
+    }
+}
+
+function deleteObservation(id) {
+    if (!confirm("Tem certeza que deseja eliminar esta observação?")) return;
+    
+    showAlert('info', 'Funcionalidade de eliminação requer implementação no backend');
+    
+    // Para demonstração, remover do array local
+    allObservationsData = allObservationsData.filter((obs, index) => 
+        obs.id !== id && index !== id
+    );
+    // Reaplicar filtros
+    filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'carga viral');
+    applyCurrentFilter();
+    updatePagination();
+}
+
+function showAllCargaViralObservations() {
+    currentFilterMode = 'carga-viral';
+    currentPage = 1;
+    applyCurrentFilter();
+    updatePagination();
+    showAlert('info', 'A mostrar todas as observações com tipo de grupo "Carga Viral"');
+}
+
+function filterCargaViralInicialObservations() {
+    currentFilterMode = 'carga-viral-inicial';
+    currentPage = 1;
+    applyCurrentFilter();
+    updatePagination();
+    showAlert('info', 'Filtrado para mostrar apenas observações com tipo de grupo "Carga Viral" e estado "Inicial"');
+}
+
+function showAlert(type, message, autoClose = true) {
+    // Remove any existing alerts
+    const existingAlerts = document.querySelectorAll('.global-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `global-alert alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 99999;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    const icon = type === 'success' ? '✓' : 
+                 type === 'warning' ? '⚠' : 
+                 type === 'error' ? '✗' : 'ℹ';
+    
+    alertDiv.innerHTML = `
+        <strong>${icon} ${type.charAt(0).toUpperCase() + type.slice(1)}!</strong> ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    if (autoClose) {
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }
+        }, 5000);
+    }
+}
+
+// Funções auxiliares para debug
+function debugData() {
+    console.log('=== DEBUG DATA ===');
+    console.log('All observations:', allObservationsData.length);
+    console.log('Filtered observations (Carga Viral):', filteredObservationsData.length);
+    console.log('Display observations:', displayObservationsData.length);
+    
+    // Mostrar os primeiros 5 registros de cada
+    console.log('First 5 all observations:', allObservationsData.slice(0, 5));
+    console.log('First 5 filtered observations:', filteredObservationsData.slice(0, 5));
+    console.log('First 5 display observations:', displayObservationsData.slice(0, 5));
+}
 </script>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 {% endblock %}

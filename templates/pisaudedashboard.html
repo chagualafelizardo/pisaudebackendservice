@@ -3,199 +3,265 @@
 
 {% block content %}
 
-<h1 class="mb-4">📊 Dashboard PI-SAÚDE</h1>
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📊 Dashboard PI-SAÚDE</h2>
+            <p class="text-muted mb-0">Monitorização e gestão de pacientes em tempo real</p>
+        </div>
+        
+        <!-- Shortcuts Group -->
+        <div class="d-flex align-items-center gap-3">
+            <!-- Quick Access Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="quickAccessDropdown" data-bs-toggle="dropdown">
+                    <i class="fas fa-rocket me-1"></i> Acesso Rápido
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="/content/iniciotarv">
+                        <i class="fas fa-file-medical me-2 text-primary"></i> Início TARV
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/adesaotarv">
+                        <i class="fas fa-heart me-2 text-success"></i> Adesão ao TARV
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/marcadoslevantamento">
+                        <i class="fas fa-calendar-check me-2 text-warning"></i> Marcados Para Levantamento de ARVs
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/cargaviral">
+                        <i class="fas fa-vial me-2 text-info"></i> Carga Viral
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/faltosos">
+                        <i class="fas fa-user-clock me-2 text-danger"></i> Faltosos
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/abandonos">
+                        <i class="fas fa-user-slash me-2 text-secondary"></i> Abandonos
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/content/observations">
+                        <i class="fas fa-clipboard-list me-2 text-dark"></i> Observations
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
-<!-- Filtros de Data -->
-<div class="card p-3 mb-4 shadow-sm">
-    <div class="row g-3 align-items-end">
+    <!-- Filtros de Data -->
+    <div class="card p-3 mb-4 shadow-sm">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label"><strong>Data Inicial</strong></label>
+                <input type="date" id="filterStartDate" class="form-control">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><strong>Data Final</strong></label>
+                <input type="date" id="filterEndDate" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label"><strong>Localização</strong></label>
+                <select id="filterLocation" class="form-select">
+                    <option value="">Todas</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary w-100" onclick="loadDashboardData()">
+                    <i class="fas fa-filter me-1"></i> Aplicar
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-secondary w-100" onclick="clearDashboardFilters()">
+                    <i class="fas fa-times me-1"></i> Limpar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
         <div class="col-md-3">
-            <label class="form-label"><strong>Data Inicial</strong></label>
-            <input type="date" id="filterStartDate" class="form-control">
+            <div class="card text-white bg-primary border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">📋 Total Pacientes</h6>
+                            <h2 id="totalPatients" class="card-text mb-0">0</h2>
+                        </div>
+                        <i class="fas fa-users fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="col-md-3">
-            <label class="form-label"><strong>Data Final</strong></label>
-            <input type="date" id="filterEndDate" class="form-control">
-        </div>
-        <div class="col-md-2">
-            <label class="form-label"><strong>Localização</strong></label>
-            <select id="filterLocation" class="form-select">
-                <option value="">Todas</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-primary w-100" onclick="loadDashboardData()">Aplicar Filtros</button>
-        </div>
-        <div class="col-md-2">
-            <button class="btn btn-secondary w-100" onclick="clearDashboardFilters()">Limpar</button>
-        </div>
-    </div>
-</div>
-
-<!-- Cards de Resumo -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title">📋 Total Pacientes</h5>
-                <h2 id="totalPatients" class="card-text">0</h2>
+            <div class="card text-white bg-success border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">💊 Levantamentos</h6>
+                            <h2 id="levantamentosCount" class="card-text mb-0">0</h2>
+                        </div>
+                        <i class="fas fa-pills fs-1 opacity-50"></i>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <h5 class="card-title">💊 Levantamentos</h5>
-                <h2 id="levantamentosCount" class="card-text">0</h2>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">⚠️ Faltosos</h6>
+                            <h2 id="faltososCount" class="card-text mb-0">0</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fs-1 opacity-50"></i>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <h5 class="card-title">⚠️ Faltosos</h5>
-                <h2 id="faltososCount" class="card-text">0</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h5 class="card-title">📞 Chamadas</h5>
-                <h2 id="chamadasCount" class="card-text">0</h2>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Gráficos Principais -->
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">📈 Distribuição por Tipo de Ação (Semanal)</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="actionsChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">📅 Evolução Semanal</h5>
-            </div>
-            <div class="card-body">
-                <canvas id="weeklyTrendChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Tabelas Detalhadas -->
-<div class="row">
-    <!-- 1. Pacientes para Levantamento -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">💊 Pacientes para Levantamento</h5>
-                <span class="badge bg-primary" id="levantamentosBadge">0</span>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Contacto</th>
-                                <th>Data Levant.</th>
-                                <th>Localização</th>
-                            </tr>
-                        </thead>
-                        <tbody id="levantamentosTable">
-                            <!-- Dados serão carregados via JavaScript -->
-                        </tbody>
-                    </table>
+        <div class="col-md-3">
+            <div class="card text-white bg-info border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">📞 Chamadas</h6>
+                            <h2 id="chamadasCount" class="card-text mb-0">0</h2>
+                        </div>
+                        <i class="fas fa-phone fs-1 opacity-50"></i>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 2. Pacientes Faltosos -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">⚠️ Pacientes Faltosos</h5>
-                <span class="badge bg-warning" id="faltososBadge">0</span>
+    <!-- Gráficos Principais -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">📈 Distribuição por Tipo de Ação (Semanal)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="actionsChart" width="400" height="200"></canvas>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Contacto</th>
-                                <th>Última CV</th>
-                                <th>Dias Faltosos</th>
-                            </tr>
-                        </thead>
-                        <tbody id="faltososTable">
-                            <!-- Dados serão carregados via JavaScript -->
-                        </tbody>
-                    </table>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">📅 Evolução Semanal</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="weeklyTrendChart" width="400" height="200"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 3. Pacientes para Chamadas -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">📞 Pacientes para Chamadas</h5>
-                <span class="badge bg-info" id="chamadasBadge">0</span>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Contacto</th>
-                                <th>Próxima Consulta</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="chamadasTable">
-                            <!-- Dados serão carregados via JavaScript -->
-                        </tbody>
-                    </table>
+    <!-- Tabelas Detalhadas -->
+    <div class="row">
+        <!-- 1. Pacientes para Levantamento -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">💊 Pacientes para Levantamento</h5>
+                    <span class="badge bg-primary" id="levantamentosBadge">0</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Contacto</th>
+                                    <th>Data Levant.</th>
+                                    <th>Localização</th>
+                                </tr>
+                            </thead>
+                            <tbody id="levantamentosTable">
+                                <!-- Dados serão carregados via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 4. Pacientes para Visitas Domiciliares -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">🏠 Pacientes para Visitas</h5>
-                <span class="badge bg-success" id="visitasBadge">0</span>
+        <!-- 2. Pacientes Faltosos -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">⚠️ Pacientes Faltosos</h5>
+                    <span class="badge bg-warning" id="faltososBadge">0</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Contacto</th>
+                                    <th>Última CV</th>
+                                    <th>Dias Faltosos</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faltososTable">
+                                <!-- Dados serão carregados via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Contacto</th>
-                                <th>Localização</th>
-                                <th>Observação</th>
-                            </tr>
-                        </thead>
-                        <tbody id="visitasTable">
-                            <!-- Dados serão carregados via JavaScript -->
-                        </tbody>
-                    </table>
+        </div>
+
+        <!-- 3. Pacientes para Chamadas -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">📞 Pacientes para Chamadas</h5>
+                    <span class="badge bg-info" id="chamadasBadge">0</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Contacto</th>
+                                    <th>Próxima Consulta</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="chamadasTable">
+                                <!-- Dados serão carregados via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Pacientes para Visitas Domiciliares -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">🏠 Pacientes para Visitas</h5>
+                    <span class="badge bg-success" id="visitasBadge">0</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Contacto</th>
+                                    <th>Localização</th>
+                                    <th>Observação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visitasTable">
+                                <!-- Dados serão carregados via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -246,7 +312,7 @@ async function loadDashboardData() {
         
     } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        alert('Erro ao carregar dados do dashboard');
+        showAlert('error', 'Erro ao carregar dados do dashboard');
     } finally {
         showLoader(false);
     }
@@ -316,14 +382,18 @@ function updateActionsChart() {
                 ],
                 backgroundColor: [
                     '#007bff', '#ffc107', '#17a2b8', '#28a745'
-                ]
+                ],
+                borderWidth: 1
             }]
         },
         options: {
             responsive: true,
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'bottom',
+                    labels: {
+                        padding: 20
+                    }
                 }
             }
         }
@@ -348,21 +418,27 @@ function updateWeeklyTrendChart() {
                     data: trendData.levantamentos || [0, 0, 0, 0],
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    tension: 0.4
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
                 },
                 {
                     label: 'Faltosos',
                     data: trendData.faltosos || [0, 0, 0, 0],
                     borderColor: '#ffc107',
                     backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                    tension: 0.4
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
                 },
                 {
                     label: 'Chamadas',
                     data: trendData.chamadas || [0, 0, 0, 0],
                     borderColor: '#17a2b8',
                     backgroundColor: 'rgba(23, 162, 184, 0.1)',
-                    tension: 0.4
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
                 }
             ]
         },
@@ -370,7 +446,20 @@ function updateWeeklyTrendChart() {
             responsive: true,
             scales: {
                 y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    grid: {
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
                 }
             }
         }
@@ -392,15 +481,15 @@ function updateLevantamentosTable() {
     
     tableBody.innerHTML = patients.map(patient => `
         <tr>
-            <td>${patient.fullname || 'N/A'}</td>
-            <td>${patient.contact || 'N/A'}</td>
-            <td>${formatDate(patient.dataproximolevantamento)}</td>
-            <td>${patient.location?.name || 'N/A'}</td>
+            <td><strong>${patient.fullname || 'N/A'}</strong></td>
+            <td><span class="text-muted">${patient.contact || 'N/A'}</span></td>
+            <td><small>${formatDate(patient.dataproximolevantamento)}</small></td>
+            <td><span class="badge bg-light text-dark">${patient.location?.name || 'N/A'}</span></td>
         </tr>
     `).join('');
     
     if (patients.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhum paciente para levantamento esta semana</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhum paciente para levantamento esta semana</td></tr>';
     }
 }
 
@@ -412,15 +501,15 @@ function updateFaltososTable() {
     
     tableBody.innerHTML = patients.map(patient => `
         <tr>
-            <td>${patient.fullname || 'N/A'}</td>
-            <td>${patient.contact || 'N/A'}</td>
-            <td>${formatDate(patient.dataultimacv)}</td>
+            <td><strong>${patient.fullname || 'N/A'}</strong></td>
+            <td><span class="text-muted">${patient.contact || 'N/A'}</span></td>
+            <td><small>${formatDate(patient.dataultimacv)}</small></td>
             <td><span class="badge bg-danger">${calculateDaysMissing(patient.dataultimacv)} dias</span></td>
         </tr>
     `).join('');
     
     if (patients.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhum paciente faltoso</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhum paciente faltoso</td></tr>';
     }
 }
 
@@ -432,15 +521,15 @@ function updateChamadasTable() {
     
     tableBody.innerHTML = patients.map(patient => `
         <tr>
-            <td>${patient.fullname || 'N/A'}</td>
-            <td>${patient.contact || 'N/A'}</td>
-            <td>${formatDate(patient.dataproximaconsulta)}</td>
+            <td><strong>${patient.fullname || 'N/A'}</strong></td>
+            <td><span class="text-muted">${patient.contact || 'N/A'}</span></td>
+            <td><small>${formatDate(patient.dataproximaconsulta)}</small></td>
             <td><span class="badge bg-info">Para contactar</span></td>
         </tr>
     `).join('');
     
     if (patients.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhuma chamada pendente</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhuma chamada pendente</td></tr>';
     }
 }
 
@@ -452,15 +541,15 @@ function updateVisitasTable() {
     
     tableBody.innerHTML = patients.map(patient => `
         <tr>
-            <td>${patient.fullname || 'N/A'}</td>
-            <td>${patient.contact || 'N/A'}</td>
-            <td>${patient.location?.name || 'N/A'}</td>
-            <td>${patient.observation || 'Visita domiciliar necessária'}</td>
+            <td><strong>${patient.fullname || 'N/A'}</strong></td>
+            <td><span class="text-muted">${patient.contact || 'N/A'}</span></td>
+            <td><span class="badge bg-light text-dark">${patient.location?.name || 'N/A'}</span></td>
+            <td><small class="text-muted">${patient.observation || 'Visita domiciliar necessária'}</small></td>
         </tr>
     `).join('');
     
     if (patients.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhuma visita pendente</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhuma visita pendente</td></tr>';
     }
 }
 
@@ -517,6 +606,32 @@ function clearDashboardFilters() {
     loadDashboardData();
 }
 
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    alertDiv.innerHTML = `
+        <strong>${type === 'success' ? '✓' : '⚠'} ${type.charAt(0).toUpperCase() + type.slice(1)}!</strong> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }
+    }, 5000);
+}
+
 /* ============== INICIALIZAÇÃO ============== */
 document.addEventListener('DOMContentLoaded', function() {
     initializeDashboard();
@@ -528,11 +643,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
 .card {
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
     transform: translateY(-2px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
 }
 
 .table-responsive {
@@ -542,7 +658,79 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .badge {
     font-size: 0.8em;
+    font-weight: 500;
+}
+
+/* Quick access dropdown */
+#quickAccessDropdown {
+    border-width: 2px;
+}
+
+#quickAccessDropdown:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-menu {
+    border: 1px solid #dee2e6;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.dropdown-item i {
+    width: 20px;
+    text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.align-items-center.gap-3 {
+        margin-top: 1rem;
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+/* Summary cards improvements */
+.card-body .fa-users,
+.card-body .fa-pills,
+.card-body .fa-exclamation-triangle,
+.card-body .fa-phone {
+    opacity: 0.7;
+}
+
+/* Table styling */
+.table-sm th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-sm td {
+    font-size: 0.875rem;
+    padding: 0.5rem;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
 }
 </style>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 {% endblock %}

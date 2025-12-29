@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}PI-SAÚDE / Observations Import - Abandonos ao Levantamento de ARVs{% endblock %}
+{% block title %}PI-SAÚDE / Observations Import - Pacientes com Carga Viral{% endblock %}
 
 {% block content %}
 
@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1">📥 Import Observations - Abandonos ao Levantamento de ARVs</h2>
+            <h2 class="mb-1">📥 Import Observations - Pacientes com Carga Viral</h2>
             <p class="text-muted mb-0">Import patient data from Excel/CSV files</p>
         </div>
         <div class="btn-group" role="group">
@@ -181,7 +181,7 @@
             <div class="row align-items-center">
                 <div class="col">
                     <h5 class="mb-0">
-                        <i class="fas fa-table me-2"></i> Observations List - Abandonos ao Levantamento de ARVs
+                        <i class="fas fa-table me-2"></i> Observations List - Pacientes com Carga Viral
                     </h5>
                     <small class="text-muted">Showing <span id="currentCount">0</span> of <span id="totalCount">0</span> observations</small>
                 </div>
@@ -190,10 +190,10 @@
                         <button class="btn btn-outline-primary" onclick="loadObservations()">
                             <i class="fas fa-redo me-1"></i> Refresh
                         </button>
-                        <button class="btn btn-outline-info" onclick="showAllAbandonosObservations()">
-                            <i class="fas fa-eye me-1"></i> Show All Abandonos
+                        <button class="btn btn-outline-info" onclick="showAllCargaViralObservations()">
+                            <i class="fas fa-eye me-1"></i> Show All Carga Viral
                         </button>
-                        <button class="btn btn-outline-warning" onclick="filterAbandonosInicialObservations()">
+                        <button class="btn btn-outline-warning" onclick="filterCargaViralInicialObservations()">
                             <i class="fas fa-filter me-1"></i> Filter Inicial
                         </button>
                     </div>
@@ -212,6 +212,10 @@
                             <th>Gender</th>
                             <th>Age</th>
                             <th>Contact</th>
+                            <th>dataprimeiracv</th>
+                            <th>valorprimeiracv</th>
+                            <th>dataultimacv</th>
+                            <th>valorultimacv</th>
                             <th>Status</th>
                             <th>State description</th>
                             <th>Occupation</th>
@@ -253,7 +257,7 @@
                     <small class="text-muted">
                         Page <span id="pageInfo">1</span> of <span id="totalPages">1</span>
                         | Showing <span id="itemsPerPage">50</span> per page
-                        | Filter: <span id="currentFilter" class="badge bg-danger">Abandonos</span>
+                        | Filter: <span id="currentFilter" class="badge bg-purple">Carga Viral + Inicial</span>
                     </small>
                 </div>
             </nav>
@@ -421,14 +425,34 @@
     color: #2e7d32 !important;
 }
 
-.status-abandono {
-    background-color: #f8d7da !important;
-    color: #721c24 !important;
+.status-carga-viral {
+    background-color: #e1bee7 !important;
+    color: #4a148c !important;
 }
 
-.status-arv {
-    background-color: #d1ecf1 !important;
-    color: #0c5460 !important;
+.status-viral {
+    background-color: #d1c4e9 !important;
+    color: #311b92 !important;
+}
+
+/* Cor roxa para carga viral */
+.bg-purple {
+    background-color: #6f42c1 !important;
+}
+
+.text-purple {
+    color: #6f42c1 !important;
+}
+
+.btn-outline-purple {
+    color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.btn-outline-purple:hover {
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+    color: white;
 }
 
 /* Melhorar a barra de rolagem */
@@ -495,13 +519,13 @@
 let fileData = [];
 let mappedData = [];
 let allObservationsData = []; // Todos os dados da API
-let filteredObservationsData = []; // Dados filtrados por "Abandonos"
+let filteredObservationsData = []; // Dados filtrados por "Carga Viral"
 let displayObservationsData = []; // Dados que estão sendo exibidos (com filtros adicionais)
 let currentPage = 1;
 let itemsPerPage = 50;
 let totalPages = 1;
 let totalObservations = 0;
-let currentFilterMode = 'abandonos'; // 'all', 'abandonos', 'inicial-abandono'
+let currentFilterMode = 'carga-viral-inicial'; // 'all', 'carga-viral', 'carga-viral-inicial'
 
 let currentImportStats = {
     total: 0,
@@ -543,7 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initializePage() {
     await Promise.all([
         loadDropdown('/api/state', 'stateDropdown', 'Inicial'),
-        loadDropdown('/api/grouptype', 'grouptypeDropdown', 'Abandonos ao Levantamento de ARVs')
+        loadDropdown('/api/grouptype', 'grouptypeDropdown', 'Pacientes com Carga Viral')
     ]);
     
     // Update file info when file is selected
@@ -804,7 +828,7 @@ function startImport() {
     }
     
     importCancelled = false;
-    performImport(file, stateId, groupTypeId, 'Abandonos ao Levantamento de ARVs');
+    performImport(file, stateId, groupTypeId, 'Pacientes com Carga Viral');
 }
 
 async function performImport(file, stateId, groupTypeId, grupoPacientes) {
@@ -1031,9 +1055,9 @@ async function loadObservations() {
         
         updateProgress(90, 'Applying filters...');
         
-        // Filtrar observações com groupTypeDescription contendo 'abandono'
-        filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'abandono');
-        console.log('Filtered observations (Abandonos):', filteredObservationsData.length);
+        // Filtrar observações com groupTypeDescription contendo 'carga viral'
+        filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'carga viral');
+        console.log('Filtered observations (Carga Viral):', filteredObservationsData.length);
         
         // Aplicar o filtro atual
         applyCurrentFilter();
@@ -1086,7 +1110,10 @@ function filterByGroupTypeDescription(data, groupTypeText) {
             groupTypeDesc = obs.group.groupTypeDescription;
         }
         
-        const matches = normalizeText(groupTypeDesc).includes(normalizedText);
+        // Verificar se contém "carga viral"
+        const groupTypeNormalized = normalizeText(groupTypeDesc);
+        const matches = groupTypeNormalized.includes('carga') && 
+                       groupTypeNormalized.includes('viral');
         
         // Log para debugging
         if (matches) {
@@ -1094,7 +1121,7 @@ function filterByGroupTypeDescription(data, groupTypeText) {
                 id: obs.id,
                 fullname: obs.fullname,
                 groupTypeDesc: groupTypeDesc,
-                normalized: normalizeText(groupTypeDesc)
+                normalized: groupTypeNormalized
             });
         }
         
@@ -1102,21 +1129,25 @@ function filterByGroupTypeDescription(data, groupTypeText) {
     });
 }
 
-function filterByStatusAndState(data) {
-    // Filtrar por: status == 'Inicial' AND state.description contém 'Abandono'
+function filterByStateInicial(data) {
+    // Filtrar por: state.description == 'Inicial' (case insensitive)
     return data.filter(obs => {
-        const status = obs.status || '';
         const stateDescription = obs.stateDescription || '';
+        const stateNormalized = normalizeText(stateDescription);
         
-        // Condição 1: status deve ser exatamente "Inicial" (case insensitive)
-        const hasInicialStatus = normalizeText(status) === 'inicial';
+        // Verificar se state.description é exatamente "inicial"
+        const hasInicialState = stateNormalized === 'inicial';
         
-        // Condição 2: state.description deve conter "Abandono" (case insensitive)
-        const hasAbandonoState = normalizeText(stateDescription).includes('abandono') || 
-                                 normalizeText(stateDescription).includes('abandon');
+        // Log para debugging
+        if (hasInicialState) {
+            console.log('Inicial state found:', {
+                id: obs.id,
+                fullname: obs.fullname,
+                stateDescription: stateDescription
+            });
+        }
         
-        // Retornar verdadeiro apenas se AMBAS condições forem verdadeiras
-        return hasInicialStatus && hasAbandonoState;
+        return hasInicialState;
     });
 }
 
@@ -1128,17 +1159,17 @@ function applyCurrentFilter() {
             document.getElementById('currentFilter').className = 'badge bg-secondary';
             break;
             
-        case 'abandonos':
+        case 'carga-viral':
             displayObservationsData = filteredObservationsData;
-            document.getElementById('currentFilter').textContent = 'Abandonos';
-            document.getElementById('currentFilter').className = 'badge bg-danger';
+            document.getElementById('currentFilter').textContent = 'Carga Viral';
+            document.getElementById('currentFilter').className = 'badge bg-purple';
             break;
             
-        case 'inicial-abandono':
-            // Primeiro filtra por "Abandonos", depois por "Inicial" + "Abandono"
-            displayObservationsData = filterByStatusAndState(filteredObservationsData);
-            document.getElementById('currentFilter').textContent = 'Inicial + Abandono';
-            document.getElementById('currentFilter').className = 'badge bg-warning';
+        case 'carga-viral-inicial':
+            // Primeiro filtra por "Carga Viral", depois por state "Inicial"
+            displayObservationsData = filterByStateInicial(filteredObservationsData);
+            document.getElementById('currentFilter').textContent = 'Carga Viral + Inicial';
+            document.getElementById('currentFilter').className = 'badge bg-purple';
             break;
     }
     
@@ -1195,11 +1226,11 @@ function showCurrentPage() {
             case 'all':
                 message = 'No observations in the system.';
                 break;
-            case 'abandonos':
-                message = 'No observations found with "Abandonos" group type.';
+            case 'carga-viral':
+                message = 'No observations found with "Carga Viral" group type.';
                 break;
-            case 'inicial-abandono':
-                message = 'No observations found with status "Inicial" and state "Abandono".';
+            case 'carga-viral-inicial':
+                message = 'No observations found with "Carga Viral" group type and state "Inicial".';
                 break;
         }
         
@@ -1236,7 +1267,7 @@ function showCurrentPage() {
         let groupTypeDesc = obs.groupTypeDescription || 
                            (obs.group && obs.group.grouptypeDescription) || 
                            (obs.group && obs.group.groupTypeDescription) || 
-                           'Abandonos ao Levantamento de ARVs';
+                           'Pacientes com Carga Viral';
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -1247,6 +1278,10 @@ function showCurrentPage() {
             <td>${obs.gender || ''}</td>
             <td>${obs.age || ''}</td>
             <td>${obs.contact || ''}</td>
+            <td>${obs.dataprimeiracv || ''}</td>
+            <td>${obs.valorprimeiracv || ''}</td>
+            <td>${obs.dataultimacv || ''}</td>
+            <td>${obs.valorultimacv || ''}</td>
             <td>
                 <span class="badge ${statusClass}">${status}</span>
             </td>
@@ -1283,12 +1318,16 @@ function getStatusClass(status) {
 function getStateClass(stateDescription) {
     const stateLower = normalizeText(stateDescription);
     
-    if (stateLower.includes('abandono') || stateLower.includes('abandon')) {
-        return 'status-abandono';
+    if (stateLower === 'inicial') {
+        return 'status-inicial';
     }
     
-    if (stateLower.includes('arv')) {
-        return 'status-arv';
+    if (stateLower.includes('carga') && stateLower.includes('viral')) {
+        return 'status-carga-viral';
+    }
+    
+    if (stateLower.includes('viral')) {
+        return 'status-viral';
     }
     
     return 'bg-light text-dark';
@@ -1316,31 +1355,31 @@ function deleteObservation(id) {
         obs.id !== id && index !== id
     );
     // Reapply filters
-    filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'abandono');
+    filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'carga viral');
     applyCurrentFilter();
     updatePagination();
 }
 
-function showAllAbandonosObservations() {
-    currentFilterMode = 'abandonos';
+function showAllCargaViralObservations() {
+    currentFilterMode = 'carga-viral';
     currentPage = 1;
     applyCurrentFilter();
     updatePagination();
-    showAlert('info', 'Showing all observations with "Abandonos" group type');
+    showAlert('info', 'Showing all observations with "Carga Viral" group type');
 }
 
-function filterAbandonosInicialObservations() {
-    currentFilterMode = 'inicial-abandono';
+function filterCargaViralInicialObservations() {
+    currentFilterMode = 'carga-viral-inicial';
     currentPage = 1;
     applyCurrentFilter();
     updatePagination();
-    showAlert('info', 'Filtered to show only observations with status "Inicial" and state "Abandono"');
+    showAlert('info', 'Filtered to show only observations with "Carga Viral" group type and state "Inicial"');
 }
 
 function debugData() {
     console.log('=== DEBUG DATA ===');
     console.log('All observations:', allObservationsData.length);
-    console.log('Filtered observations (Abandonos):', filteredObservationsData.length);
+    console.log('Filtered observations (Carga Viral):', filteredObservationsData.length);
     console.log('Display observations:', displayObservationsData.length);
     
     // Mostrar os primeiros 5 registros de cada
@@ -1354,6 +1393,7 @@ function debugData() {
         console.log('Sample observation structure:');
         console.log('- Direct properties:', Object.keys(sample));
         console.log('- groupTypeDescription:', sample.groupTypeDescription);
+        console.log('- stateDescription:', sample.stateDescription);
         console.log('- group object:', sample.group);
         if (sample.group) {
             console.log('  - group properties:', Object.keys(sample.group));

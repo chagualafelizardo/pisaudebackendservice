@@ -10,9 +10,66 @@
             <h2 class="mb-1">👥 Patient Observations Management</h2>
             <p class="text-muted mb-0">Manage patient observations, states, and groups</p>
         </div>
-        <button class="btn btn-primary btn-lg" onclick="openObsModal()">
-            <i class="fas fa-plus me-2"></i> Add New Observation
-        </button>
+        
+        <!-- Shortcuts Group -->
+        <div class="d-flex align-items-center gap-3">
+            <!-- Quick Import Shortcuts -->
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" id="quickImportDropdown" data-bs-toggle="dropdown">
+                    <i class="fas fa-upload me-1"></i> Quick Import
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="/content/iniciotarv">
+                        <i class="fas fa-file-medical me-2 text-primary"></i> Início TARV
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/adesaotarv">
+                        <i class="fas fa-heart me-2 text-success"></i> Adesão ao TARV
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/marcadoslevantamento">
+                        <i class="fas fa-calendar-check me-2 text-warning"></i> Marcados Para Levantamento de ARVs
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/cargaviral">
+                        <i class="fas fa-vial me-2 text-info"></i> Carga Viral
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/faltosos">
+                        <i class="fas fa-user-clock me-2 text-danger"></i> Faltosos
+                    </a></li>
+                    <li><a class="dropdown-item" href="/content/abandonos">
+                        <i class="fas fa-user-slash me-2 text-secondary"></i> Abandonos
+                    </a></li>
+                </ul>
+            </div>
+            
+            <!-- Quick Filters -->
+            <div class="dropdown">
+                <button class="btn btn-outline-info dropdown-toggle" type="button" id="quickFilterDropdown" data-bs-toggle="dropdown">
+                    <i class="fas fa-filter me-1"></i> Quick Filters
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#" onclick="filterInitialState()">
+                        <i class="fas fa-flag me-2 text-primary"></i> Show Initial Status
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterUnknownStates()">
+                        <i class="fas fa-question-circle me-2 text-warning"></i> Unknown State
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterNoGroup()">
+                        <i class="fas fa-user-times me-2 text-danger"></i> No Group
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="filterNoSMS()">
+                        <i class="fas fa-comment-slash me-2 text-secondary"></i> No SMS Message
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="selectAllUnknown()">
+                        <i class="fas fa-check-square me-2 text-primary"></i> Select All Unknown
+                    </a></li>
+                </ul>
+            </div>
+            
+            <!-- Add New Observation Button -->
+            <button class="btn btn-primary btn-lg" onclick="openObsModal()">
+                <i class="fas fa-plus me-2"></i> Add New Observation
+            </button>
+        </div>
     </div>
 
     <!-- Summary Cards -->
@@ -44,27 +101,27 @@
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-info">
+            <div class="card border-warning">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="card-subtitle mb-2 text-muted">Pending Actions</h6>
-                            <h3 id="pendingActions" class="card-title mb-0">0</h3>
+                            <h6 class="card-subtitle mb-2 text-muted">Unknown State</h6>
+                            <h3 id="unknownStates" class="card-title mb-0">0</h3>
                         </div>
-                        <i class="fas fa-clock fs-1 text-info"></i>
+                        <i class="fas fa-question-circle fs-1 text-warning"></i>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card border-warning">
+            <div class="card border-info">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="card-subtitle mb-2 text-muted">In Groups</h6>
                             <h3 id="inGroups" class="card-title mb-0">0</h3>
                         </div>
-                        <i class="fas fa-users fs-1 text-warning"></i>
+                        <i class="fas fa-users fs-1 text-info"></i>
                     </div>
                 </div>
             </div>
@@ -90,6 +147,17 @@
                     </div>
                 </div>
 
+                <!-- Status - MODIFICADO: Agora carregado da API -->
+                <div class="col-md-2">
+                    <label class="form-label">
+                        <i class="fas fa-tag me-1 text-primary"></i> Status
+                    </label>
+                    <select id="filterStatus" class="form-select">
+                        <option value="">All Status</option>
+                        <!-- Estados serão carregados via API -->
+                    </select>
+                </div>
+
                 <!-- Text Message -->
                 <div class="col-md-2">
                     <label class="form-label">
@@ -100,13 +168,14 @@
                     </select>
                 </div>
 
-                <!-- State -->
+                <!-- Group -->
                 <div class="col-md-2">
                     <label class="form-label">
-                        <i class="fas fa-tag me-1 text-primary"></i> State
+                        <i class="fas fa-users me-1 text-primary"></i> Group
                     </label>
-                    <select id="filterState" class="form-select">
-                        <option value="">All States</option>
+                    <select id="filterGroup" class="form-select">
+                        <option value="">All Groups</option>
+                        <option value="no_group">No Group</option>
                     </select>
                 </div>
 
@@ -121,13 +190,10 @@
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="col-md-3 d-flex flex-column gap-2 align-self-end">
+                <div class="col-md-1 d-flex flex-column gap-2 align-self-end">
                     <div class="btn-group w-100" role="group">
                         <button class="btn btn-primary" onclick="filterObservations()">
-                            <i class="fas fa-search me-1"></i> Apply
-                        </button>
-                        <button class="btn btn-outline-secondary" onclick="clearFilters()">
-                            <i class="fas fa-times me-1"></i> Clear
+                            <i class="fas fa-search me-1"></i> Filter
                         </button>
                     </div>
                 </div>
@@ -138,6 +204,9 @@
                 <div class="d-flex align-items-center">
                     <span class="me-2 text-muted"><i class="fas fa-filter"></i> Active filters:</span>
                     <div id="filterTags" class="d-flex flex-wrap gap-2"></div>
+                    <button class="btn btn-sm btn-outline-danger ms-2" onclick="clearFilters()">
+                        <i class="fas fa-times me-1"></i> Clear All
+                    </button>
                 </div>
             </div>
         </div>
@@ -172,6 +241,26 @@
                         <button class="btn btn-danger" onclick="deleteSelected()">
                             <i class="fas fa-trash me-1"></i> Delete
                         </button>
+                        <div class="dropdown">
+                            <button class="btn btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-bolt me-1"></i> Quick Actions
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="assignDefaultState()">
+                                    <i class="fas fa-tag me-2"></i> Assign Default State
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="markAsReviewed()">
+                                    <i class="fas fa-eye me-2"></i> Mark as Reviewed
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="updateStatusBulk('active')">
+                                    <i class="fas fa-check me-2 text-success"></i> Set as Active
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="updateStatusBulk('inactive')">
+                                    <i class="fas fa-times me-2 text-danger"></i> Set as Inactive
+                                </a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -201,13 +290,21 @@
                             <th width="40">
                                 <input type="checkbox" id="selectAllHeader" class="form-check-input">
                             </th>
+                            <th>Grupo do Paciente</th>
                             <th>ID</th>
                             <th>Patient</th>
                             <th>Contact</th>
-                            <th>Status</th>
+                            <th>dataprimeiracv</th>
+                            <th>valorprimeiracv</th>
+                            <th>dataultimacv</th>
+                            <th>valorultimacv</th>
+                            <th>Sate description</th>
                             <th>SMS Message</th>
                             <th>Group</th>
                             <th>Location</th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>SMS Status</th>
                             <th>Last Updated</th>
                             <th>Actions</th>
                         </tr>
@@ -484,12 +581,21 @@
             <div class="modal-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Group Name</label>
-                        <input class="form-control" id="txtGroupName" placeholder="Ex: Grupo A">
+                        <label class="form-label">Group Name *</label>
+                        <input class="form-control" id="txtGroupName" placeholder="Ex: Grupo A" required>
+                        <small class="text-muted">Required if creating new group</small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">SMS Message</label>
-                        <select class="form-select" id="selectTextMessage"></select>
+                        <label class="form-label">Status *</label>
+                        <select class="form-select" id="selectStatusInsert" required></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">SMS Message *</label>
+                        <select class="form-select" id="selectTextMessage" required></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Group Type</label>
+                        <select class="form-select" id="selectGroupTypeInsert"></select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Start Date</label>
@@ -501,26 +607,40 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label">Observation</label>
-                        <textarea class="form-control" id="txtObservation" rows="2"></textarea>
+                        <textarea class="form-control" id="txtObservation" rows="2" placeholder="Observations about this group..."></textarea>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Select Existing Group (optional)</label>
-                        <select class="form-select" id="selectGroupInsert"></select>
+                        <select class="form-select" id="selectGroupInsert">
+                            <option value="">-- Create New Group --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" id="updateStatusCheckbox" checked>
+                            <label class="form-check-label" for="updateStatusCheckbox">
+                                Update patient status to selected state
+                            </label>
+                        </div>
                     </div>
                 </div>
 
                 <hr>
                 <h6><i class="fas fa-users me-1"></i> Selected Patients (<span id="selectedPatientsCount">0</span>):</h6>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> Selected patients will be added to the group and their status will be updated according to the selection above.
+                </div>
                 <div class="table-responsive mt-2">
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th>ID</th>
+                                <th width="50">#</th>
                                 <th>Full Name</th>
                                 <th>NID</th>
-                                <th>Gender</th>
-                                <th>Age</th>
-                                <th>Contact</th>
+                                <th>Current Status</th>
+                                <th>Current SMS</th>
+                                <th>New Status</th>
                             </tr>
                         </thead>
                         <tbody id="selectedPatientsBody"></tbody>
@@ -528,10 +648,10 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times me-1"></i> Cancel
                 </button>
-                <button class="btn btn-primary" onclick="confirmAddMembers()">
+                <button type="button" class="btn btn-primary" onclick="confirmAddMembers()">
                     <i class="fas fa-save me-1"></i> Save Changes
                 </button>
             </div>
@@ -539,11 +659,137 @@
     </div>
 </div>
 
-<!-- Progress Loader -->
-<div id="overlay" style="display:none;position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:2000;justify-content:center;align-items:center">
-  <div class="circular-progress" style="width:120px;height:120px;border-radius:50%;background:conic-gradient(#007bff 0% 0%,#e0e0e0 0% 100%);display:flex;justify-content:center;align-items:center;font-size:20px;font-weight:bold;color:#007bff;">
-    <span id="progressText">0%</span>
-  </div>
+<!-- Loader Overlay -->
+<div id="overlay" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+">
+    <div style="
+        position: relative;
+        width: 300px;
+        padding: 30px;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        text-align: center;
+    ">
+        <h5 id="progressTitle" class="mb-3">Processing...</h5>
+        
+        <!-- Progress Bar -->
+        <div class="progress mb-3" style="height: 20px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                 role="progressbar" style="width: 0%;"></div>
+        </div>
+        
+        <!-- Circular Progress -->
+        <div style="position: relative; display: inline-block;">
+            <div id="circularProgress" style="
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                background: conic-gradient(#007bff 0% 0%, #e0e0e0 0% 100%);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0 auto 15px;
+            ">
+                <span id="progressPercentage" style="
+                    font-weight: bold;
+                    font-size: 20px;
+                    color: #007bff;
+                ">0%</span>
+            </div>
+        </div>
+        
+        <div id="progressDetails" class="mt-2">
+            <p id="progressMessage" class="mb-1">Starting process...</p>
+            <small id="progressStats" class="text-muted">0 of 0 records</small>
+        </div>
+        
+        <!-- Cancel Button -->
+        <button class="btn btn-outline-danger btn-sm mt-3" onclick="cancelLoading()">
+            <i class="fas fa-times me-1"></i> Cancel
+        </button>
+    </div>
+</div>
+
+<!-- Import Results Modal -->
+<div class="modal fade" id="resultsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Operation Completed</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-primary" id="resultsTotal">0</h3>
+                            <small>Total Processed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-success" id="resultsSuccess">0</h3>
+                            <small>Success</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-warning" id="resultsSkipped">0</h3>
+                            <small>Skipped</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-danger" id="resultsFailed">0</h3>
+                            <small>Failed</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="errorsSection" style="display: none;">
+                    <h6 class="text-danger">
+                        <i class="fas fa-exclamation-circle me-1"></i> Operation Errors:
+                    </h6>
+                    <div class="alert alert-danger">
+                        <ul id="errorList" class="mb-0"></ul>
+                    </div>
+                </div>
+
+                <div id="warningsSection" style="display: none;">
+                    <h6 class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Operation Warnings:
+                    </h6>
+                    <div class="alert alert-warning">
+                        <ul id="warningList" class="mb-0"></ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Note:</strong> The operation has been completed.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <button type="button" class="btn btn-primary" onclick="loadObservationsWithProgress()">
+                    <i class="fas fa-redo me-1"></i> Refresh List
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -562,6 +808,59 @@
     padding: 0.35rem 0.65rem;
     font-size: 0.75em;
     font-weight: 500;
+}
+
+/* Highlight unknown rows */
+tr.unknown-state {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107;
+}
+
+tr.unknown-state:hover {
+    background-color: #ffeaa7 !important;
+}
+
+/* Status indicators */
+.status-unknown {
+    background-color: #ffc107;
+    color: #000;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Filter chips */
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.85rem;
+    margin-right: 8px;
+    margin-bottom: 4px;
+}
+
+.filter-chip.unknown {
+    background: #fff3cd;
+    border-color: #ffc107;
+}
+
+.filter-chip.no-group {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+/* Quick filter buttons */
+.btn-quick-filter {
+    border-radius: 20px;
+    padding: 0.25rem 1rem;
+    font-size: 0.875rem;
 }
 
 .bg-pending { background-color: #ffc107; color: #000; }
@@ -599,6 +898,35 @@
     color: #dc3545;
 }
 
+/* Quick import dropdown */
+#quickImportDropdown {
+    border-width: 2px;
+}
+
+#quickImportDropdown:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-menu {
+    border: 1px solid #dee2e6;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}
+
+.dropdown-item i {
+    width: 20px;
+    text-align: center;
+}
+
 /* Responsive table */
 @media (max-width: 768px) {
     .btn-group {
@@ -608,6 +936,61 @@
     .btn-group .btn {
         margin-bottom: 0.25rem;
     }
+    
+    /* Responsive header */
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .d-flex.align-items-center.gap-3 {
+        margin-top: 1rem;
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+/* Progress Bar Animation */
+.progress-bar-striped {
+    background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-size: 1rem 1rem;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+/* Melhorar a barra de rolagem */
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Garantir que os cabeçalhos ficam fixos */
+.table-responsive thead th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 </style>
 
@@ -626,58 +1009,79 @@ const pageSize = 50;
 let observationsData = [];
 let filteredData = [];
 let currentFilters = {};
+let loadingCancelled = false;
 
-/* ======== PROGRESS BAR ======== */
-function updateProgress(percent) {
-    const progressBar = document.querySelector('.circular-progress');
-    if (progressBar) {
-        progressBar.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
-    }
-    const progressText = document.getElementById('progressText');
-    if (progressText) {
-        progressText.innerText = percent + "%";
-    }
-}
+// DOM Elements
+const overlay = document.getElementById('overlay');
+const progressBar = document.getElementById('progressBar');
+const progressPercentage = document.getElementById('progressPercentage');
+const circularProgress = document.getElementById('circularProgress');
+const progressMessage = document.getElementById('progressMessage');
+const progressStats = document.getElementById('progressStats');
+const progressTitle = document.getElementById('progressTitle');
 
-/* ======== LOADING STATES ======== */
-function showLoading() {
-    const tbody = document.getElementById('obsTableBody');
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="10" class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2 mb-0">Loading observations...</p>
-                </td>
-            </tr>
-        `;
+/* ======== PROGRESS FUNCTIONS ======== */
+function updateProgress(percent, message = '', stats = '') {
+    if (progressBar && progressPercentage && circularProgress) {
+        progressBar.style.width = `${percent}%`;
+        progressPercentage.textContent = `${percent}%`;
+        circularProgress.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
+        
+        if (message) progressMessage.textContent = message;
+        if (stats) progressStats.textContent = stats;
     }
 }
 
-function hideLoading() {
-    // Loading is removed when data is loaded
+function showOverlay(title = 'Loading', message = 'Please wait...') {
+    if (overlay) {
+        loadingCancelled = false;
+        progressTitle.textContent = title;
+        progressMessage.textContent = message;
+        overlay.style.display = 'flex';
+        updateProgress(0, message);
+    }
+}
+
+function hideOverlay() {
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function cancelLoading() {
+    loadingCancelled = true;
+    hideOverlay();
+    showAlert('info', 'Operation cancelled.');
 }
 
 function showAlert(type, message) {
+    // Remove any existing alerts
+    const existingAlerts = document.querySelectorAll('.global-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.className = `global-alert alert alert-${type} alert-dismissible fade show position-fixed`;
     alertDiv.style.cssText = `
         top: 20px;
         right: 20px;
-        z-index: 1050;
+        z-index: 99999;
         min-width: 300px;
+        max-width: 400px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     `;
     
+    const icon = type === 'success' ? '✓' : 
+                 type === 'warning' ? '⚠' : 
+                 type === 'error' ? '✗' : 'ℹ';
+    
     alertDiv.innerHTML = `
-        <strong>${type === 'success' ? '✓' : '⚠'} ${type.charAt(0).toUpperCase() + type.slice(1)}!</strong> ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <strong>${icon} ${type.charAt(0).toUpperCase() + type.slice(1)}!</strong> ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
     `;
     
     document.body.appendChild(alertDiv);
     
+    // Auto-remove after 5 seconds
     setTimeout(() => {
         if (alertDiv.parentNode) {
             alertDiv.classList.remove('show');
@@ -712,56 +1116,93 @@ async function loadDropdown(url, selectId, field = 'description', placeholder = 
 }
 
 /* ======== LOAD OBSERVATIONS ======== */
+/* ======== LOAD OBSERVATIONS ======== */
 async function loadObservationsWithProgress() {
-    showLoading();
+    showOverlay('Loading Observations', 'Fetching data from server...');
+    updateProgress(10, 'Starting process...');
     
-    // Show progress overlay for large datasets
-    if (observationsData.length > 100) {
-        document.getElementById('overlay').style.display = "flex";
-        let progress = 0;
-        const interval = setInterval(() => {
-            if (progress < 90) updateProgress(++progress);
-        }, 25);
-        
-        try {
-            await loadObservationsData();
-            clearInterval(interval);
-            updateProgress(100);
-        } catch (error) {
-            clearInterval(interval);
-            throw error;
-        } finally {
-            setTimeout(() => {
-                document.getElementById('overlay').style.display = "none";
-                updateProgress(0);
-            }, 400);
-        }
-    } else {
-        await loadObservationsData();
-    }
-}
-
-async function loadObservationsData() {
     try {
+        // Simulate progress for large datasets
+        let progress = 10;
+        const progressInterval = setInterval(() => {
+            if (progress < 70) {
+                progress += 5;
+                updateProgress(progress, 'Fetching data...', 'Connecting to server...');
+            }
+        }, 100);
+        
+        updateProgress(30, 'Connecting to server...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        if (loadingCancelled) {
+            clearInterval(progressInterval);
+            return;
+        }
+        
+        updateProgress(50, 'Fetching observations data...');
         const res = await fetch(apiObs);
+        
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        clearInterval(progressInterval);
+        updateProgress(80, 'Processing data...');
         
         const data = await res.json();
         observationsData = data;
         
-        // Apply any existing filters
-        if (Object.keys(currentFilters).length > 0) {
-            applyFilters();
-        } else {
-            filteredData = data;
+        // FILTRAR APENAS OBSERVAÇÕES COM STATUS 'INICIAL' AO CARREGAR
+        // Primeiro, vamos buscar o stateId correspondente a 'Inicial'
+        const statusSelect = document.getElementById('filterStatus');
+        let initialStateId = null;
+        
+        // Tentar encontrar o estado 'Inicial' no dropdown
+        if (statusSelect && statusSelect.options.length > 0) {
+            for (let option of statusSelect.options) {
+                if (option.text.toLowerCase() === 'inicial') {
+                    initialStateId = option.value;
+                    break;
+                }
+            }
         }
         
+        // Se encontrou o stateId, filtrar os dados
+        if (initialStateId) {
+            filteredData = observationsData.filter(obs => obs.stateId == initialStateId);
+            
+            // Definir filtro ativo para 'Inicial'
+            currentFilters = {
+                stateId: initialStateId
+            };
+            
+            // Selecionar a opção no dropdown de filtro
+            document.getElementById('filterStatus').value = initialStateId;
+            
+            showAlert('info', `Showing observations with status "Inicial". Use filters to view other statuses.`);
+        } else {
+            // Se não encontrou, mostrar todos os dados
+            filteredData = data;
+            showAlert('warning', 'Status "Inicial" not found. Showing all observations.');
+        }
+        
+        updateProgress(90, 'Updating UI...');
         updateSummaryCards();
+        updateActiveFiltersDisplay(); // Atualizar display de filtros ativos
         renderTablePage(filteredData, currentPage);
-        hideLoading();
+        
+        updateProgress(100, 'Data loaded successfully!', `${filteredData.length} of ${data.length} records loaded`);
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        hideOverlay();
+        
+        if (filteredData.length === 0) {
+            showAlert('info', 'No observations found with status "Inicial". Import data or add new observations.');
+        }
         
     } catch (error) {
         console.error('Error loading observations:', error);
+        updateProgress(100, 'Error loading data');
+        showAlert('error', 'Failed to load observations: ' + error.message);
+        
         const tbody = document.getElementById('obsTableBody');
         tbody.innerHTML = `
             <tr>
@@ -775,22 +1216,35 @@ async function loadObservationsData() {
                 </td>
             </tr>
         `;
-        hideLoading();
+        hideOverlay();
     }
+}
+
+/* ======== HELPER FUNCTIONS ======== */
+function findInitialStateId() {
+    const statusSelect = document.getElementById('filterStatus');
+    if (!statusSelect) return null;
+    
+    for (let option of statusSelect.options) {
+        if (option.text.toLowerCase() === 'inicial') {
+            return option.value;
+        }
+    }
+    return null;
 }
 
 /* ======== SUMMARY CARDS ======== */
 function updateSummaryCards() {
     const totalObservations = observationsData.length;
-    const activePatients = observationsData.filter(o => o.status === 'Active').length;
-    const pendingActions = observationsData.filter(o => 
-        ['Pending', 'Awaiting', 'Scheduled'].includes(o.status)
+    const activePatients = observationsData.filter(o => o.stateDescription && o.stateDescription.toLowerCase().includes('active')).length;
+    const unknownStates = observationsData.filter(o => 
+        !o.stateId || !o.stateDescription || o.stateDescription.toLowerCase().includes('unknown')
     ).length;
     const inGroups = observationsData.filter(o => o.groupId).length;
     
     document.getElementById('totalObservations').textContent = totalObservations;
     document.getElementById('activePatients').textContent = activePatients;
-    document.getElementById('pendingActions').textContent = pendingActions;
+    document.getElementById('unknownStates').textContent = unknownStates;
     document.getElementById('inGroups').textContent = inGroups;
 }
 
@@ -800,16 +1254,32 @@ function renderTablePage(data, page) {
     const start = (page - 1) * pageSize;
     const pageData = data.slice(start, start + pageSize);
     
+    // Buscar o stateId de 'Inicial'
+    const statusSelect = document.getElementById('filterStatus');
+    let isInitialFilterActive = false;
+    if (statusSelect && statusSelect.value && 
+        statusSelect.options[statusSelect.selectedIndex]) {
+        const selectedText = statusSelect.options[statusSelect.selectedIndex].text.toLowerCase();
+        isInitialFilterActive = selectedText === 'inicial';
+    }
+    
     if (pageData.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="10" class="text-center py-5">
                     <i class="fas fa-search fs-1 text-muted mb-3"></i>
                     <h5 class="text-muted">No observations found</h5>
-                    ${Object.keys(currentFilters).length > 0 ? 
+                    ${isInitialFilterActive ? 
+                        `<div class="alert alert-info w-75 mx-auto">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No observations found with status "Inicial".
+                            ${Object.keys(currentFilters).length > 1 ? 
+                                `<br><small>Try changing other filters or 
+                                 <button class="btn btn-link p-0" onclick="clearFilters()">reset to default</button>.</small>` : 
+                                `<br><small>Import data or add new observations.</small>`}
+                        </div>` : 
                         `<p class="text-muted">Try changing your filters or 
-                         <button class="btn btn-link p-0" onclick="clearFilters()">clear all filters</button>.</p>` : 
-                        `<p class="text-muted">Click "Add New Observation" to create your first record.</p>`}
+                         <button class="btn btn-link p-0" onclick="clearFilters()">clear all filters</button>.</p>`}
                 </td>
             </tr>
         `;
@@ -817,12 +1287,18 @@ function renderTablePage(data, page) {
         tbody.innerHTML = '';
         
         pageData.forEach(obs => {
-            const statusClass = getStatusClass(obs.status);
+            const statusClass = getStatusClass(obs.stateDescription);
+            const isUnknown = !obs.stateId || !obs.stateDescription || obs.stateDescription.toLowerCase().includes('unknown');
+            const isInitial = obs.stateDescription && obs.stateDescription.toLowerCase() === 'inicial';
+            const rowClass = isUnknown ? 'unknown-state' : (isInitial ? 'initial-state' : '');
+            
             const row = document.createElement('tr');
+            row.className = rowClass;
             row.innerHTML = `
                 <td>
                     <input type="checkbox" class="form-check-input rowCheck" value="${obs.id}">
                 </td>
+                <td><strong>${obs.groupTypeDescription}</strong></td>
                 <td><strong>#${obs.id}</strong></td>
                 <td>
                     <div class="fw-bold">${obs.fullname || 'N/A'}</div>
@@ -830,18 +1306,43 @@ function renderTablePage(data, page) {
                 </td>
                 <td>${obs.contact || 'N/A'}</td>
                 <td>
-                    <span class="badge ${statusClass} status-badge">${obs.status || 'Unknown'}</span>
+                    <span class="badge ${statusClass} status-badge">
+                        ${obs.stateDescription || 'Unknown'}
+                        ${isInitial ? ' 🎯' : ''}
+                    </span>
                 </td>
                 <td>
                     <div class="text-truncate" style="max-width: 200px;">
                         ${obs.textMessageDescription || 'No message'}
                     </div>
                 </td>
-                <td>${obs.groupName || 'No Group'}</td>
-                <td>${obs.locationName || 'N/A'}</td>
+                <td>
+                    ${obs.groupId ? 
+                        `<div class="fw-bold">${obs.groupDescription || obs.group?.description || 'Group'}</div>
+                        <small class="text-muted">${obs.groupTypeDescription || obs.group?.grouptypeDescription || ''}</small>` : 
+                        '<span class="text-danger">No Group</span>'}
+                </td>
+
+                <td>
+                    ${obs.locationName || 'N/A'}
+                </td>
+
+                <td>
+                    ${obs.userFullName || 'N/A'}
+                </td>
+
+                <td>
+                    <small class="text-muted">${(obs.status )}</small>
+                </td>
+
+                <td>
+                    <small class="text-muted">${(obs.smsStatus )}</small>
+                </td>
+
                 <td>
                     <small class="text-muted">${formatDate(obs.updateAt || obs.createdAt)}</small>
                 </td>
+
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
                         <button class="btn btn-outline-primary" onclick="editObs(${obs.id})" title="Edit">
@@ -853,6 +1354,9 @@ function renderTablePage(data, page) {
                         <button class="btn btn-outline-danger" onclick="deleteObs(${obs.id})" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
+                        ${isUnknown ? `<button class="btn btn-outline-warning" onclick="fixUnknownState(${obs.id})" title="Fix Unknown State">
+                            <i class="fas fa-wrench"></i>
+                        </button>` : ''}
                     </div>
                 </td>
             `;
@@ -865,14 +1369,15 @@ function renderTablePage(data, page) {
 }
 
 function getStatusClass(status) {
-    if (!status) return 'bg-secondary';
+    if (!status || status.toLowerCase().includes('unknown')) return 'status-unknown';
     
     const statusMap = {
         'active': 'bg-success',
         'inactive': 'bg-secondary',
         'pending': 'bg-warning',
         'completed': 'bg-primary',
-        'cancelled': 'bg-danger'
+        'cancelled': 'bg-danger',
+        'confirmed': 'bg-info'
     };
     
     const lowerStatus = status.toLowerCase();
@@ -880,7 +1385,7 @@ function getStatusClass(status) {
         if (lowerStatus.includes(key)) return value;
     }
     
-    return 'bg-secondary';
+    return 'status-unknown';
 }
 
 function formatDate(dateString) {
@@ -947,63 +1452,157 @@ function selectAllRows(checked) {
 }
 
 /* ======== FILTER FUNCTIONS ======== */
+function applyFilters() {
+    if (Object.keys(currentFilters).length === 0) {
+        filteredData = observationsData;
+    } else {
+        filteredData = observationsData.filter(obs => {
+            let pass = true;
+            
+            // Status filter (usando stateId da API)
+            if (currentFilters.stateId) {
+                pass = pass && obs.stateId == currentFilters.stateId;
+            }
+            
+            // Filtro para estados desconhecidos
+            if (currentFilters.unknownState) {
+                pass = pass && (!obs.stateId || !obs.stateDescription || 
+                         obs.stateDescription.toLowerCase().includes('unknown'));
+            }
+            
+            // Group filter
+            if (currentFilters.group === 'no_group') {
+                pass = pass && !obs.groupId;
+            }
+            
+            // No SMS filter
+            if (currentFilters.noSMS) {
+                pass = pass && (!obs.textMessageDescription || obs.textMessageDescription === 'No message');
+            }
+            
+            // Text message filter
+            if (currentFilters.textmessageId) {
+                pass = pass && obs.textmessageId == currentFilters.textmessageId;
+            }
+            
+            // Location filter
+            if (currentFilters.locationId) {
+                pass = pass && obs.locationId == currentFilters.locationId;
+            }
+            
+            // Date filters
+            if (currentFilters.startDate) {
+                const obsDate = new Date(obs.createdAt);
+                const filterDate = new Date(currentFilters.startDate);
+                pass = pass && obsDate >= filterDate;
+            }
+            
+            if (currentFilters.endDate) {
+                const obsDate = new Date(obs.createdAt);
+                const filterDate = new Date(currentFilters.endDate);
+                filterDate.setHours(23, 59, 59, 999);
+                pass = pass && obsDate <= filterDate;
+            }
+            
+            return pass;
+        });
+    }
+    
+    currentPage = 1;
+    updateActiveFiltersDisplay();
+    renderTablePage(filteredData, currentPage);
+    
+    // Mensagem especial quando voltar para 'Inicial'
+    const statusSelect = document.getElementById('filterStatus');
+    if (statusSelect && statusSelect.value && 
+        statusSelect.options[statusSelect.selectedIndex].text.toLowerCase() === 'inicial') {
+        showAlert('info', `Showing observations with status "Inicial".`);
+    } else if (filteredData.length === 0) {
+        showAlert('info', 'No observations match your filters.');
+    }
+}
+
 async function filterObservations() {
     // Collect filter values
     const filters = {
+        stateId: document.getElementById('filterStatus').value,
         textmessageId: document.getElementById('filterTextmessage').value,
-        stateId: document.getElementById('filterState').value,
+        group: document.getElementById('filterGroup').value,
         locationId: document.getElementById('filterLocation').value,
         startDate: document.getElementById('filterStartDate').value,
         endDate: document.getElementById('filterEndDate').value
     };
     
-    // Build query params
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-    });
+    // Limpar filtro de estados desconhecidos quando usar filtros normais
+    if (currentFilters.unknownState) {
+        delete currentFilters.unknownState;
+    }
     
-    currentFilters = filters;
+    showOverlay('Filtering Data', 'Applying filters...');
+    updateProgress(30, 'Applying filters...');
     
     try {
-        showLoading();
-        const queryString = params.toString();
-        const url = queryString ? `${apiObs}?${queryString}` : apiObs;
+        // Update current filters
+        currentFilters = { ...currentFilters, ...filters };
         
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        // Apply filters locally
+        applyFilters();
         
-        const data = await res.json();
-        filteredData = data;
-        currentPage = 1;
+        updateProgress(100, 'Filters applied successfully!', `${filteredData.length} records found`);
         
-        updateActiveFiltersDisplay();
-        renderTablePage(filteredData, currentPage);
-        hideLoading();
+        await new Promise(resolve => setTimeout(resolve, 500));
+        hideOverlay();
         
     } catch (error) {
         console.error('Error filtering observations:', error);
+        updateProgress(100, 'Error applying filters');
         showAlert('error', 'Error applying filters: ' + error.message);
-        hideLoading();
+        hideOverlay();
     }
 }
 
 function clearFilters() {
-    // Clear filter inputs
-    document.getElementById('filterTextmessage').value = '';
-    document.getElementById('filterState').value = '';
-    document.getElementById('filterLocation').value = '';
-    document.getElementById('filterStartDate').value = '';
-    document.getElementById('filterEndDate').value = '';
+    // Buscar o estado 'Inicial'
+    const initialStateId = findInitialStateId();
     
-    // Reset filters
-    currentFilters = {};
-    filteredData = observationsData;
+    if (initialStateId) {
+        // Limpar outros filtros mas manter 'Inicial'
+        document.getElementById('filterTextmessage').value = '';
+        document.getElementById('filterGroup').value = '';
+        document.getElementById('filterLocation').value = '';
+        document.getElementById('filterStartDate').value = '';
+        document.getElementById('filterEndDate').value = '';
+        
+        // Manter apenas o filtro de 'Inicial'
+        currentFilters = { stateId: initialStateId };
+        document.getElementById('filterStatus').value = initialStateId;
+        
+        // Aplicar filtro
+        filteredData = observationsData.filter(obs => obs.stateId == initialStateId);
+        
+        showAlert('info', 'Reset to observations with status "Inicial".');
+    } else {
+        // Se não encontrou 'Inicial', limpar tudo
+        document.getElementById('filterStatus').value = '';
+        document.getElementById('filterTextmessage').value = '';
+        document.getElementById('filterGroup').value = '';
+        document.getElementById('filterLocation').value = '';
+        document.getElementById('filterStartDate').value = '';
+        document.getElementById('filterEndDate').value = '';
+        
+        currentFilters = {};
+        filteredData = observationsData;
+        showAlert('info', 'All filters cleared.');
+    }
+    
     currentPage = 1;
-    
-    // Update UI
     updateActiveFiltersDisplay();
     renderTablePage(filteredData, currentPage);
+}
+
+function clearUnknownStateFilter() {
+    delete currentFilters.unknownState;
+    applyFilters();
 }
 
 function updateActiveFiltersDisplay() {
@@ -1011,6 +1610,33 @@ function updateActiveFiltersDisplay() {
     const filterTagsDiv = document.getElementById('filterTags');
     
     const activeFilters = [];
+    
+    // Verificar se o filtro ativo é 'Inicial'
+    if (currentFilters.stateId) {
+        const select = document.getElementById('filterStatus');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        // Adicionar badge especial para 'Inicial'
+        if (selectedOption && selectedOption.text.toLowerCase() === 'inicial') {
+            activeFilters.push({
+                label: `🎯 Status: ${selectedOption.text} (Default)`,
+                clearFn: "clearAllFiltersIncludingStatus()"
+            });
+        } else {
+            activeFilters.push({
+                label: `Status: ${selectedOption.text}`,
+                clearFn: "clearFilter('filterStatus')"
+            });
+        }
+    }
+    
+    // Adicionar filtro para estados desconhecidos
+    if (currentFilters.unknownState) {
+        activeFilters.push({
+            label: 'Status: Unknown State',
+            clearFn: "clearUnknownStateFilter()"
+        });
+    }
     
     if (currentFilters.textmessageId) {
         const select = document.getElementById('filterTextmessage');
@@ -1021,12 +1647,10 @@ function updateActiveFiltersDisplay() {
         });
     }
     
-    if (currentFilters.stateId) {
-        const select = document.getElementById('filterState');
-        const selectedOption = select.options[select.selectedIndex];
+    if (currentFilters.group === 'no_group') {
         activeFilters.push({
-            label: `State: ${selectedOption.text}`,
-            clearFn: "clearFilter('filterState')"
+            label: 'Group: No Group',
+            clearFn: "clearFilter('filterGroup')"
         });
     }
     
@@ -1048,43 +1672,147 @@ function updateActiveFiltersDisplay() {
         });
     }
     
-    if (activeFilters.length > 0) {
+    if (currentFilters.noSMS) {
+        activeFilters.push({
+            label: 'No SMS Message',
+            clearFn: "clearNoSMSFilter()"
+        });
+    }
+    
+     if (activeFilters.length > 0) {
         activeFiltersDiv.style.display = 'block';
         filterTagsDiv.innerHTML = '';
         
         activeFilters.forEach(filter => {
             const tag = document.createElement('span');
-            tag.className = 'filter-tag';
+            tag.className = 'filter-chip';
+            
+            // Adicionar classe especial para 'Inicial'
+            if (filter.label.includes('Inicial')) {
+                tag.classList.add('bg-primary', 'text-white');
+            }
+            
+            if (filter.label.includes('Unknown')) tag.classList.add('unknown');
+            if (filter.label.includes('No Group')) tag.classList.add('no-group');
+            
             tag.innerHTML = `
                 ${filter.label}
-                <span class="remove-filter" onclick="${filter.clearFn}">
+                <span class="remove-filter ms-2" onclick="${filter.clearFn}" style="cursor: pointer;">
                     <i class="fas fa-times"></i>
                 </span>
             `;
             filterTagsDiv.appendChild(tag);
         });
-        
-        // Add clear all button
-        const clearAllBtn = document.createElement('button');
-        clearAllBtn.className = 'btn btn-sm btn-outline-danger ms-2';
-        clearAllBtn.innerHTML = '<i class="fas fa-times"></i> Clear All';
-        clearAllBtn.onclick = clearFilters;
-        filterTagsDiv.appendChild(clearAllBtn);
     } else {
         activeFiltersDiv.style.display = 'none';
         filterTagsDiv.innerHTML = '';
     }
 }
 
+function filterInitialState() {
+    const initialStateId = findInitialStateId();
+    
+    if (!initialStateId) {
+        showAlert('warning', 'Status "Inicial" not found in the system.');
+        return;
+    }
+    
+    // Limpar outros filtros
+    document.getElementById('filterTextmessage').value = '';
+    document.getElementById('filterGroup').value = '';
+    document.getElementById('filterLocation').value = '';
+    document.getElementById('filterStartDate').value = '';
+    document.getElementById('filterEndDate').value = '';
+    
+    // Aplicar filtro 'Inicial'
+    document.getElementById('filterStatus').value = initialStateId;
+    currentFilters = { stateId: initialStateId };
+    
+    applyFilters();
+    showAlert('info', 'Showing observations with status "Inicial".');
+}
+
+function clearAllFiltersIncludingStatus() {
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterTextmessage').value = '';
+    document.getElementById('filterGroup').value = '';
+    document.getElementById('filterLocation').value = '';
+    document.getElementById('filterStartDate').value = '';
+    document.getElementById('filterEndDate').value = '';
+    
+    currentFilters = {};
+    filteredData = observationsData;
+    currentPage = 1;
+    
+    updateActiveFiltersDisplay();
+    renderTablePage(filteredData, currentPage);
+    showAlert('info', 'All filters cleared. Showing all observations.');
+}
+
 function clearFilter(filterId) {
     document.getElementById(filterId).value = '';
-    filterObservations();
+    delete currentFilters[filterId.replace('filter', '').toLowerCase()];
+    applyFilters();
 }
 
 function clearDateFilters() {
     document.getElementById('filterStartDate').value = '';
     document.getElementById('filterEndDate').value = '';
-    filterObservations();
+    delete currentFilters.startDate;
+    delete currentFilters.endDate;
+    applyFilters();
+}
+
+function clearNoSMSFilter() {
+    delete currentFilters.noSMS;
+    applyFilters();
+}
+
+/* ======== QUICK FILTER FUNCTIONS ======== */
+function filterUnknownStates() {
+    // Clear other filters first
+    clearFilters();
+    
+    // Para estados desconhecidos, filtramos observações sem stateId
+    // ou com stateDescription que contenha "unknown"
+    currentFilters.unknownState = true;
+    
+    // Apply filter
+    applyFilters();
+    
+    showAlert('info', 'Filtering observations with unknown state.');
+}
+
+function filterNoGroup() {
+    clearFilters();
+    document.getElementById('filterGroup').value = 'no_group';
+    currentFilters.group = 'no_group';
+    applyFilters();
+    showAlert('info', 'Filtering observations without groups.');
+}
+
+function filterNoSMS() {
+    clearFilters();
+    currentFilters.noSMS = true;
+    applyFilters();
+    showAlert('info', 'Filtering observations without SMS messages.');
+}
+
+function selectAllUnknown() {
+    // First filter to show only unknown
+    filterUnknownStates();
+    
+    // Then select all visible rows
+    setTimeout(() => {
+        const visibleIds = filteredData.map(o => o.id);
+        
+        document.querySelectorAll('.rowCheck').forEach(checkbox => {
+            checkbox.checked = visibleIds.includes(Number(checkbox.value));
+        });
+        updateSelectedCount();
+        
+        showAlert('success', `Selected ${visibleIds.length} observations with unknown state.`);
+    }, 500);
 }
 
 /* ======== OBSERVATION CRUD ======== */
@@ -1123,33 +1851,48 @@ function openObsModal(observation = null) {
 
 async function editObs(id) {
     try {
-        showLoading();
+        showOverlay('Loading Observation', 'Fetching observation data...');
+        updateProgress(30, 'Fetching observation data...');
+        
         const res = await fetch(`${apiObs}/${id}`);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         
+        updateProgress(70, 'Processing data...');
         const observation = await res.json();
+        
+        updateProgress(100, 'Ready to edit');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        hideOverlay();
         openObsModal(observation);
-        hideLoading();
         
     } catch (error) {
         console.error('Error fetching observation:', error);
+        updateProgress(100, 'Error loading data');
         showAlert('error', 'Error loading observation data');
-        hideLoading();
+        hideOverlay();
     }
 }
 
 function viewObs(id) {
     // Implementation for view mode
-    alert(`View observation ${id} - Implement detailed view modal`);
+    showAlert('info', 'View functionality will be implemented soon.');
 }
 
 async function deleteObs(id) {
     if (!confirm('Are you sure you want to delete this observation? This action cannot be undone.')) return;
     
+    showOverlay('Deleting', 'Deleting observation...');
+    updateProgress(30, 'Deleting observation...');
+    
     try {
         const res = await fetch(`${apiObs}/${id}`, { method: 'DELETE' });
         
         if (res.ok) {
+            updateProgress(100, 'Observation deleted');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            hideOverlay();
             showAlert('success', 'Observation deleted successfully.');
             loadObservationsWithProgress();
         } else {
@@ -1157,7 +1900,9 @@ async function deleteObs(id) {
         }
     } catch (error) {
         console.error('Error deleting observation:', error);
+        updateProgress(100, 'Error deleting');
         showAlert('error', 'Error deleting observation: ' + error.message);
+        hideOverlay();
     }
 }
 
@@ -1170,21 +1915,65 @@ async function deleteSelected() {
     
     if (!confirm(`Are you sure you want to delete ${ids.length} observation(s)? This action cannot be undone.`)) return;
     
+    showOverlay('Deleting', `Deleting ${ids.length} observations...`);
+    updateProgress(10, `Starting deletion of ${ids.length} observations...`);
+    
     try {
-        showLoading();
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
         
-        // Delete each observation
-        for (const id of ids) {
-            await fetch(`${apiObs}/${id}`, { method: 'DELETE' });
+        for (let i = 0; i < ids.length; i++) {
+            if (loadingCancelled) break;
+            
+            const id = ids[i];
+            const percent = 10 + Math.floor((i / ids.length) * 80);
+            updateProgress(
+                percent,
+                `Deleting observation ${i + 1} of ${ids.length}`,
+                `${successCount} deleted, ${failCount} failed`
+            );
+            
+            try {
+                const res = await fetch(`${apiObs}/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    successCount++;
+                } else {
+                    failCount++;
+                    errors.push(`Failed to delete observation #${id}`);
+                }
+            } catch (error) {
+                failCount++;
+                errors.push(`Error deleting observation #${id}: ${error.message}`);
+            }
+            
+            // Small delay to prevent overwhelming the server
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
         
-        showAlert('success', `${ids.length} observation(s) deleted successfully.`);
-        loadObservationsWithProgress();
+        updateProgress(100, 'Deletion completed');
+        
+        // Show results
+        showOperationResults({
+            total: ids.length,
+            success: successCount,
+            failed: failCount,
+            errors: errors
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        hideOverlay();
+        
+        // Reload data
+        if (successCount > 0) {
+            loadObservationsWithProgress();
+        }
         
     } catch (error) {
         console.error('Error deleting selected observations:', error);
+        updateProgress(100, 'Error during deletion');
         showAlert('error', 'Error deleting observations: ' + error.message);
-        hideLoading();
+        hideOverlay();
     }
 }
 
@@ -1200,21 +1989,26 @@ document.getElementById('obsForm').addEventListener('submit', async function(e) 
     const id = document.getElementById('obsId').value;
     const isEdit = !!id;
     
-    // Collect form data
-    const formData = {};
-    document.querySelectorAll('#obsForm input, #obsForm select, #obsForm textarea').forEach(el => {
-        if (el.id && el.id !== 'obsId' && el.value !== '') {
-            // Convert numeric fields
-            const numericFields = ['age', 'valorprimeiracv', 'valorultimacv'];
-            const value = numericFields.includes(el.id) ? Number(el.value) : el.value;
-            
-            // Handle dropdown IDs
-            const idField = el.id.replace('Select', 'Id');
-            formData[idField] = value;
-        }
-    });
+    showOverlay('Saving', isEdit ? 'Updating observation...' : 'Creating observation...');
+    updateProgress(30, isEdit ? 'Updating observation...' : 'Creating observation...');
     
     try {
+        // Collect form data
+        const formData = {};
+        document.querySelectorAll('#obsForm input, #obsForm select, #obsForm textarea').forEach(el => {
+            if (el.id && el.id !== 'obsId' && el.value !== '') {
+                // Convert numeric fields
+                const numericFields = ['age', 'valorprimeiracv', 'valorultimacv'];
+                const value = numericFields.includes(el.id) ? Number(el.value) : el.value;
+                
+                // Handle dropdown IDs
+                const idField = el.id.replace('Select', 'Id');
+                formData[idField] = value;
+            }
+        });
+        
+        updateProgress(60, 'Sending to server...');
+        
         const url = isEdit ? `${apiObs}/${id}` : apiObs;
         const method = isEdit ? 'PUT' : 'POST';
         
@@ -1229,19 +2023,25 @@ document.getElementById('obsForm').addEventListener('submit', async function(e) 
             throw new Error(error);
         }
         
-        showAlert('success', isEdit ? 'Observation updated successfully!' : 'Observation created successfully!');
+        updateProgress(100, 'Saved successfully!');
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         const modal = bootstrap.Modal.getInstance(document.getElementById('obsModal'));
         modal.hide();
+        
+        hideOverlay();
+        showAlert('success', isEdit ? 'Observation updated successfully!' : 'Observation created successfully!');
         
         loadObservationsWithProgress();
         
     } catch (error) {
         console.error('Error saving observation:', error);
+        updateProgress(100, 'Error saving');
         showAlert('error', 'Error saving observation: ' + error.message);
     } finally {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
+        hideOverlay();
     }
 });
 
@@ -1253,38 +2053,81 @@ async function openInsertToGroupModal() {
         return;
     }
     
-    // Load selected patients
-    const selectedPatients = observationsData.filter(o => ids.includes(o.id));
-    const tbody = document.getElementById('selectedPatientsBody');
-    tbody.innerHTML = '';
+    showOverlay('Preparing Group', 'Loading group data...');
+    updateProgress(30, 'Loading group data...');
     
-    selectedPatients.forEach(patient => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${patient.id}</td>
-            <td>${patient.fullname}</td>
-            <td>${patient.nid}</td>
-            <td>${patient.gender}</td>
-            <td>${patient.age}</td>
-            <td>${patient.contact}</td>
-        `;
-        tbody.appendChild(row);
-    });
-    
-    document.getElementById('selectedPatientsCount').textContent = selectedPatients.length;
-    
-    // Load dropdowns
-    await loadDropdown(apiTextMessage, 'selectTextMessage', 'messagetext');
-    await loadDropdown(apiGroup, 'selectGroupInsert', 'description', '<option value="">Create New Group</option>');
-    
-    // Reset form
-    document.getElementById('txtGroupName').value = '';
-    document.getElementById('dateStart').value = '';
-    document.getElementById('dateEnd').value = '';
-    document.getElementById('txtObservation').value = '';
-    document.getElementById('selectGroupInsert').value = '';
-    
-    new bootstrap.Modal(document.getElementById('insertGroupModal')).show();
+    try {
+        // Load selected patients
+        const selectedPatients = observationsData.filter(o => ids.includes(o.id));
+        const tbody = document.getElementById('selectedPatientsBody');
+        tbody.innerHTML = '';
+        
+        // Display selected patients with current status
+        selectedPatients.forEach((patient, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>
+                    <div class="fw-bold">${patient.fullname}</div>
+                    <small class="text-muted">${patient.contact || 'No contact'}</small>
+                </td>
+                <td>${patient.nid || 'N/A'}</td>
+                <td>
+                    <span class="badge ${getStatusClass(patient.stateDescription)}">
+                        ${patient.stateDescription || 'Unknown'}
+                    </span>
+                </td>
+                <td>
+                    <small>${patient.textMessageDescription || 'No SMS'}</small>
+                </td>
+                <td>
+                    <span class="badge bg-secondary">Pending...</span>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        
+        document.getElementById('selectedPatientsCount').textContent = selectedPatients.length;
+        
+        updateProgress(60, 'Loading dropdowns...');
+        
+        // Load dropdowns for the modal
+        await Promise.all([
+            loadDropdown(apiState, 'selectStatusInsert', 'description', '<option value="">-- Select Status --</option>'),
+            loadDropdown(apiTextMessage, 'selectTextMessage', 'messagetext', '<option value="">-- Select SMS Message --</option>'),
+            loadDropdown(apiGroup, 'selectGroupInsert', 'description', '<option value="">-- Create New Group --</option>'),
+            loadDropdown(apiGrouptype, 'selectGroupTypeInsert', 'description', '<option value="">-- Select Group Type --</option>')
+        ]);
+        
+        // Set default dates
+        const today = new Date().toISOString().split('T')[0];
+        const nextMonth = new Date();
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        const nextMonthStr = nextMonth.toISOString().split('T')[0];
+        
+        document.getElementById('dateStart').value = today;
+        document.getElementById('dateEnd').value = nextMonthStr;
+        
+        updateProgress(100, 'Ready');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        hideOverlay();
+        
+        // Reset form (except dates)
+        document.getElementById('txtGroupName').value = '';
+        document.getElementById('txtObservation').value = '';
+        document.getElementById('selectGroupInsert').value = '';
+        document.getElementById('selectGroupTypeInsert').value = '';
+        document.getElementById('updateStatusCheckbox').checked = true;
+        
+        new bootstrap.Modal(document.getElementById('insertGroupModal')).show();
+        
+    } catch (error) {
+        console.error('Error opening group modal:', error);
+        updateProgress(100, 'Error loading');
+        showAlert('error', 'Error preparing group data');
+        hideOverlay();
+    }
 }
 
 async function confirmAddMembers() {
@@ -1294,9 +2137,12 @@ async function confirmAddMembers() {
         return;
     }
     
+    // Validate inputs
     const groupName = document.getElementById('txtGroupName').value.trim();
     const existingGroupId = document.getElementById('selectGroupInsert').value;
+    const statusId = document.getElementById('selectStatusInsert').value;
     const textMessageId = document.getElementById('selectTextMessage').value;
+    const updateStatus = document.getElementById('updateStatusCheckbox').checked;
     
     if (!existingGroupId && !groupName) {
         showAlert('warning', 'Please enter a group name or select an existing group.');
@@ -1308,13 +2154,24 @@ async function confirmAddMembers() {
         return;
     }
     
+    if (updateStatus && !statusId) {
+        showAlert('warning', 'Please select a status or uncheck "Update patient status".');
+        return;
+    }
+    
+    showOverlay('Adding to Group', 'Adding patients to group...');
+    updateProgress(20, 'Starting group operation...');
+    
     let groupId = existingGroupId;
     
     // Create new group if needed
     if (!existingGroupId && groupName) {
         try {
+            updateProgress(40, 'Creating new group...');
+            
             const groupData = {
                 description: groupName,
+                grouptypeId: document.getElementById('selectGroupTypeInsert').value || null,
                 dateStart: document.getElementById('dateStart').value || null,
                 dateEnd: document.getElementById('dateEnd').value || null,
                 observation: document.getElementById('txtObservation').value || null
@@ -1326,41 +2183,138 @@ async function confirmAddMembers() {
                 body: JSON.stringify(groupData)
             });
             
-            if (!res.ok) throw new Error('Failed to create group');
+            if (!res.ok) {
+                const error = await res.text();
+                throw new Error(error);
+            }
             
             const newGroup = await res.json();
             groupId = newGroup.id;
             
+            updateProgress(60, 'Group created successfully');
+            
         } catch (error) {
             console.error('Error creating group:', error);
+            updateProgress(100, 'Error creating group');
             showAlert('error', 'Error creating group: ' + error.message);
+            hideOverlay();
             return;
         }
     }
     
-    // Add patients to group
+    // Add patients to group and update status if needed
     try {
-        for (const obsId of selectedPatientIds) {
-            await fetch(`/api/observation/updategroup/${obsId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    groupId: groupId, 
-                    textmessageId: textMessageId 
-                })
-            });
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+        
+        updateProgress(70, 'Processing patients...');
+        
+        for (let i = 0; i < selectedPatientIds.length; i++) {
+            if (loadingCancelled) break;
+            
+            const obsId = selectedPatientIds[i];
+            const percent = 70 + Math.floor((i / selectedPatientIds.length) * 25);
+            updateProgress(
+                percent,
+                `Processing patient ${i + 1} of ${selectedPatientIds.length}`,
+                `${successCount} processed, ${failCount} failed`
+            );
+            
+            try {
+                // Prepare update data
+                const updateData = {
+                    groupId: groupId,
+                    textmessageId: textMessageId
+                };
+                
+                // Add status update if checkbox is checked
+                if (updateStatus && statusId) {
+                    updateData.stateId = Number(statusId);
+                }
+                
+                // Update observation
+                const res = await fetch(`/api/observation/updategroup/${obsId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updateData)
+                });
+                
+                if (!res.ok) {
+                    const error = await res.text();
+                    throw new Error(error);
+                }
+                
+                successCount++;
+                
+                // Update the table row to show success
+                const rows = document.querySelectorAll('#selectedPatientsBody tr');
+                if (rows[i]) {
+                    const statusCell = rows[i].querySelector('td:nth-child(6)');
+                    if (statusCell) {
+                        const statusSelect = document.getElementById('selectStatusInsert');
+                        const selectedOption = statusSelect.options[statusSelect.selectedIndex];
+                        statusCell.innerHTML = `
+                            <span class="badge bg-success">
+                                ${selectedOption ? selectedOption.text : 'Updated'}
+                            </span>
+                            <br>
+                            <small class="text-success">
+                                <i class="fas fa-check-circle"></i> Success
+                            </small>
+                        `;
+                    }
+                }
+                
+            } catch (error) {
+                failCount++;
+                errors.push(`Error processing patient #${obsId}: ${error.message}`);
+                
+                // Update the table row to show error
+                const rows = document.querySelectorAll('#selectedPatientsBody tr');
+                if (rows[i]) {
+                    const statusCell = rows[i].querySelector('td:nth-child(6)');
+                    if (statusCell) {
+                        statusCell.innerHTML = `
+                            <span class="badge bg-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Error
+                            </span>
+                        `;
+                    }
+                }
+            }
+            
+            // Small delay to prevent overwhelming the server
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
         
-        showAlert('success', `${selectedPatientIds.length} patient(s) added to group successfully.`);
+        updateProgress(100, 'Operation completed');
+        
+        // Show results
+        showOperationResults({
+            total: selectedPatientIds.length,
+            success: successCount,
+            failed: failCount,
+            errors: errors
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         const modal = bootstrap.Modal.getInstance(document.getElementById('insertGroupModal'));
         modal.hide();
         
-        loadObservationsWithProgress();
+        hideOverlay();
+        
+        if (successCount > 0) {
+            showAlert('success', `${successCount} patients successfully added to group.`);
+            loadObservationsWithProgress();
+        }
         
     } catch (error) {
         console.error('Error adding patients to group:', error);
+        updateProgress(100, 'Error processing patients');
         showAlert('error', 'Error adding patients to group: ' + error.message);
+        hideOverlay();
     }
 }
 
@@ -1372,42 +2326,86 @@ async function confirmAction() {
         return;
     }
     
-    const textId = document.getElementById('filterTextmessage').value;
-    const stateId = document.getElementById('filterState').value;
+    // For confirm action, we need stateId from a dropdown
+    const stateId = document.getElementById('filterStatus').value;
+    if (!stateId) {
+        showAlert('warning', 'Please select a status from the filter dropdown first.');
+        return;
+    }
     
-    if (!textId || !stateId) {
-        showAlert('warning', 'Please select both SMS Message and State from filters.');
+    const textId = document.getElementById('filterTextmessage').value;
+    if (!textId) {
+        showAlert('warning', 'Please select an SMS message from the filter dropdown first.');
         return;
     }
     
     if (!confirm(`Confirm action for ${selectedIds.length} selected patient(s)?`)) return;
     
+    showOverlay('Updating States', 'Updating patient states...');
+    updateProgress(10, 'Starting state update...');
+    
     try {
-        showLoading();
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
         
-        for (const id of selectedIds) {
-            await fetch(`/api/observation/confirm/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    stateId: Number(stateId),
-                    textmessageId: Number(textId)
-                })
-            });
+        for (let i = 0; i < selectedIds.length; i++) {
+            if (loadingCancelled) break;
+            
+            const id = selectedIds[i];
+            const percent = 10 + Math.floor((i / selectedIds.length) * 80);
+            updateProgress(
+                percent,
+                `Updating patient ${i + 1} of ${selectedIds.length}`,
+                `${successCount} updated, ${failCount} failed`
+            );
+            
+            try {
+                await fetch(`/api/observation/confirm/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stateId: Number(stateId),
+                        textmessageId: Number(textId)
+                    })
+                });
+                successCount++;
+            } catch (error) {
+                failCount++;
+                errors.push(`Error updating patient #${id}: ${error.message}`);
+            }
+            
+            // Small delay to prevent overwhelming the server
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
         
-        showAlert('success', `${selectedIds.length} patient(s) updated successfully.`);
-        loadObservationsWithProgress();
+        updateProgress(100, 'Update completed');
+        
+        // Show results
+        showOperationResults({
+            total: selectedIds.length,
+            success: successCount,
+            failed: failCount,
+            errors: errors
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        hideOverlay();
+        
+        if (successCount > 0) {
+            loadObservationsWithProgress();
+        }
         
     } catch (error) {
         console.error('Error confirming action:', error);
+        updateProgress(100, 'Error updating');
         showAlert('error', 'Error updating patients: ' + error.message);
-        hideLoading();
+        hideOverlay();
     }
 }
 
 /* ======== EXPORT FUNCTION ======== */
-function exportSelected() {
+async function exportSelected() {
     const selectedIds = getSelectedIds();
     const data = observationsData.filter(o => selectedIds.includes(o.id));
     
@@ -1416,32 +2414,325 @@ function exportSelected() {
         return;
     }
     
-    // Convert to CSV
-    const headers = ['ID', 'Full Name', 'NID', 'Gender', 'Age', 'Contact', 'Status', 'SMS Message', 'Group', 'Location'];
-    const csv = [
-        headers.join(','),
-        ...data.map(o => [
-            o.id,
-            `"${o.fullname || ''}"`,
-            o.nid || '',
-            o.gender || '',
-            o.age || '',
-            o.contact || '',
-            o.status || '',
-            `"${o.textMessageDescription || ''}"`,
-            o.groupName || '',
-            o.locationName || ''
-        ].join(','))
-    ].join('\n');
+    showOverlay('Exporting', 'Preparing export data...');
+    updateProgress(30, 'Preparing export data...');
     
-    // Create download link
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `observations_${new Date().toISOString().slice(0,10)}.csv`;
-    link.click();
+    try {
+        // Convert to CSV
+        const headers = ['ID', 'Full Name', 'NID', 'Gender', 'Age', 'Contact', 'Status', 'SMS Message', 'Group', 'Location'];
+        const csv = [
+            headers.join(','),
+            ...data.map(o => [
+                o.id,
+                `"${o.fullname || ''}"`,
+                o.nid || '',
+                o.gender || '',
+                o.age || '',
+                o.contact || '',
+                o.dataprimeiracv || '',
+                o.valorprimeiracv || '',
+                o.dataultimacv || '',
+                o.valorultimacv || '',
+                o.stateDescription || '',
+                `"${o.textMessageDescription || ''}"`,
+                o.grouptypeDescription || '',
+                o.locationName || ''
+            ].join(','))
+        ].join('\n');
+        
+        updateProgress(70, 'Creating download...');
+        
+        // Create download link
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `observations_${new Date().toISOString().slice(0,10)}.csv`;
+        
+        updateProgress(100, 'Export ready');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        hideOverlay();
+        link.click();
+        
+        showAlert('success', `${data.length} observation(s) exported successfully.`);
+        
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        updateProgress(100, 'Export failed');
+        showAlert('error', 'Error exporting data: ' + error.message);
+        hideOverlay();
+    }
+}
+
+/* ======== BATCH ACTIONS ======== */
+async function assignDefaultState() {
+    const selectedIds = getSelectedIds();
+    if (selectedIds.length === 0) {
+        showAlert('warning', 'Please select patients to update.');
+        return;
+    }
     
-    showAlert('success', `${data.length} observation(s) exported successfully.`);
+    // Get the first active state from the dropdown
+    const stateSelect = document.getElementById('filterStatus');
+    const defaultStateId = stateSelect.options[1] ? stateSelect.options[1].value : null;
+    
+    if (!defaultStateId) {
+        showAlert('warning', 'No default state found. Please load states first.');
+        return;
+    }
+    
+    const defaultStateName = stateSelect.options[1].text;
+    
+    showOverlay('Assigning State', `Setting ${selectedIds.length} patients to ${defaultStateName}...`);
+    updateProgress(10, 'Starting state assignment...');
+    
+    try {
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+        
+        for (let i = 0; i < selectedIds.length; i++) {
+            if (loadingCancelled) break;
+            
+            const id = selectedIds[i];
+            const percent = 10 + Math.floor((i / selectedIds.length) * 80);
+            updateProgress(
+                percent,
+                `Updating patient ${i + 1} of ${selectedIds.length}`,
+                `${successCount} updated, ${failCount} failed`
+            );
+            
+            try {
+                await fetch(`/api/observation/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stateId: Number(defaultStateId)
+                    })
+                });
+                successCount++;
+            } catch (error) {
+                failCount++;
+                errors.push(`Error updating patient #${id}: ${error.message}`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        updateProgress(100, 'Assignment completed');
+        
+        showOperationResults({
+            total: selectedIds.length,
+            success: successCount,
+            failed: failCount,
+            errors: errors
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        hideOverlay();
+        
+        if (successCount > 0) {
+            loadObservationsWithProgress();
+        }
+        
+    } catch (error) {
+        console.error('Error assigning default state:', error);
+        updateProgress(100, 'Error updating');
+        showAlert('error', 'Error assigning state: ' + error.message);
+        hideOverlay();
+    }
+}
+
+async function markAsReviewed() {
+    const selectedIds = getSelectedIds();
+    if (selectedIds.length === 0) {
+        showAlert('warning', 'Please select patients to mark as reviewed.');
+        return;
+    }
+    
+    showOverlay('Marking as Reviewed', `Marking ${selectedIds.length} patients...`);
+    updateProgress(10, 'Starting review process...');
+    
+    try {
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+        
+        for (let i = 0; i < selectedIds.length; i++) {
+            if (loadingCancelled) break;
+            
+            const id = selectedIds[i];
+            const percent = 10 + Math.floor((i / selectedIds.length) * 80);
+            updateProgress(
+                percent,
+                `Marking patient ${i + 1} of ${selectedIds.length}`,
+                `${successCount} marked, ${failCount} failed`
+            );
+            
+            try {
+                await fetch(`/api/observation/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reviewed: true,
+                        reviewedAt: new Date().toISOString()
+                    })
+                });
+                successCount++;
+            } catch (error) {
+                failCount++;
+                errors.push(`Error marking patient #${id}: ${error.message}`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        updateProgress(100, 'Review completed');
+        
+        showAlert('success', `${successCount} patients marked as reviewed.`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        hideOverlay();
+        
+        if (successCount > 0) {
+            loadObservationsWithProgress();
+        }
+        
+    } catch (error) {
+        console.error('Error marking as reviewed:', error);
+        updateProgress(100, 'Error updating');
+        showAlert('error', 'Error marking as reviewed: ' + error.message);
+        hideOverlay();
+    }
+}
+
+async function updateStatusBulk(status) {
+    const selectedIds = getSelectedIds();
+    if (selectedIds.length === 0) {
+        showAlert('warning', 'Please select patients to update.');
+        return;
+    }
+    
+    // Find state ID that matches the status
+    const stateSelect = document.getElementById('filterStatus');
+    let stateId = null;
+    for (let option of stateSelect.options) {
+        if (option.text.toLowerCase().includes(status.toLowerCase())) {
+            stateId = option.value;
+            break;
+        }
+    }
+    
+    if (!stateId) {
+        showAlert('warning', `No state found for status: ${status}`);
+        return;
+    }
+    
+    const stateName = stateSelect.options[stateSelect.selectedIndex].text;
+    
+    showOverlay('Updating Status', `Setting ${selectedIds.length} patients to ${stateName}...`);
+    updateProgress(10, 'Starting status update...');
+    
+    try {
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
+        
+        for (let i = 0; i < selectedIds.length; i++) {
+            if (loadingCancelled) break;
+            
+            const id = selectedIds[i];
+            const percent = 10 + Math.floor((i / selectedIds.length) * 80);
+            updateProgress(
+                percent,
+                `Updating patient ${i + 1} of ${selectedIds.length}`,
+                `${successCount} updated, ${failCount} failed`
+            );
+            
+            try {
+                await fetch(`/api/observation/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        stateId: Number(stateId)
+                    })
+                });
+                successCount++;
+            } catch (error) {
+                failCount++;
+                errors.push(`Error updating patient #${id}: ${error.message}`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        updateProgress(100, 'Update completed');
+        
+        showAlert('success', `${successCount} patients updated to ${stateName}.`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        hideOverlay();
+        
+        if (successCount > 0) {
+            loadObservationsWithProgress();
+        }
+        
+    } catch (error) {
+        console.error('Error updating status:', error);
+        updateProgress(100, 'Error updating');
+        showAlert('error', 'Error updating status: ' + error.message);
+        hideOverlay();
+    }
+}
+
+/* ======== SINGLE OBSERVATION ACTIONS ======== */
+async function fixUnknownState(id) {
+    try {
+        const res = await fetch(`${apiObs}/${id}`);
+        if (!res.ok) throw new Error('Failed to fetch observation');
+        
+        const observation = await res.json();
+        
+        // Open modal with this observation
+        openObsModal(observation);
+        
+        // Show guidance message
+        showAlert('info', 'Please update the status field for this observation and save changes.');
+        
+    } catch (error) {
+        console.error('Error fetching observation:', error);
+        showAlert('error', 'Error loading observation: ' + error.message);
+    }
+}
+
+/* ======== SHOW OPERATION RESULTS ======== */
+function showOperationResults(results) {
+    // Update result counts
+    document.getElementById('resultsTotal').textContent = results.total;
+    document.getElementById('resultsSuccess').textContent = results.success;
+    document.getElementById('resultsSkipped').textContent = 0;
+    document.getElementById('resultsFailed').textContent = results.failed;
+    
+    // Show errors if any
+    const errorsSection = document.getElementById('errorsSection');
+    const errorList = document.getElementById('errorList');
+    
+    if (results.errors && results.errors.length > 0) {
+        errorsSection.style.display = 'block';
+        errorList.innerHTML = '';
+        results.errors.forEach(error => {
+            const li = document.createElement('li');
+            li.textContent = error;
+            errorList.appendChild(li);
+        });
+    } else {
+        errorsSection.style.display = 'none';
+    }
+    
+    // Hide warnings section
+    document.getElementById('warningsSection').style.display = 'none';
+    
+    // Show results modal
+    const resultsModal = new bootstrap.Modal(document.getElementById('resultsModal'));
+    resultsModal.show();
 }
 
 /* ======== INITIALIZATION ======== */
@@ -1463,27 +2754,47 @@ window.onload = async function() {
     });
     
     // Load dropdowns
-    await Promise.all([
-        loadDropdown(apiState, 'filterState', 'description', '<option value="">All States</option>'),
-        loadDropdown(apiTextMessage, 'filterTextmessage', 'messagetext', '<option value="">All Messages</option>'),
-        loadDropdown(apiLocation, 'filterLocation', 'name', '<option value="">All Locations</option>'),
-        loadDropdown(apiState, 'stateSelect'),
-        loadDropdown(apiTextMessage, 'textmessageSelect', 'messagetext'),
-        loadDropdown(apiGrouptype, 'grouptypeSelect'),
-        loadDropdown(apiGroup, 'groupSelect', 'description'),
-        loadDropdown(apiLocation, 'locationSelect', 'name'),
-        loadDropdown(apiUser, 'userSelect', 'fullname')
-    ]);
+    showOverlay('Initializing', 'Loading application data...');
+    updateProgress(20, 'Loading dropdowns...');
     
-    // Load observations
-    await loadObservationsWithProgress();
+    try {
+        await Promise.all([
+            // Carregar o filtro de status da API
+            loadDropdown(apiState, 'filterStatus', 'description', '<option value="">All Status</option>'),
+            loadDropdown(apiTextMessage, 'filterTextmessage', 'messagetext', '<option value="">All Messages</option>'),
+            loadDropdown(apiGroup, 'filterGroup', 'description', '<option value="">All Groups</option><option value="no_group">No Group</option>'),
+            loadDropdown(apiLocation, 'filterLocation', 'name', '<option value="">All Locations</option>'),
+            loadDropdown(apiState, 'stateSelect'),
+            loadDropdown(apiTextMessage, 'textmessageSelect', 'messagetext'),
+            loadDropdown(apiGrouptype, 'grouptypeSelect'),
+            loadDropdown(apiGroup, 'groupSelect', 'description'),
+            loadDropdown(apiLocation, 'locationSelect', 'name'),
+            loadDropdown(apiUser, 'userSelect', 'fullname')
+        ]);
+        
+        updateProgress(80, 'Loading observations...');
+        
+        // Load observations
+        await loadObservationsWithProgress();
+        
+        updateProgress(100, 'Application ready');
+        await new Promise(resolve => setTimeout(resolve, 300));
+        hideOverlay();
+        
+    } catch (error) {
+        console.error('Error during initialization:', error);
+        updateProgress(100, 'Initialization failed');
+        showAlert('error', 'Error initializing application: ' + error.message);
+        hideOverlay();
+    }
     
     // Add event listeners for filters
     document.getElementById('filterStartDate').addEventListener('change', filterObservations);
     document.getElementById('filterEndDate').addEventListener('change', filterObservations);
     document.getElementById('filterTextmessage').addEventListener('change', filterObservations);
-    document.getElementById('filterState').addEventListener('change', filterObservations);
+    document.getElementById('filterGroup').addEventListener('change', filterObservations);
     document.getElementById('filterLocation').addEventListener('change', filterObservations);
+    document.getElementById('filterStatus').addEventListener('change', filterObservations);
 };
 </script>
 

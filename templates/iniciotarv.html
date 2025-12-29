@@ -1,30 +1,257 @@
 {% extends 'base.html' %}
-{% block title %}PI-SAÚDE/ Observations Import{% endblock %}
+{% block title %}PI-SAÚDE / Observations Import - Início ao TARV{% endblock %}
 
 {% block content %}
-<!-- {% include 'navbar.html' %} -->
 
-<h2>Import Observations - Início ao TARV</h2>
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">📥 Import Observations - Início ao TARV</h2>
+            <p class="text-muted mb-0">Import patient data from Excel/CSV files</p>
+        </div>
+        <div class="btn-group" role="group">
+            <a href="/content/observations" class="btn btn-outline-primary">
+                <i class="fas fa-list me-1"></i> View All Observations
+            </a>
+            <a href="/dashboard" class="btn btn-outline-success">
+                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
 
-<!-- Upload File -->
-<div class="mb-3">
-    <input type="file" id="fileInput" class="form-control" accept=".xlsx,.xls,.csv">
-    <button id="importBtn" class="btn btn-primary mt-2">Import Data</button>
+    <!-- Import Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-file-import me-2"></i> Import Data
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-file-excel me-1 text-success"></i> Select File
+                        </label>
+                        <div class="input-group">
+                            <input type="file" id="fileInput" class="form-control" 
+                                   accept=".xlsx,.xls,.csv,.txt">
+                            <button class="btn btn-outline-secondary" type="button" onclick="clearFile()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            Supported formats: Excel (.xlsx, .xls), CSV (.csv), Text (.txt)
+                            <span id="fileInfo" class="ms-2 text-info"></span>
+                        </small>
+                    </div>
+
+                    <!-- Import Settings -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="stateDropdown" class="form-label">
+                                <i class="fas fa-tag me-1 text-primary"></i> State
+                            </label>
+                            <select id="stateDropdown" class="form-select">
+                                <option value="">Select State</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="grouptypeDropdown" class="form-label">
+                                <i class="fas fa-users me-1 text-primary"></i> Group Type
+                            </label>
+                            <select id="grouptypeDropdown" class="form-select">
+                                <option value="">Select Group Type</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Import Options -->
+                    <div class="mt-4">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="updateExisting" checked>
+                            <label class="form-check-label" for="updateExisting">
+                                Update existing records (based on NID)
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="skipInvalid" checked>
+                            <label class="form-check-label" for="skipInvalid">
+                                Skip invalid records (continue on error)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div id="importStatus" class="text-muted">
+                            Ready to import
+                        </div>
+                        <div class="btn-group">
+                            <button id="previewBtn" class="btn btn-outline-info" onclick="previewFile()">
+                                <i class="fas fa-eye me-1"></i> Preview
+                            </button>
+                            <button id="importBtn" class="btn btn-primary" onclick="startImport()">
+                                <i class="fas fa-upload me-1"></i> Import Data
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Requirements -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i> File Requirements
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-info">Required Fields:</h6>
+                    <div class="mb-3">
+                        <span class="badge bg-success">✓ NID</span>
+                        <span class="badge bg-success">✓ Full Name</span>
+                        <span class="badge bg-success">✓ Gender</span>
+                        <span class="badge bg-success">✓ Age</span>
+                        <span class="badge bg-success">✓ Contact</span>
+                        <span class="badge bg-success">✓ Occupation</span>
+                    </div>
+
+                    <h6 class="text-info mt-3">Accepted Column Names:</h6>
+                    <small class="text-muted d-block">NID: nid, NID</small>
+                    <small class="text-muted d-block">Full Name: fullname, FullName, NomeCompleto</small>
+                    <small class="text-muted d-block">Gender: gender, Gender, sexo, Sexo</small>
+                    <small class="text-muted d-block">Age: age, Age, idade_actual, Idade</small>
+                    <small class="text-muted d-block">Contact: telefone, Telefone, contact, Contact, contacto_paciente</small>
+                    <small class="text-muted d-block">Occupation: occupation, Occupation, Profissao</small>
+
+                    <div class="alert alert-warning mt-3">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Note:</strong> The system will automatically map columns based on similar names.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Preview -->
+    <div class="card mb-4" id="previewSection" style="display: none;">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-table me-2"></i> Data Preview
+                <small class="ms-2">(<span id="previewCount">0</span> records)</small>
+            </h5>
+            <button class="btn btn-sm btn-outline-light" onclick="closePreview()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-bordered table-sm mb-0">
+                    <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                        <tr id="previewHeaders">
+                            <!-- Headers will be populated by JavaScript -->
+                        </tr>
+                    </thead>
+                    <tbody id="previewBody">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <div class="text-center">
+                <button class="btn btn-primary" onclick="confirmImport()">
+                    <i class="fas fa-check me-1"></i> Confirm & Import
+                </button>
+                <button class="btn btn-outline-secondary ms-2" onclick="closePreview()">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Observations Table -->
+    <div class="card">
+        <div class="card-header bg-white">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2"></i> Observations List - Início ao TARV
+                    </h5>
+                    <small class="text-muted">Showing <span id="currentCount">0</span> of <span id="totalCount">0</span> observations</small>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary" onclick="loadObservations()">
+                        <i class="fas fa-redo me-1"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light" style="position: sticky; top: 0; z-index: 1;">
+                        <tr>
+                            <th>ID</th>
+                            <th>Grupo de Pacientes</th>
+                            <th>Full Name</th>
+                            <th>NID</th>
+                            <th>Gender</th>
+                            <th>Age</th>
+                            <th>Contact</th>
+                            <th>State description</th>
+                            <th>Occupation</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="observationsTableBody">
+                        <tr>
+                            <td colspan="10" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 mb-0">Loading observations...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light">
+            <!-- Pagination -->
+            <nav aria-label="Observations pagination">
+                <ul class="pagination justify-content-center mb-0" id="pagination">
+                    <li class="page-item disabled" id="prevPage">
+                        <a class="page-link" href="#" onclick="changePage(currentPage - 1)" tabindex="-1">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item active">
+                        <a class="page-link" href="#" id="currentPageIndicator">1</a>
+                    </li>
+                    <li class="page-item disabled" id="nextPage">
+                        <a class="page-link" href="#" onclick="changePage(currentPage + 1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        Page <span id="pageInfo">1</span> of <span id="totalPages">1</span>
+                        | Showing <span id="itemsPerPage">10</span> per page
+                    </small>
+                </div>
+            </nav>
+        </div>
+    </div>
 </div>
 
-<!-- Dropdowns -->
-<div class="row mb-3">
-    <div class="col-md-6">
-        <label for="stateDropdown" class="form-label">State</label>
-        <select id="stateDropdown" class="form-select"></select>
-    </div>
-    <div class="col-md-6">
-        <label for="grouptypeDropdown" class="form-label">Group Type</label>
-        <select id="grouptypeDropdown" class="form-select"></select>
-    </div>
-</div>
-
-<!-- Loader Circular Overlay Centralizado -->
+<!-- Loader Overlay -->
 <div id="overlay" style="
     position: fixed;
     top: 0;
@@ -37,58 +264,217 @@
     justify-content: center;
     align-items: center;
 ">
-    <div class="circular-progress" id="progressCircle" style="
+    <div style="
         position: relative;
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background: conic-gradient(#007bff 0% 0%, #e0e0e0 0% 100%);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-weight: bold;
-        font-size: 20px;
-        color: #007bff;
+        width: 300px;
+        padding: 30px;
         background-color: white;
-        box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        text-align: center;
     ">
-        <span id="progressText">0%</span>
+        <h5 id="progressTitle" class="mb-3">Processing...</h5>
+        
+        <!-- Progress Bar -->
+        <div class="progress mb-3" style="height: 20px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                 role="progressbar" style="width: 0%;"></div>
+        </div>
+        
+        <!-- Circular Progress (opcional) -->
+        <div style="position: relative; display: inline-block;">
+            <div id="circularProgress" style="
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                background: conic-gradient(#007bff 0% 0%, #e0e0e0 0% 100%);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 0 auto 15px;
+            ">
+                <span id="progressPercentage" style="
+                    font-weight: bold;
+                    font-size: 20px;
+                    color: #007bff;
+                ">0%</span>
+            </div>
+        </div>
+        
+        <div id="progressDetails" class="mt-2">
+            <p id="progressMessage" class="mb-1">Starting process...</p>
+            <small id="progressStats" class="text-muted">0 of 0 records</small>
+        </div>
+        
+        <!-- Cancel Button -->
+        <button class="btn btn-outline-danger btn-sm mt-3" onclick="cancelImport()">
+            <i class="fas fa-times me-1"></i> Cancel
+        </button>
     </div>
 </div>
 
-<!-- Tabela de Observações -->
-<table class="table table-bordered mt-3">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Full Name</th>
-            <th>NID</th>
-            <th>Gender</th>
-            <th>Age</th>
-            <th>Contact</th>
-            <th>Occupation</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody id="observationsTableBody"></tbody>
-</table>
+<!-- Import Results Modal -->
+<div class="modal fade" id="resultsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Import Completed</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-primary" id="resultsTotal">0</h3>
+                            <small>Total Processed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-success" id="resultsSuccess">0</h3>
+                            <small>Success</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-warning" id="resultsSkipped">0</h3>
+                            <small>Skipped</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 border rounded">
+                            <h3 class="text-danger" id="resultsFailed">0</h3>
+                            <small>Failed</small>
+                        </div>
+                    </div>
+                </div>
 
-<!-- SheetJS -->
+                <div id="errorsSection" style="display: none;">
+                    <h6 class="text-danger">
+                        <i class="fas fa-exclamation-circle me-1"></i> Import Errors:
+                    </h6>
+                    <div class="alert alert-danger">
+                        <ul id="errorList" class="mb-0"></ul>
+                    </div>
+                </div>
+
+                <div id="warningsSection" style="display: none;">
+                    <h6 class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Import Warnings:
+                    </h6>
+                    <div class="alert alert-warning">
+                        <ul id="warningList" class="mb-0"></ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    <strong>Note:</strong> The imported data has been saved to the database.
+                    You can now view the observations in the main list.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <button type="button" class="btn btn-primary" onclick="loadObservations()">
+                    <i class="fas fa-redo me-1"></i> Refresh List
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load SheetJS -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
+<style>
+.circular-progress {
+    transition: background 0.3s ease;
+}
+
+.highlight-row {
+    background-color: #fff3cd !important;
+}
+
+.success-row {
+    background-color: #d1e7dd !important;
+}
+
+.error-row {
+    background-color: #f8d7da !important;
+}
+
+/* Melhorar a barra de rolagem */
+.table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Garantir que os cabeçalhos ficam fixos */
+.table-responsive thead th {
+    background-color: #f8f9fa;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Progress Bar Animation */
+.progress-bar-striped {
+    background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+    background-size: 1rem 1rem;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+/* Pagination */
+.page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+</style>
+
 <script>
-const fileInput = document.getElementById('fileInput');
-const importBtn = document.getElementById('importBtn');
-const overlay = document.getElementById('overlay');
-const progressCircle = document.getElementById('progressCircle');
-const progressText = document.getElementById('progressText');
-const observationsTableBody = document.getElementById('observationsTableBody');
+// Global variables
+let fileData = [];
+let mappedData = [];
+let allObservationsData = [];
+let currentPage = 1;
+let itemsPerPage = 50;
+let totalPages = 1;
+let totalObservations = 0;
 
-const stateDropdown = document.getElementById('stateDropdown');
-const grouptypeDropdown = document.getElementById('grouptypeDropdown');
+let currentImportStats = {
+    total: 0,
+    success: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [],
+    warnings: []
+};
 
-let observationsData = [];
-
+// Field mapping configuration
 const requiredFields = {
     nid: ['nid', 'NID'],
     fullname: ['fullname', 'FullName', 'NomeCompleto'],
@@ -98,29 +484,179 @@ const requiredFields = {
     occupation: ['occupation', 'Occupation', 'Profissao'],
 };
 
-function updateProgress(percent) {
-    progressCircle.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
-    progressText.innerText = `${percent}%`;
+// DOM Elements
+const overlay = document.getElementById('overlay');
+const progressBar = document.getElementById('progressBar');
+const progressPercentage = document.getElementById('progressPercentage');
+const circularProgress = document.getElementById('circularProgress');
+const progressMessage = document.getElementById('progressMessage');
+const progressStats = document.getElementById('progressStats');
+const progressTitle = document.getElementById('progressTitle');
+
+// Cancel flag
+let importCancelled = false;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
+    loadObservations();
+});
+
+async function initializePage() {
+    await Promise.all([
+        loadDropdown('/api/state', 'stateDropdown', 'Inicial'),
+        loadDropdown('/api/grouptype', 'grouptypeDropdown', 'Inicio ao TARV')
+    ]);
+    
+    // Update file info when file is selected
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        updateFileInfo(e.target.files[0]);
+    });
+    
+    // Set items per page selector
+    document.getElementById('itemsPerPage').addEventListener('click', function() {
+        const newPerPage = prompt('Enter number of items per page (1-100):', itemsPerPage);
+        if (newPerPage && !isNaN(newPerPage)) {
+            const perPage = parseInt(newPerPage);
+            if (perPage >= 1 && perPage <= 100) {
+                itemsPerPage = perPage;
+                updatePagination();
+            } else {
+                showAlert('error', 'Please enter a number between 1 and 100');
+            }
+        }
+    });
 }
 
-function populateTable(data) {
-    observationsTableBody.innerHTML = '';
-    data.forEach((obs, index) => {
-        observationsTableBody.innerHTML += `
-            <tr>
-                <td>${obs.id || index + 1}</td>
-                <td>${obs.fullname || ''}</td>
-                <td>${obs.nid || ''}</td>
-                <td>${obs.gender || ''}</td>
-                <td>${obs.age || ''}</td>
-                <td>${obs.contact || ''}</td>
-                <td>${obs.occupation || ''}</td>
-                <td>
-                    <button class="btn btn-sm btn-warning" onclick="editObservation(${index})">Edit</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteObservation(${index})">Delete</button>
-                </td>
-            </tr>
-        `;
+function updateFileInfo(file) {
+    const fileInfo = document.getElementById('fileInfo');
+    if (file) {
+        const fileSize = (file.size / 1024).toFixed(2);
+        fileInfo.textContent = `${file.name} (${fileSize} KB)`;
+        document.getElementById('importStatus').textContent = 'File selected. Ready to import.';
+        document.getElementById('importStatus').className = 'text-success';
+    } else {
+        fileInfo.textContent = '';
+        document.getElementById('importStatus').textContent = 'Ready to import';
+        document.getElementById('importStatus').className = 'text-muted';
+    }
+}
+
+function clearFile() {
+    document.getElementById('fileInput').value = '';
+    updateFileInfo(null);
+    closePreview();
+}
+
+function updateProgress(percent, message = '', stats = '') {
+    if (progressBar && progressPercentage && circularProgress) {
+        progressBar.style.width = `${percent}%`;
+        progressPercentage.textContent = `${percent}%`;
+        circularProgress.style.background = `conic-gradient(#007bff ${percent}%, #e0e0e0 ${percent}% 100%)`;
+        
+        if (message) progressMessage.textContent = message;
+        if (stats) progressStats.textContent = stats;
+    }
+}
+
+async function loadDropdown(url, selectId, defaultDescription) {
+    try {
+        const select = document.getElementById(selectId);
+        select.innerHTML = `<option value="">Loading...</option>`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        select.innerHTML = `<option value="">Select...</option>`;
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            const description = item.description || item.name;
+            option.textContent = description;
+            
+            // Check if this is the default option
+            if (defaultDescription && normalizeText(description).includes(normalizeText(defaultDescription))) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error(`Error loading dropdown ${selectId}:`, error);
+        document.getElementById(selectId).innerHTML = `<option value="">Error loading options</option>`;
+    }
+}
+
+function normalizeText(text) {
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+}
+
+async function previewFile() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) {
+        showAlert('warning', 'Please select a file first.');
+        return;
+    }
+    
+    try {
+        showOverlay('Previewing File', 'Reading file...');
+        updateProgress(30, 'Reading file...');
+        
+        fileData = await readFile(file);
+        
+        if (!fileData || fileData.length === 0) {
+            showAlert('error', 'The file appears to be empty or could not be read.');
+            return;
+        }
+        
+        updateProgress(70, 'Mapping data...');
+        
+        // Map the data
+        mappedData = fileData.map(mapRow);
+        
+        // Show preview
+        displayPreview(mappedData);
+        
+        // Show preview section
+        document.getElementById('previewSection').style.display = 'block';
+        
+        // Update status
+        document.getElementById('importStatus').textContent = `${mappedData.length} records ready for import`;
+        document.getElementById('importStatus').className = 'text-success';
+        
+    } catch (error) {
+        console.error('Error previewing file:', error);
+        showAlert('error', `Error reading file: ${error.message}`);
+    } finally {
+        hideOverlay();
+    }
+}
+
+function readFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                resolve(jsonData);
+            } catch (error) {
+                reject(error);
+            }
+        };
+        
+        reader.onerror = function(error) {
+            reject(error);
+        };
+        
+        reader.readAsArrayBuffer(file);
     });
 }
 
@@ -137,159 +673,531 @@ function mapRow(row) {
     return mapped;
 }
 
-async function loadObservationsWithProgress() {
-    overlay.style.display = 'flex';
-    let progress = 0;
-
-    const interval = setInterval(() => {
-        if (progress < 90) {
-            progress++;
-            updateProgress(progress);
+function displayPreview(data) {
+    const headersDiv = document.getElementById('previewHeaders');
+    const bodyDiv = document.getElementById('previewBody');
+    const countSpan = document.getElementById('previewCount');
+    
+    // Clear previous data
+    headersDiv.innerHTML = '';
+    bodyDiv.innerHTML = '';
+    
+    // Get all unique headers from the first 5 rows
+    const sampleRows = data.slice(0, Math.min(5, data.length));
+    const allHeaders = new Set();
+    
+    sampleRows.forEach(row => {
+        Object.keys(row).forEach(header => {
+            allHeaders.add(header);
+        });
+    });
+    
+    // Create headers
+    Array.from(allHeaders).forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headersDiv.appendChild(th);
+    });
+    
+    // Create rows (limit to 20 for preview)
+    const previewData = data.slice(0, 20);
+    previewData.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        
+        // Add data
+        Array.from(allHeaders).forEach(header => {
+            const td = document.createElement('td');
+            td.textContent = row[header] || '';
+            td.style.maxWidth = '200px';
+            td.style.overflow = 'hidden';
+            td.style.textOverflow = 'ellipsis';
+            td.style.whiteSpace = 'nowrap';
+            tr.appendChild(td);
+        });
+        
+        // Add validation status
+        const missingFields = Object.keys(requiredFields).filter(field => !row[field]);
+        
+        if (missingFields.length === 0) {
+            tr.className = 'success-row';
+        } else {
+            tr.className = 'highlight-row';
         }
-    }, 30);
-
-    try {
-        const res = await fetch('/api/observation');
-        const data = await res.json();
-
-        clearInterval(interval);
-        updateProgress(100);
-
-        observationsData = data;
-        populateTable(data);
-
-        await new Promise(r => setTimeout(r, 500));
-    } catch (err) {
-        alert("Failed to load observations.");
-        console.error(err);
-    } finally {
-        overlay.style.display = 'none';
-        updateProgress(0);
+        
+        bodyDiv.appendChild(tr);
+    });
+    
+    countSpan.textContent = data.length;
+    
+    // Show warning if data was truncated
+    if (data.length > 20) {
+        const infoRow = document.createElement('tr');
+        const infoCell = document.createElement('td');
+        infoCell.colSpan = allHeaders.size;
+        infoCell.className = 'text-center text-muted';
+        infoCell.textContent = `... showing 20 of ${data.length} records`;
+        infoRow.appendChild(infoCell);
+        bodyDiv.appendChild(infoRow);
     }
 }
 
-function normalize(text) {
-    return text
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // remove acentos
-        .trim();
+function closePreview() {
+    document.getElementById('previewSection').style.display = 'none';
 }
 
-async function loadDropdown(url, selectElement, defaultDescription) {
-    try {
-        const res = await fetch(url);
-        const data = await res.json();
-
-        const normalizedDefault = normalize(defaultDescription);
-
-        selectElement.innerHTML = data.map(item => {
-            const isSelected = normalize(item.description) === normalizedDefault;
-            return `<option value="${item.id}" ${isSelected ? 'selected' : ''}>
-                        ${item.description}
-                    </option>`;
-        }).join('');
-    } catch (err) {
-        console.error(`Failed to load ${url}`, err);
-        selectElement.innerHTML = '<option disabled>Error loading</option>';
-    }
-}
-
-
-importBtn.addEventListener('click', async () => {
-    const file = fileInput.files[0];
+function startImport() {
+    const file = document.getElementById('fileInput').files[0];
     if (!file) {
-        alert("Please select a file first.");
+        showAlert('warning', 'Please select a file to import.');
         return;
     }
+    
+    const stateId = document.getElementById('stateDropdown').value;
+    const groupTypeId = document.getElementById('grouptypeDropdown').value;
+    
+    if (!stateId || !groupTypeId) {
+        showAlert('warning', 'Please select both State and Group Type before importing.');
+        return;
+    }
+    
+    if (!confirm(`Are you ready to import ${mappedData.length || 'the'} records?`)) {
+        return;
+    }
+    
+    importCancelled = false;
+    performImport(file, stateId, groupTypeId, 'Inicio ao TARV');
+}
 
-    const selectedStateID = stateDropdown.value;
-    const selectedGroupTypeID = grouptypeDropdown.value;
+async function performImport(file, stateId, groupTypeId, grupoPacientes) {
+    try {
+        showOverlay('Importing Data', 'Starting import process...');
+        updateProgress(10, 'Starting import process...');
+        
+        const reader = new FileReader();
+        
+        reader.onload = async function(e) {
+            try {
+                if (importCancelled) {
+                    showAlert('info', 'Import cancelled by user.');
+                    return;
+                }
+                
+                updateProgress(30, 'Reading file...');
+                
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-    overlay.style.display = 'flex';
-    let progress = 0;
+                if (!sheetData.length) throw new Error("Empty sheet");
 
-    const interval = setInterval(() => {
-        if (progress < 90) {
-            progress++;
-            updateProgress(progress);
-        }
-    }, 25);
+                const mappedData = sheetData.map(mapRow);
 
-    const reader = new FileReader();
+                updateProgress(50, 'Validating data...', `Validating ${mappedData.length} records...`);
+                
+                // Reset import statistics
+                currentImportStats = {
+                    total: mappedData.length,
+                    success: 0,
+                    skipped: 0,
+                    failed: 0,
+                    errors: [],
+                    warnings: []
+                };
+                
+                // Simulate validation progress
+                for (let i = 0; i < mappedData.length; i++) {
+                    if (importCancelled) {
+                        showAlert('info', 'Import cancelled by user.');
+                        return;
+                    }
+                    if (i % 10 === 0) {
+                        const percent = 50 + Math.floor((i / mappedData.length) * 20);
+                        updateProgress(percent, 'Validating data...', `Validated ${i} of ${mappedData.length} records`);
+                        await new Promise(r => setTimeout(r, 10));
+                    }
+                }
 
-    reader.onload = async function (e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                updateProgress(70, 'Sending to server...');
+                
+                const payload = {
+                    stateID: stateId,
+                    groupTypeID: groupTypeId,
+                    grupoPacientes: grupoPacientes,
+                    observations: mappedData
+                };
 
-            if (!sheetData.length) throw new Error("Empty sheet");
+                const res = await fetch('/api/observations/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            const mappedData = sheetData.map(mapRow);
-
-            const payload = {
-                stateID: selectedStateID,
-                groupTypeID: selectedGroupTypeID,
-                observations: mappedData
-            };
-
-            const res = await fetch('/api/observations/import', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                clearInterval(interval);
-                updateProgress(100);
-                alert("Data imported successfully.");
-                await loadObservationsWithProgress();
-            } else {
-                const err = await res.json();
-                throw new Error(err.message || "Import failed");
+                updateProgress(90, 'Processing response...');
+                
+                const result = await res.json();
+                
+                // Update statistics from server response
+                if (result.success !== undefined) currentImportStats.success = result.success;
+                if (result.skipped !== undefined) currentImportStats.skipped = result.skipped;
+                if (result.failed !== undefined) currentImportStats.failed = result.failed;
+                if (result.errors) currentImportStats.errors = result.errors;
+                if (result.warnings) currentImportStats.warnings = result.warnings;
+                
+                updateProgress(100, 'Import completed!', `${currentImportStats.success} records imported successfully`);
+                
+                await new Promise(r => setTimeout(r, 500));
+                
+                if (res.ok) {
+                    showAlert('success', `Data imported successfully! ${currentImportStats.success} records processed.`);
+                } else {
+                    showAlert('warning', `Import completed with ${currentImportStats.failed} failures.`);
+                }
+                
+                showResults();
+                await loadObservations();
+                
+            } catch (err) {
+                console.error("Import failed:", err);
+                currentImportStats.failed = currentImportStats.total;
+                currentImportStats.errors = [err.message || "Unknown error"];
+                updateProgress(100, 'Import failed');
+                showAlert('error', "Error during import: " + (err.message || "Unknown error"));
+                showResults();
+            } finally {
+                setTimeout(() => {
+                    hideOverlay();
+                }, 1000);
             }
-        } catch (err) {
-            console.error("Import failed:", err);
-            alert("Error during import: " + err.message);
-        } finally {
-            clearInterval(interval);
-            setTimeout(() => {
-                overlay.style.display = 'none';
-                updateProgress(0);
-            }, 1000);
-        }
-    };
+        };
 
-    reader.onerror = function (err) {
-        clearInterval(interval);
-        console.error("File reading error:", err);
-        alert("Failed to read file.");
-        overlay.style.display = 'none';
-    };
+        reader.onerror = function(err) {
+            console.error("File reading error:", err);
+            currentImportStats.failed = currentImportStats.total;
+            currentImportStats.errors = ['Failed to read file'];
+            showAlert('error', "Failed to read file.");
+            hideOverlay();
+            showResults();
+        };
 
-    reader.readAsArrayBuffer(file);
-});
-
-function editObservation(index) {
-    const obs = observationsData[index];
-    const newName = prompt("Edit Full Name:", obs.fullname || '');
-    if (newName !== null) {
-        observationsData[index].fullname = newName;
-        populateTable(observationsData);
+        reader.readAsArrayBuffer(file);
+        
+    } catch (error) {
+        console.error('Import error:', error);
+        currentImportStats.failed = currentImportStats.total;
+        currentImportStats.errors = [error.message];
+        showAlert('error', `Import failed: ${error.message}`);
+        hideOverlay();
+        showResults();
     }
 }
 
-function deleteObservation(index) {
-    if (!confirm("Are you sure?")) return;
-    observationsData.splice(index, 1);
-    populateTable(observationsData);
+function cancelImport() {
+    importCancelled = true;
+    hideOverlay();
+    showAlert('info', 'Import cancelled.');
 }
 
-window.onload = async () => {
-    await loadObservationsWithProgress();
-    await loadDropdown('/api/state', stateDropdown, 'Inicial');
-    await loadDropdown('/api/grouptype', grouptypeDropdown, 'Faltosos');
-};
+function confirmImport() {
+    startImport();
+    closePreview();
+}
+
+function showOverlay(title = 'Processing', message = 'Please wait...') {
+    if (overlay) {
+        progressTitle.textContent = title;
+        progressMessage.textContent = message;
+        overlay.style.display = 'flex';
+        updateProgress(0, message);
+    }
+}
+
+function hideOverlay() {
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+}
+
+function showResults() {
+    // Update result counts
+    document.getElementById('resultsTotal').textContent = currentImportStats.total;
+    document.getElementById('resultsSuccess').textContent = currentImportStats.success;
+    document.getElementById('resultsSkipped').textContent = currentImportStats.skipped;
+    document.getElementById('resultsFailed').textContent = currentImportStats.failed;
+    
+    // Show errors if any
+    const errorsSection = document.getElementById('errorsSection');
+    const errorList = document.getElementById('errorList');
+    
+    if (currentImportStats.errors && currentImportStats.errors.length > 0) {
+        errorsSection.style.display = 'block';
+        errorList.innerHTML = '';
+        currentImportStats.errors.forEach(error => {
+            const li = document.createElement('li');
+            
+            // Check if error is an object
+            if (typeof error === 'object') {
+                // Try to extract meaningful error message from object
+                if (error.message) {
+                    li.textContent = error.message;
+                } else if (error.error) {
+                    li.textContent = error.error;
+                } else {
+                    // Stringify the object for debugging
+                    li.textContent = JSON.stringify(error, null, 2);
+                }
+            } else {
+                // Error is already a string
+                li.textContent = error;
+            }
+            
+            errorList.appendChild(li);
+        });
+    } else {
+        errorsSection.style.display = 'none';
+    }
+    
+    // Show warnings if any
+    const warningsSection = document.getElementById('warningsSection');
+    const warningList = document.getElementById('warningList');
+    
+    if (currentImportStats.warnings && currentImportStats.warnings.length > 0) {
+        warningsSection.style.display = 'block';
+        warningList.innerHTML = '';
+        currentImportStats.warnings.forEach(warning => {
+            const li = document.createElement('li');
+            
+            // Check if warning is an object
+            if (typeof warning === 'object') {
+                // Try to extract meaningful warning message from object
+                if (warning.message) {
+                    li.textContent = warning.message;
+                } else if (warning.warning) {
+                    li.textContent = warning.warning;
+                } else {
+                    // Stringify the object for debugging
+                    li.textContent = JSON.stringify(warning, null, 2);
+                }
+            } else {
+                // Warning is already a string
+                li.textContent = warning;
+            }
+            
+            warningList.appendChild(li);
+        });
+    } else {
+        warningsSection.style.display = 'none';
+    }
+    
+    // Show results modal
+    const resultsModal = new bootstrap.Modal(document.getElementById('resultsModal'));
+    resultsModal.show();
+}
+
+async function loadObservations() {
+    try {
+        showOverlay('Loading Observations', 'Fetching data from server...');
+        updateProgress(30, 'Fetching data from server...');
+        
+        const response = await fetch('/api/observation');
+        if (!response.ok) {
+            throw new Error('Failed to fetch observations');
+        }
+        
+        updateProgress(70, 'Processing data...');
+        
+        const allData = await response.json();
+        
+        // Filter data: groupTypeDescription = 'Inicio ao TARV'
+        allObservationsData = allData.filter(obs => {
+            return obs.groupTypeDescription && 
+                   normalizeText(obs.groupTypeDescription).includes('inicio ao tarv');
+        });
+        
+        totalObservations = allObservationsData.length;
+        
+        updateProgress(90, 'Rendering table...');
+        
+        updatePagination();
+        
+        updateProgress(100, 'Data loaded successfully!');
+        
+        await new Promise(r => setTimeout(r, 300));
+        
+    } catch (error) {
+        console.error('Error loading observations:', error);
+        showAlert('error', 'Failed to load observations');
+        
+        const tbody = document.getElementById('observationsTableBody');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fs-1 text-danger mb-3"></i>
+                    <h5 class="text-danger">Failed to load observations</h5>
+                    <p class="text-muted">${error.message}</p>
+                </td>
+            </tr>
+        `;
+    } finally {
+        hideOverlay();
+    }
+}
+
+function updatePagination() {
+    totalPages = Math.ceil(totalObservations / itemsPerPage);
+    
+    // Update page info
+    document.getElementById('currentCount').textContent = Math.min(itemsPerPage, totalObservations);
+    document.getElementById('totalCount').textContent = totalObservations;
+    document.getElementById('itemsPerPage').textContent = itemsPerPage;
+    document.getElementById('pageInfo').textContent = currentPage;
+    document.getElementById('totalPages').textContent = totalPages;
+    
+    // Update pagination buttons
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+    const currentPageIndicator = document.getElementById('currentPageIndicator');
+    
+    currentPageIndicator.textContent = currentPage;
+    
+    if (currentPage === 1) {
+        prevPage.classList.add('disabled');
+    } else {
+        prevPage.classList.remove('disabled');
+    }
+    
+    if (currentPage === totalPages || totalPages === 0) {
+        nextPage.classList.add('disabled');
+    } else {
+        nextPage.classList.remove('disabled');
+    }
+    
+    // Show current page data
+    showCurrentPage();
+}
+
+function changePage(page) {
+    if (page < 1 || page > totalPages) return;
+    
+    currentPage = page;
+    updatePagination();
+}
+
+function showCurrentPage() {
+    const tbody = document.getElementById('observationsTableBody');
+    
+    if (!allObservationsData || allObservationsData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="10" class="text-center py-4">
+                    <i class="fas fa-inbox fs-1 text-muted mb-3"></i>
+                    <h5 class="text-muted">No observations found</h5>
+                    <p class="text-muted">No patients found with "Inicio ao TARV" group type.</p>
+                    <p class="text-muted">Import a file to see data here.</p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Calculate start and end indices
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalObservations);
+    const currentData = allObservationsData.slice(startIndex, endIndex);
+    
+    tbody.innerHTML = '';
+    
+    currentData.forEach((obs, index) => {
+        const globalIndex = startIndex + index;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${obs.id || globalIndex + 1}</td>
+            <td>${obs.groupTypeDescription || 'Inicio ao TARV'}</td>
+            <td>${obs.fullname || ''}</td>
+            <td>${obs.nid || ''}</td>
+            <td>${obs.gender || ''}</td>
+            <td>${obs.age || ''}</td>
+            <td>${obs.contact || ''}</td>
+            <td>${obs.stateDescription || ''}</td>
+            <td>${obs.occupation || ''}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="editObservation(${obs.id || globalIndex})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-danger ms-1" onclick="deleteObservation(${obs.id || globalIndex})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Update count display
+    document.getElementById('currentCount').textContent = currentData.length;
+}
+
+function editObservation(id) {
+    const obs = allObservationsData.find(o => o.id === id) || allObservationsData[id];
+    if (!obs) return;
+    
+    const newName = prompt("Edit Full Name:", obs.fullname || '');
+    if (newName !== null) {
+        // Here you would typically send an API request to update the observation
+        showAlert('info', 'Edit functionality requires backend implementation');
+    }
+}
+
+function deleteObservation(id) {
+    if (!confirm("Are you sure you want to delete this observation?")) return;
+    
+    // Here you would typically send an API request to delete the observation
+    showAlert('info', 'Delete functionality requires backend implementation');
+    
+    // For demo purposes, remove from local array
+    allObservationsData = allObservationsData.filter((obs, index) => 
+        obs.id !== id && index !== id
+    );
+    totalObservations = allObservationsData.length;
+    updatePagination();
+}
+
+function showAlert(type, message) {
+    // Remove any existing alerts
+    const existingAlerts = document.querySelectorAll('.global-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `global-alert alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 99999;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    
+    const icon = type === 'success' ? '✓' : 
+                 type === 'warning' ? '⚠' : 
+                 type === 'error' ? '✗' : 'ℹ';
+    
+    alertDiv.innerHTML = `
+        <strong>${icon} ${type.charAt(0).toUpperCase() + type.slice(1)}!</strong> ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 150);
+        }
+    }, 5000);
+}
 </script>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
 {% endblock %}
