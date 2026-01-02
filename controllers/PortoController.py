@@ -8,7 +8,6 @@ logging.basicConfig(level=logging.INFO)
 
 VALID_SYNC_STATUS = ['Not Syncronized', 'Syncronized', 'Updated']
 
-
 class PortoController:
 
     @staticmethod

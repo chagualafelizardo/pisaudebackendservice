@@ -1305,6 +1305,10 @@ function renderTablePage(data, page) {
                     <small class="text-muted">NID: ${obs.nid || 'N/A'}</small>
                 </td>
                 <td>${obs.contact || 'N/A'}</td>
+                <td>${obs.dataprimeiracv || 'N/A'}</td>
+                <td>${obs.valorprimeiracv || 'N/A'}</td>
+                <td>${obs.dataultimacv || 'N/A'}</td>
+                <td>${obs.valorultimacv || 'N/A'}</td>
                 <td>
                     <span class="badge ${statusClass} status-badge">
                         ${obs.stateDescription || 'Unknown'}

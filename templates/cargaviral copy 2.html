@@ -1411,24 +1411,8 @@ async function performImport(file, stateId, groupTypeId, grupoPacientes) {
                 updateProgress(30, 'A ler ficheiro...');
                 
                 const data = new Uint8Array(e.target.result);
-                
-                // CONFIGURAÇÃO CRÍTICA: ler com cellDates: false para manter datas como strings
-                const workbook = XLSX.read(data, { 
-                    type: 'array',
-                    cellDates: false,  // NÃO converter datas para objetos Date
-                    raw: true,         // Manter valores brutos
-                    dateNF: 'yyyy-mm-dd' // Formato de data esperado
-                });
-                
-                // Converter a planilha para JSON mantendo valores brutos
-                const sheetData = XLSX.utils.sheet_to_json(
-                    workbook.Sheets[workbook.SheetNames[0]], 
-                    {
-                        raw: true,           // Manter valores brutos
-                        rawNumbers: false,   // Não converter números automaticamente
-                        defval: ''           // Valor padrão para células vazias
-                    }
-                );
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
                 if (!sheetData.length) throw new Error("Ficheiro vazio");
 
@@ -1468,13 +1452,18 @@ async function performImport(file, stateId, groupTypeId, grupoPacientes) {
                     currentImportStats.warnings.push(...validation.warnings);
                 });
                 
-                // Debug: mostrar alguns dados
-                console.log('Primeiras 3 linhas mapeadas:', mappedData.slice(0, 3));
-                console.log('Nomes de colunas detectados:', sheetData.length > 0 ? Object.keys(sheetData[0]) : []);
-                
                 // Preparar dados para envio (remover _validation)
                 const dataToSend = validData.map(row => {
                     const { _validation, ...cleanRow } = row;
+                    
+                    // Garantir que os campos numéricos estão no formato correto
+                    if (cleanRow.valorprimeiracv === '' || cleanRow.valorprimeiracv === undefined) {
+                        cleanRow.valorprimeiracv = null;
+                    }
+                    if (cleanRow.valorultimacv === '' || cleanRow.valorultimacv === undefined) {
+                        cleanRow.valorultimacv = null;
+                    }
+                    
                     return cleanRow;
                 });
                 
