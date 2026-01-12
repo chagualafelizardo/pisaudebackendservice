@@ -32,6 +32,20 @@
         </div>
         
         <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-white-50">Pendentes</h6>
+                            <h3 id="statsPendentes">0</h3>
+                        </div>
+                        <i class="bi bi-clock display-4 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -44,16 +58,16 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card bg-warning text-white">
+            <div class="card bg-info text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h6 class="text-white-50">Pendentes</h6>
-                            <h3 id="statsPendentes">0</h3>
+                            <h6 class="text-white-50">Realizados</h6>
+                            <h3 id="statsRealizados">0</h3>
                         </div>
-                        <i class="bi bi-clock display-4 opacity-50"></i>
+                        <i class="bi bi-check2-circle display-4 opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -140,6 +154,15 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <!-- Adicione este botão para novo agendamento -->
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <button class="btn btn-success" id="btnNovoAgendamento">
+                                        <i class="bi bi-plus-circle me-1"></i> Novo Agendamento
+                                    </button>
+                                </div>
+                            </div>
                             
                             <!-- Tabela de Agendamentos -->
                             <div class="table-responsive">
@@ -184,43 +207,21 @@
                             </div>
                             
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table class="table table-hover" id="tabelaMedicos">
                                     <thead>
                                         <tr>
                                             <th>Nome</th>
                                             <th>Especialidade</th>
                                             <th>Registro</th>
                                             <th>Telefone</th>
+                                            <th>Email</th>
+                                            <th>Horário de Trabalho</th>
                                             <th>Ativo</th>
                                             <th>Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {% for medico in medicos %}
-                                        <tr>
-                                            <td>{{ medico.nome }}</td>
-                                            <td><span class="badge bg-info">{{ medico.especialidade }}</span></td>
-                                            <td>{{ medico.registro_profissional }}</td>
-                                            <td>{{ medico.telefone }}</td>
-                                            <td>
-                                                {% if medico.ativo %}
-                                                <span class="badge bg-success">Ativo</span>
-                                                {% else %}
-                                                <span class="badge bg-danger">Inativo</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-sm btn-warning btn-editar-medico" 
-                                                        data-id="{{ medico.id }}">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-info" 
-                                                        onclick="window.location.href='/admin/medico/{{ medico.id }}/horarios'">
-                                                    <i class="bi bi-clock"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                                        <!-- Carregado via AJAX -->
                                     </tbody>
                                 </table>
                             </div>
@@ -232,6 +233,19 @@
                 <div class="tab-pane fade" id="horarios" role="tabpanel">
                     <div class="card border-top-0 rounded-top-0">
                         <div class="card-body">
+                            <!-- Indicador de Médico Selecionado -->
+                            <div class="alert alert-info mb-3" id="medicoSelecionadoAlert" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi bi-person-badge me-2"></i>
+                                        <strong>Gerenciando horários de:</strong>
+                                        <span id="nomeMedicoSelecionado" class="ms-2"></span>
+                                        <small class="text-muted ms-2">(ID: <span id="idMedicoSelecionado"></span>)</small>
+                                    </div>
+                                    <button type="button" class="btn-close" id="limparMedicoSelecionado"></button>
+                                </div>
+                            </div>
+                            
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="card">
@@ -240,6 +254,25 @@
                                         </div>
                                         <div class="card-body">
                                             <form id="formHorarioPadrao">
+                                                <!-- Informação do médico sendo configurado -->
+                                                <div class="alert alert-light border mb-3" id="infoConfigMedico" style="display: none;">
+                                                    <small>
+                                                        <i class="bi bi-info-circle"></i>
+                                                        Configurando para: 
+                                                        <strong id="configMedicoNome"></strong>
+                                                    </small>
+                                                </div>
+                                                
+                                                <div class="mb-3">
+                                                    <label class="form-label">Médico:</label>
+                                                    <select class="form-select" name="medico_id" id="horarioMedico">
+                                                        <option value="">Aplicar a todos</option>
+                                                        {% for medico in medicos %}
+                                                        <option value="{{ medico.id }}">{{ medico.nome }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                
                                                 <div class="mb-3">
                                                     <label class="form-label">Dias da Semana:</label>
                                                     <div class="form-check">
@@ -268,6 +301,7 @@
                                                     </div>
                                                 </div>
                                                 
+                                                <!-- Restante do formulário permanece igual... -->
                                                 <div class="mb-3">
                                                     <label class="form-label">Horário de Início:</label>
                                                     <input type="time" class="form-control" name="hora_inicio" value="08:00">
@@ -299,7 +333,7 @@
                                                 </div>
                                                 
                                                 <button type="submit" class="btn btn-primary w-100">
-                                                    <i class="bi bi-save me-1"></i> Salvar Horário Padrão
+                                                    <i class="bi bi-save me-1"></i> Salvar Horário
                                                 </button>
                                             </form>
                                         </div>
@@ -309,7 +343,20 @@
                                 <div class="col-md-8">
                                     <div class="card">
                                         <div class="card-header">
-                                            <h6 class="mb-0">Calendário de Horários</h6>
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <h6 class="mb-0">Calendário de Horários</h6>
+                                                    <small id="medicoSelecionadoCalendario" class="text-muted">Todos os Médicos</small>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <select class="form-select form-select-sm" id="filtroCalendarioMedico">
+                                                        <option value="">Todos os Médicos</option>
+                                                        {% for medico in medicos %}
+                                                        <option value="{{ medico.id }}">{{ medico.nome }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="card-body">
                                             <div id="calendarioHorarios"></div>
@@ -416,57 +463,180 @@
     </div>
 </div>
 
-<!-- Modal Novo Médico -->
+<!-- Modal Novo Médico - ÚNICO (mantenha apenas este) -->
 <div class="modal fade" id="modalNovoMedico" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form id="formMedico" method="POST" action="/admin/medicos">
+            <form id="formMedico" onsubmit="return false;">
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title">Cadastrar Novo Médico</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Nome Completo *</label>
-                        <input type="text" class="form-control" name="nome" required>
-                    </div>
-                    
-                    <div class="row mb-3">
+                    <div class="row">
                         <div class="col-md-6">
-                            <label class="form-label">Especialidade *</label>
-                            <input type="text" class="form-control" name="especialidade" required>
+                            <div class="mb-3">
+                                <label class="form-label">Nome Completo *</label>
+                                <input type="text" class="form-control" id="nomeMedico" name="nome" required>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Registro Profissional *</label>
-                            <input type="text" class="form-control" name="registro_profissional" required>
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Telefone</label>
-                            <input type="tel" class="form-control" name="telefone" pattern="[0-9]{9}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" name="email">
+                            <div class="mb-3">
+                                <label class="form-label">Especialidade *</label>
+                                <input type="text" class="form-control" id="especialidadeMedico" name="especialidade" required>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label">Horário de Trabalho</label>
-                        <textarea class="form-control" name="horario_trabalho" rows="2" 
-                                  placeholder="Ex: Segunda a Sexta, 8h às 17h"></textarea>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Registro Profissional *</label>
+                                <input type="text" class="form-control" id="registroMedico" name="registro_profissional" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Telefone *</label>
+                                <input type="tel" class="form-control" id="telefoneMedico" name="telefone"
+                                    pattern="[0-9]{9,12}" 
+                                    placeholder="Ex: 841234567 ou 258841234567"
+                                    required>
+                                <div class="form-text">
+                                    Digite 9 dígitos (ex: 841234567) ou com código do país (258841234567)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="emailMedico" name="email">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Horário de Trabalho</label>
+                                <input type="text" class="form-control" id="horarioMedicoInput" name="horario_trabalho"
+                                       placeholder="Ex: Segunda a Sexta, 8h às 17h">
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="ativo" value="1" checked>
+                        <input class="form-check-input" type="checkbox" id="ativoMedico" name="ativo" value="1" checked>
                         <label class="form-check-label">Médico ativo</label>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Salvar Médico</button>
+                    <button type="submit" class="btn btn-success" id="btnSalvarMedico">Salvar Médico</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Novo Agendamento -->
+<div class="modal fade" id="modalNovoAgendamento" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form id="formNovoAgendamento">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Novo Agendamento</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Paciente *</label>
+                                <select class="form-select" id="selectPaciente" name="paciente_id" required>
+                                    <option value="">Selecionar paciente...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Telefone *</label>
+                                <input type="tel" class="form-control" id="telefonePaciente" name="telefone"
+                                    pattern="[0-9]{9,12}" 
+                                    placeholder="Ex: 841234567 ou 258841234567"
+                                    required>
+                                <div class="form-text">
+                                    Digite 9 dígitos (ex: 841234567) ou com código do país (258841234567)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Médico *</label>
+                                <select class="form-select" id="selectMedicoAgendamento" name="medico_id" required>
+                                    <option value="">Carregando médicos...</option>
+                                    <!-- Será preenchido via JavaScript -->
+                                </select>
+                                <div class="form-text" id="loadingMedicos" style="display: none;">
+                                    <i class="bi bi-hourglass-split"></i> Carregando médicos...
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Tipo de Consulta *</label>
+                                <select class="form-select" name="tipo_consulta" required>
+                                    <option value="Rotina">Rotina</option>
+                                    <option value="Retorno">Retorno</option>
+                                    <option value="Emergência">Emergência</option>
+                                    <option value="Exame">Exame</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Data da Consulta *</label>
+                                <input type="date" class="form-control" id="dataConsulta" name="data_consulta" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Hora da Consulta *</label>
+                                <input type="time" class="form-control" id="horaConsulta" name="hora_consulta" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Observações</label>
+                                <textarea class="form-control" name="observacoes" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Status *</label>
+                                <select class="form-select" name="status" required>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="confirmado">Confirmado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success" id="btnSalvarAgendamento">Salvar Agendamento</button>
                 </div>
             </form>
         </div>
@@ -517,6 +687,8 @@
 <style>
     .fc-event {
         cursor: pointer;
+        font-size: 0.85em;
+        padding: 2px 4px;
     }
     
     .status-badge {
@@ -524,346 +696,1589 @@
         padding: 0.25em 0.6em;
     }
     
-    .slot-disponivel {
+    .fc-event-agendamento {
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .fc-event-disponivel {
+        border-left: 4px solid #198754;
         background-color: #d1e7dd !important;
-        color: #0f5132 !important;
     }
     
-    .slot-indisponivel {
+    .fc-event-indisponivel {
+        border-left: 4px solid #dc3545;
         background-color: #f8d7da !important;
-        color: #842029 !important;
-        text-decoration: line-through;
+    }
+
+     /* Estilos para os botões de ação */
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 0.25rem !important;
     }
     
-    .slot-agendado {
-        background-color: #cfe2ff !important;
-        color: #052c65 !important;
+    .btn-visualizar-medico {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+    }
+    
+    .btn-visualizar-medico:hover {
+        background-color: #0b5ed7;
+        border-color: #0a58ca;
+    }
+    
+    .btn-editar-medico {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #000;
+    }
+    
+    .btn-editar-medico:hover {
+        background-color: #ffca2c;
+        border-color: #ffc720;
+        color: #000;
+    }
+    
+    .btn-horarios-medico {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+        color: white;
+    }
+    
+    .btn-horarios-medico:hover {
+        background-color: #138496;
+        border-color: #117a8b;
+        color: white;
+    }
+    
+    .btn-excluir-medico {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-excluir-medico:hover {
+        background-color: #bb2d3b;
+        border-color: #b02a37;
+        color: white;
+    }
+    
+    .btn-excluir-medico:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Espaçamento entre botões */
+    .btn-group .btn {
+        margin-right: 2px;
+    }
+    
+    .btn-group .btn:last-child {
+        margin-right: 0;
+    }
+
+</style>
+
+<style>
+    /* Estilos adicionais para a gestão de horários */
+    #medicoSelecionadoAlert {
+        border-left: 4px solid #0d6efd;
+        background-color: #e7f1ff;
+    }
+    
+    #infoConfigMedico {
+        background-color: #f8f9fa;
+        border-left: 3px solid #6c757d;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .medico-selecionado-badge {
+        background-color: #0d6efd;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-limpar-medico {
+        color: #6c757d;
+        background: transparent;
+        border: none;
+        padding: 0.25rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-limpar-medico:hover {
+        color: #dc3545;
     }
 </style>
 
 <script>
-    $(document).ready(function() {
-        // Carregar estatísticas
+$(document).ready(function() {
+    // Variáveis globais
+    let calendar = null;
+    let calendarInicializado = false;
+    let medicoSelecionado = { id: null, nome: null };
+    let ultimaAtualizacaoCalendario = null;
+    let intervaloAtualizacao = null;
+    
+    // Configurar base URL para API
+    const API_BASE = '/api/agendamentos';
+    
+    // ============== INICIALIZAÇÃO ==============
+    
+    // Carregar dados iniciais
+    carregarEstatisticas();
+    carregarAgendamentos();
+    carregarMedicos();
+    configurarSMS();
+    
+    // Iniciar sistema de atualização automática
+    iniciarAtualizacaoAutomatica();
+    
+    // ============== SISTEMA DE ATUALIZAÇÃO AUTOMÁTICA ==============
+    
+    function iniciarAtualizacaoAutomatica() {
+        console.log('Iniciando sistema de atualização automática...');
+        
+        // Atualizar a cada 30 segundos (30000 ms)
+        intervaloAtualizacao = setInterval(function() {
+            atualizarDadosEmSegundoPlano();
+        }, 30000);
+        
+        // Atualizar também quando a janela ganha foco
+        $(window).on('focus', function() {
+            console.log('Janela focada, atualizando dados...');
+            atualizarDadosEmSegundoPlano();
+        });
+        
+        // Atualizar quando a aba de horários é visível
+        $(document).on('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('Aba visível, atualizando dados...');
+                atualizarDadosEmSegundoPlano();
+            }
+        });
+    }
+    
+    function atualizarDadosEmSegundoPlano() {
+        // Verificar se estamos na aba de horários
+        const naAbaHorarios = $('#horarios-tab').hasClass('active');
+        
+        // Atualizar estatísticas (sempre)
         carregarEstatisticas();
         
-        // Carregar agendamentos
-        carregarAgendamentos();
-        
-        // Inicializar FullCalendar
-        inicializarCalendario();
-        
-        // Configurar SMS
-        configurarSMS();
-        
-        // Event Listeners
-        $('#btnFiltrar').on('click', carregarAgendamentos);
-        $('#filtroData, #filtroMedico, #filtroStatus').on('change', carregarAgendamentos);
-        
-        // Configurar tipo de destino SMS
-        $('#tipoDestino').on('change', function() {
-            const tipo = $(this).val();
-            $('#containerTelefone').toggle(tipo === 'telefone');
-            $('#containerFiltroData').toggle(tipo === 'agendamento');
-        });
-        
-        // Contador de caracteres SMS
-        $('textarea[name="mensagem"]').on('input', function() {
-            const length = $(this).val().length;
-            $('#contadorCaracteres').text(length);
-            
-            if (length > 160) {
-                $('#contadorCaracteres').addClass('text-danger');
-            } else {
-                $('#contadorCaracteres').removeClass('text-danger');
-            }
-        });
-        
-        // Formulário de horário padrão
-        $('#formHorarioPadrao').on('submit', function(e) {
-            e.preventDefault();
-            salvarHorarioPadrao();
-        });
-        
-        // Formulário SMS manual
-        $('#formSMSManual').on('submit', function(e) {
-            e.preventDefault();
-            enviarSMSManual();
-        });
-        
-        function carregarEstatisticas() {
-            $.ajax({
-                url: '/admin/agendamentos/estatisticas',
-                method: 'GET',
-                success: function(response) {
-                    $('#statsHoje').text(response.hoje || 0);
-                    $('#statsConfirmados').text(response.confirmados || 0);
-                    $('#statsPendentes').text(response.pendentes || 0);
-                    $('#statsCancelados').text(response.cancelados || 0);
-                }
-            });
+        // Atualizar lista de agendamentos (se estiver na aba)
+        if ($('#agendamentos-tab').hasClass('active')) {
+            carregarAgendamentos();
         }
         
-        function carregarAgendamentos(pagina = 1) {
-            const filtros = {
-                data: $('#filtroData').val(),
-                medico_id: $('#filtroMedico').val(),
-                status: $('#filtroStatus').val(),
-                pagina: pagina
-            };
+        // Atualizar calendário (se estiver na aba de horários)
+        if (naAbaHorarios && calendar) {
+            console.log('Atualizando calendário em segundo plano...');
+            calendar.refetchEvents();
             
-            $.ajax({
-                url: '/admin/agendamentos/listar',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(filtros),
-                success: function(response) {
-                    const tbody = $('#tabelaAgendamentos tbody');
-                    tbody.empty();
-                    
-                    if (response.agendamentos && response.agendamentos.length > 0) {
-                        response.agendamentos.forEach(ag => {
-                            const statusClass = {
-                                'pendente': 'warning',
-                                'confirmado': 'success',
-                                'cancelado': 'danger',
-                                'realizado': 'info'
-                            }[ag.status] || 'secondary';
-                            
-                            const row = `
-                                <tr>
-                                    <td>${ag.id}</td>
-                                    <td>
-                                        <strong>${ag.paciente_nome}</strong>
-                                        ${ag.observacoes ? `<br><small class="text-muted">${ag.observacoes}</small>` : ''}
-                                    </td>
-                                    <td>${ag.telefone}</td>
-                                    <td>${ag.medico_nome}</td>
-                                    <td>
-                                        ${formatarData(ag.data_consulta)}<br>
-                                        <small>${ag.hora_consulta}</small>
-                                    </td>
-                                    <td>${ag.tipo_consulta}</td>
-                                    <td>
-                                        <span class="badge bg-${statusClass} status-badge">
-                                            ${ag.status}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary btn-editar" 
-                                                data-id="${ag.id}">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-info btn-detalhes" 
-                                                data-id="${ag.id}">
-                                            <i class="bi bi-info-circle"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-${ag.status !== 'cancelado' ? 'danger' : 'secondary'} btn-cancelar" 
-                                                data-id="${ag.id}"
-                                                ${ag.status === 'cancelado' ? 'disabled' : ''}>
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                            tbody.append(row);
-                        });
+            // Adicionar indicador visual de atualização
+            mostrarIndicadorAtualizacao();
+        }
+        
+        // Atualizar hora da última atualização
+        ultimaAtualizacaoCalendario = new Date();
+        console.log('Dados atualizados em:', ultimaAtualizacaoCalendario.toLocaleTimeString());
+    }
+    
+    function mostrarIndicadorAtualizacao() {
+        // Adicionar badge de atualização
+        const badge = $('#badge-atualizacao');
+        if (badge.length === 0) {
+            $('#calendarioHorarios').before(`
+                <div id="badge-atualizacao" class="alert alert-info alert-sm py-1 mb-2" style="display: none;">
+                    <i class="bi bi-arrow-clockwise me-1"></i>
+                    <small>Calendário atualizado em <span id="hora-atualizacao"></span></small>
+                </div>
+            `);
+        }
+        
+        const hora = new Date().toLocaleTimeString('pt-MZ', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        $('#hora-atualizacao').text(hora);
+        $('#badge-atualizacao').fadeIn(300).delay(3000).fadeOut(300);
+    }
+    
+    // ============== EVENT LISTENERS ==============
+    
+    // Filtros de agendamentos
+    $('#btnFiltrar').on('click', carregarAgendamentos);
+    $('#filtroData, #filtroMedico, #filtroStatus').on('change', carregarAgendamentos);
+    
+    // Configurar SMS
+    $('#tipoDestino').on('change', function() {
+        const tipo = $(this).val();
+        $('#containerTelefone').toggle(tipo === 'telefone');
+        $('#containerFiltroData').toggle(tipo === 'agendamento');
+    });
+    
+    // Contador de caracteres SMS
+    $('textarea[name="mensagem"]').on('input', function() {
+        const length = $(this).val().length;
+        $('#contadorCaracteres').text(length);
+        $('#contadorCaracteres').toggleClass('text-danger', length > 160);
+    });
+    
+    // Formulários
+    $('#formHorarioPadrao').on('submit', function(e) {
+        e.preventDefault();
+        salvarHorario();
+    });
+    
+    $('#formSMSManual').on('submit', function(e) {
+        e.preventDefault();
+        enviarSMSManual();
+    });
+    
+    $('#formMedico').on('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        criarMedico();
+    });
+    
+    $('#modalNovoMedico').on('hidden.bs.modal', function() {
+        $('#formMedico')[0].reset();
+        $('#btnSalvarMedico')
+            .prop('disabled', false)
+            .html('Salvar Médico');
+    });
+    
+    $('#formEditarAgendamento').on('submit', function(e) {
+        e.preventDefault();
+        editarAgendamento();
+    });
+    
+    // Filtro calendário
+    $('#filtroCalendarioMedico').on('change', function() {
+        const medicoId = $(this).val();
+        const nomeMedico = medicoId ? $(this).find('option:selected').text() : '';
+        $('#medicoSelecionadoCalendario').text(medicoId ? `Médico: ${nomeMedico}` : 'Todos os Médicos');
+        
+        if (calendar) {
+            calendar.refetchEvents();
+        }
+    });
+    
+    // Botão novo agendamento
+    $('#btnNovoAgendamento').on('click', function() {
+        console.log('Abrindo modal de novo agendamento');
+        abrirModalNovoAgendamento();
+    });
+    
+    $('#formNovoAgendamento').on('submit', function(e) {
+        e.preventDefault();
+        criarAgendamento();
+    });
+    
+    // Controle de abas - IMPORTANTE: Atualizar calendário ao mudar para aba de horários
+    $('#horarios-tab').on('shown.bs.tab', function() {
+        console.log('Aba de horários ativada');
+        gerenciarCalendarioAbaHorarios();
+        
+        // Forçar atualização ao mudar para a aba
+        if (calendar) {
+            setTimeout(() => {
+                calendar.refetchEvents();
+                mostrarMensagem('Calendário atualizado', 'info');
+            }, 500);
+        }
+    });
+    
+    // Botão manual para atualizar calendário
+    $(document).on('click', '#btn-atualizar-calendario', function() {
+        if (calendar) {
+            calendar.refetchEvents();
+            mostrarMensagem('Calendário atualizado manualmente', 'success');
+        }
+    });
+    
+    // Quando o paciente é selecionado
+    $('#selectPaciente').on('change', function() {
+        const selected = $(this).find(':selected');
+        const telefone = selected.data('telefone');
+        if (telefone) {
+            let telefoneFormatado = telefone.startsWith('258') ? telefone.substring(3) : telefone;
+            $('#telefonePaciente').val(telefoneFormatado);
+        } else {
+            $('#telefonePaciente').val('');
+        }
+    });
+    
+    // Limpar seleção do médico
+    $('#limparMedicoSelecionado').on('click', function() {
+        medicoSelecionado = { id: null, nome: null };
+        atualizarMedicoSelecionado(null, null);
+        mostrarMensagem('Seleção de médico removida', 'info');
+    });
+    
+    // ============== FUNÇÕES PRINCIPAIS ==============
+    
+    function abrirModalNovoAgendamento() {
+        console.log('=== ABRINDO MODAL DE NOVO AGENDAMENTO ===');
+        
+        // Resetar formulário
+        $('#formNovoAgendamento')[0].reset();
+        
+        // Carregar pacientes
+        carregarPacientes();
+        
+        // Carregar médicos
+        carregarMedicosParaAgendamento();
+        
+        // Definir data mínima como hoje
+        const hoje = new Date().toISOString().split('T')[0];
+        $('#dataConsulta').val(hoje);
+        $('#dataConsulta').attr('min', hoje);
+        
+        // Limpar telefone
+        $('#telefonePaciente').val('');
+        
+        $('#modalNovoAgendamento').modal('show');
+    }
+    
+    function carregarMedicosParaAgendamento() {
+        console.log('Carregando médicos para agendamento...');
+        
+        const select = $('#selectMedicoAgendamento');
+        const loadingDiv = $('#loadingMedicos');
+        
+        loadingDiv.show();
+        select.prop('disabled', true);
+        select.empty().append('<option value="">Carregando médicos...</option>');
+        
+        $.ajax({
+            url: API_BASE + '/medicos',
+            method: 'GET',
+            success: function(medicos) {
+                select.empty();
+                select.append('<option value="">Selecionar médico...</option>');
+                
+                if (medicos && medicos.length > 0) {
+                    medicos.forEach(medico => {
+                        if (medico.ativo) {
+                            select.append(`<option value="${medico.id}">
+                                ${medico.nome} - ${medico.especialidade}
+                            </option>`);
+                        }
+                    });
+                    console.log(`Carregados ${medicos.length} médicos`);
+                } else {
+                    select.append('<option value="" disabled>Nenhum médico disponível</option>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar médicos:', error);
+                select.empty().append('<option value="">Erro ao carregar médicos</option>');
+                fallbackMedicos();
+            },
+            complete: function() {
+                setTimeout(() => {
+                    loadingDiv.hide();
+                    select.prop('disabled', false);
+                }, 500);
+            }
+        });
+    }
+    
+    function fallbackMedicos() {
+        const select = $('#selectMedicoAgendamento');
+        const existingOptions = select.find('option');
+        
+        if (existingOptions.length <= 1) {
+            const medicoOptions = $('#filtroMedico option').clone();
+            if (medicoOptions.length > 1) {
+                medicoOptions.each(function() {
+                    if ($(this).val()) {
+                        select.append($(this).clone());
+                    }
+                });
+                console.log('Usando médicos do filtro como fallback');
+            }
+        }
+    }
+    
+    function carregarHorariosDisponiveis() {
+        const medicoId = $('#selectMedicoAgendamento').val();
+        const dataConsulta = $('#dataConsulta').val();
+        
+        if (!medicoId || !dataConsulta) return;
+        
+        const hoje = new Date().toISOString().split('T')[0];
+        if (dataConsulta < hoje) {
+            mostrarMensagem('Não é possível agendar para datas passadas', 'warning');
+            $('#horaConsulta').val('');
+            return;
+        }
+        
+        $.ajax({
+            url: API_BASE + '/horarios/disponiveis',
+            method: 'GET',
+            data: { medico_id: medicoId, data: dataConsulta },
+            success: function(response) {
+                console.log('Horários disponíveis:', response);
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao buscar horários disponíveis:', error);
+            }
+        });
+    }
+    
+    // Event listeners para mudanças nos campos de agendamento
+    $('#selectMedicoAgendamento, #dataConsulta').on('change', carregarHorariosDisponiveis);
+    
+    // ============== FUNÇÕES DE CARREGAMENTO ==============
+    
+    function carregarEstatisticas() {
+        $.ajax({
+            url: API_BASE + '/estatisticas',
+            method: 'GET',
+            success: function(response) {
+                $('#statsHoje').text(response.hoje || 0);
+                $('#statsConfirmados').text(response.confirmados || 0);
+                $('#statsPendentes').text(response.pendentes || 0);
+                $('#statsCancelados').text(response.cancelados || 0);
+                $('#statsRealizados').text(response.realizados || 0);
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar estatísticas:', error);
+                mostrarMensagem('Erro ao carregar estatísticas', 'danger');
+            }
+        });
+    }
+    
+    function carregarAgendamentos(pagina = 1) {
+        const filtros = {
+            data: $('#filtroData').val(),
+            medico_id: $('#filtroMedico').val(),
+            status: $('#filtroStatus').val(),
+            pagina: pagina
+        };
+        
+        $.ajax({
+            url: API_BASE + '/listar',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(filtros),
+            success: function(response) {
+                const tbody = $('#tabelaAgendamentos tbody');
+                tbody.empty();
+                
+                if (response.agendamentos && response.agendamentos.length > 0) {
+                    response.agendamentos.forEach(ag => {
+                        const statusClass = {
+                            'pendente': 'warning',
+                            'confirmado': 'success',
+                            'cancelado': 'danger',
+                            'realizado': 'info'
+                        }[ag.status] || 'secondary';
                         
-                        // Adicionar eventos
-                        $('.btn-editar').on('click', function() {
-                            abrirEditarAgendamento($(this).data('id'));
-                        });
+                        const dataFormatada = ag.data_consulta ? new Date(ag.data_consulta).toLocaleDateString('pt-MZ') : '';
+                        const horaFormatada = ag.hora_consulta ? ag.hora_consulta.substring(0, 5) : '';
                         
-                        $('.btn-cancelar').on('click', function() {
-                            cancelarAgendamentoAdmin($(this).data('id'));
-                        });
-                        
-                        // Configurar paginação
-                        configurarPaginacao(response.total_paginas, pagina);
-                    } else {
-                        tbody.append(`
+                        const row = `
                             <tr>
-                                <td colspan="8" class="text-center text-muted">
-                                    <i class="bi bi-calendar-x display-4"></i>
-                                    <p class="mt-2">Nenhum agendamento encontrado</p>
+                                <td>${ag.id}</td>
+                                <td>
+                                    <strong>${ag.paciente_nome || 'N/A'}</strong>
+                                    ${ag.observacoes ? `<br><small class="text-muted">${ag.observacoes}</small>` : ''}
+                                </td>
+                                <td>${ag.telefone || ''}</td>
+                                <td>${ag.medico_nome || 'N/A'}</td>
+                                <td>
+                                    ${dataFormatada}<br>
+                                    <small>${horaFormatada}</small>
+                                </td>
+                                <td>${ag.tipo_consulta || 'Rotina'}</td>
+                                <td>
+                                    <span class="badge bg-${statusClass} status-badge">
+                                        ${ag.status}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary btn-editar" 
+                                            data-id="${ag.id}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-info btn-detalhes" 
+                                            data-id="${ag.id}">
+                                        <i class="bi bi-info-circle"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-${ag.status !== 'cancelado' ? 'danger' : 'secondary'} btn-cancelar" 
+                                            data-id="${ag.id}"
+                                            ${ag.status === 'cancelado' ? 'disabled' : ''}>
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
                                 </td>
                             </tr>
-                        `);
-                    }
-                }
-            });
-        }
-        
-        function configurarPaginacao(totalPaginas, paginaAtual) {
-            const $paginacao = $('#paginacao');
-            $paginacao.empty();
-            
-            if (totalPaginas <= 1) return;
-            
-            // Botão anterior
-            $paginacao.append(`
-                <li class="page-item ${paginaAtual === 1 ? 'disabled' : ''}">
-                    <a class="page-link" href="#" data-pagina="${paginaAtual - 1}">
-                        <i class="bi bi-chevron-left"></i>
-                    </a>
-                </li>
-            `);
-            
-            // Números das páginas
-            for (let i = 1; i <= totalPaginas; i++) {
-                if (i === 1 || i === totalPaginas || (i >= paginaAtual - 2 && i <= paginaAtual + 2)) {
-                    $paginacao.append(`
-                        <li class="page-item ${i === paginaAtual ? 'active' : ''}">
-                            <a class="page-link" href="#" data-pagina="${i}">${i}</a>
-                        </li>
-                    `);
-                } else if (i === paginaAtual - 3 || i === paginaAtual + 3) {
-                    $paginacao.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
-                }
-            }
-            
-            // Botão próximo
-            $paginacao.append(`
-                <li class="page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}">
-                    <a class="page-link" href="#" data-pagina="${paginaAtual + 1}">
-                        <i class="bi bi-chevron-right"></i>
-                    </a>
-                </li>
-            `);
-            
-            // Evento de clique
-            $paginacao.find('.page-link').on('click', function(e) {
-                e.preventDefault();
-                const pagina = $(this).data('pagina');
-                if (pagina) carregarAgendamentos(pagina);
-            });
-        }
-        
-        function abrirEditarAgendamento(id) {
-            $.ajax({
-                url: '/admin/agendamentos/' + id,
-                method: 'GET',
-                success: function(response) {
-                    $('#editAgendamentoId').val(response.id);
-                    $('#editStatus').val(response.status);
-                    $('#editObservacoes').val(response.observacoes || '');
-                    $('#modalEditarAgendamento').modal('show');
-                }
-            });
-        }
-        
-        $('#formEditarAgendamento').on('submit', function(e) {
-            e.preventDefault();
-            
-            const dados = {
-                id: $('#editAgendamentoId').val(),
-                status: $('#editStatus').val(),
-                observacoes: $('#editObservacoes').val(),
-                enviar_sms: $('#editEnviarSMS').is(':checked')
-            };
-            
-            $.ajax({
-                url: '/admin/agendamentos/editar',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(dados),
-                success: function(response) {
-                    if (response.success) {
-                        $('#modalEditarAgendamento').modal('hide');
-                        mostrarMensagem('Agendamento atualizado com sucesso!', 'success');
-                        carregarAgendamentos();
-                        carregarEstatisticas();
+                        `;
+                        tbody.append(row);
+                    });
+                    
+                    $('.btn-editar').off('click').on('click', function() {
+                        abrirEditarAgendamento($(this).data('id'));
+                    });
+                    
+                    $('.btn-cancelar').off('click').on('click', function() {
+                        cancelarAgendamentoAdmin($(this).data('id'));
+                    });
+                    
+                    if (response.total_paginas > 1) {
+                        configurarPaginacao(response.total_paginas, pagina);
                     } else {
-                        mostrarMensagem(response.mensagem, 'danger');
+                        $('#paginacao').empty();
                     }
+                } else {
+                    tbody.append(`
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">
+                                <i class="bi bi-calendar-x display-4"></i>
+                                <p class="mt-2">Nenhum agendamento encontrado</p>
+                            </td>
+                        </tr>
+                    `);
+                    $('#paginacao').empty();
                 }
-            });
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar agendamentos:', error);
+                mostrarMensagem('Erro ao carregar agendamentos', 'danger');
+            }
+        });
+    }
+    
+    function carregarMedicos() {
+        $.ajax({
+            url: API_BASE + '/medicos',
+            method: 'GET',
+            success: function(response) {
+                const tbody = $('#tabelaMedicos tbody');
+                tbody.empty();
+                
+                if (response && response.length > 0) {
+                    response.forEach(medico => {
+                        let telefoneFormatado = medico.telefone || '';
+                        if (telefoneFormatado && telefoneFormatado.length >= 12) {
+                            telefoneFormatado = telefoneFormatado.replace(/(\d{3})(\d{2})(\d{3})(\d{4})/, '$1 $2 $3 $4');
+                        }
+                        
+                        const row = `
+                            <tr id="medico-row-${medico.id}">
+                                <td><strong>${medico.nome}</strong></td>
+                                <td><span class="badge bg-info">${medico.especialidade}</span></td>
+                                <td>${medico.registro_profissional}</td>
+                                <td>${telefoneFormatado || '<em class="text-muted">Não informado</em>'}</td>
+                                <td>${medico.email || '<em class="text-muted">Não informado</em>'}</td>
+                                <td>${medico.horario_trabalho || '<em class="text-muted">Não informado</em>'}</td>
+                                <td>
+                                    ${medico.ativo ? 
+                                        '<span class="badge bg-success">Ativo</span>' : 
+                                        '<span class="badge bg-danger">Inativo</span>'}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-warning btn-editar-medico" 
+                                                data-id="${medico.id}"
+                                                title="Editar médico">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-info btn-horarios-medico" 
+                                                data-id="${medico.id}"
+                                                title="Gerenciar horários">
+                                            <i class="bi bi-clock"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-excluir-medico" 
+                                                data-id="${medico.id}"
+                                                title="Excluir médico"
+                                                ${medico.ativo ? '' : 'disabled'}>
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(row);
+                    });
+                    
+                    aplicarEventosTabelaMedicos();
+                    
+                } else {
+                    tbody.append(`
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">
+                                <i class="bi bi-person-x display-6"></i>
+                                <p class="mt-2">Nenhum médico cadastrado</p>
+                            </td>
+                        </tr>
+                    `);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar médicos:', error);
+                mostrarMensagem('Erro ao carregar lista de médicos', 'danger');
+            }
+        });
+    }
+    
+    function carregarPacientes() {
+        $.ajax({
+            url: API_BASE + '/pacientes',
+            method: 'GET',
+            success: function(response) {
+                const select = $('#selectPaciente');
+                select.empty();
+                select.append('<option value="">Selecionar paciente...</option>');
+                
+                response.forEach(paciente => {
+                    select.append(`<option value="${paciente.id}" data-telefone="${paciente.contact || ''}">
+                        ${paciente.fullname} - ${paciente.nid || ''}
+                    </option>`);
+                });
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar pacientes:', error);
+                mostrarMensagem('Erro ao carregar lista de pacientes', 'danger');
+            }
+        });
+    }
+    
+    // ============== FUNÇÕES DE MÉDICOS ==============
+    
+    function aplicarEventosTabelaMedicos() {
+        // Remover eventos anteriores
+        $('.btn-editar-medico, .btn-horarios-medico, .btn-excluir-medico').off('click');
+        
+        // Aplicar eventos
+        $('.btn-editar-medico').on('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            const medicoId = $(this).data('id');
+            abrirEditarMedico(medicoId);
         });
         
-        function cancelarAgendamentoAdmin(id) {
-            if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
+        $('.btn-horarios-medico').on('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            const medicoId = $(this).data('id');
+            abrirHorariosMedico(medicoId);
+        });
+        
+        $('.btn-excluir-medico:not(:disabled)').on('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            const medicoId = $(this).data('id');
+            excluirMedico(medicoId);
+        });
+    }
+    
+    function criarMedico() {
+        console.log('=== INICIANDO CRIAÇÃO DE MÉDICO ===');
+        
+        const nome = $('#nomeMedico').val().trim();
+        const especialidade = $('#especialidadeMedico').val().trim();
+        const registro = $('#registroMedico').val().trim();
+        const telefone = $('#telefoneMedico').val().trim();
+        const email = $('#emailMedico').val().trim();
+        const horarioTrabalho = $('#horarioMedicoInput').val().trim();
+        const ativo = $('#ativoMedico').is(':checked');
+        
+        // Validações
+        if (!nome || !especialidade || !registro || !telefone) {
+            mostrarMensagem('Por favor, preencha todos os campos obrigatórios', 'warning');
+            return;
+        }
+        
+        // Processar telefone
+        let telefoneProcessado = null;
+        if (telefone) {
+            const telefoneLimpo = telefone.replace(/\D/g, '');
+            
+            if (telefoneLimpo.length === 9) {
+                if (telefoneLimpo.startsWith('84') || telefoneLimpo.startsWith('85') || 
+                    telefoneLimpo.startsWith('86') || telefoneLimpo.startsWith('87')) {
+                    telefoneProcessado = '258' + telefoneLimpo;
+                } else {
+                    mostrarMensagem('Telefone inválido. Deve começar com 84, 85, 86 ou 87', 'warning');
+                    return;
+                }
+            } else if (telefoneLimpo.length === 12) {
+                if (telefoneLimpo.startsWith('258')) {
+                    telefoneProcessado = telefoneLimpo;
+                } else {
+                    mostrarMensagem('Código do país deve ser 258', 'warning');
+                    return;
+                }
+            } else {
+                mostrarMensagem('Telefone inválido. Deve ter 9 dígitos (ex: 841234567) ou 12 com código (258841234567)', 'warning');
+                return;
+            }
+        }
+        
+        const dados = {
+            nome: nome,
+            especialidade: especialidade,
+            registro_profissional: registro,
+            telefone: telefoneProcessado,
+            email: email || null,
+            horario_trabalho: horarioTrabalho || null,
+            ativo: ativo
+        };
+        
+        $.ajax({
+            url: API_BASE + '/medicos',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(dados),
+            beforeSend: function() {
+                $('#btnSalvarMedico')
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm"></span> Salvando...');
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#modalNovoMedico').modal('hide');
+                    mostrarMensagem(response.mensagem || 'Médico criado com sucesso!', 'success');
+                    carregarMedicos();
+                    carregarEstatisticas();
+                    
+                    if (response.medico) {
+                        atualizarSelectsMedicos(response.medico);
+                    }
+                } else {
+                    mostrarMensagem(response.mensagem || 'Erro ao criar médico', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro na requisição:', error);
+                mostrarMensagem('Erro ao conectar com o servidor', 'danger');
+            },
+            complete: function() {
+                $('#btnSalvarMedico')
+                    .prop('disabled', false)
+                    .html('Salvar Médico');
+            }
+        });
+    }
+    
+    function abrirEditarMedico(id) {
+        $.ajax({
+            url: API_BASE + '/medicos/' + id,
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.medico) {
+                    const medico = response.medico;
+                    
+                    let telefoneEdicao = medico.telefone || '';
+                    if (telefoneEdicao.startsWith('258')) {
+                        telefoneEdicao = telefoneEdicao.substring(3);
+                    }
+                    
+                    const modalHtml = `
+                        <div class="modal fade" id="modalEditarMedico" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <form id="formEditarMedico">
+                                        <div class="modal-header bg-warning text-white">
+                                            <h5 class="modal-title">Editar Médico</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <input type="hidden" id="editarMedicoId" value="${medico.id}">
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Nome Completo *</label>
+                                                        <input type="text" class="form-control" id="editarNomeMedico" 
+                                                            value="${medico.nome}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Especialidade *</label>
+                                                        <input type="text" class="form-control" id="editarEspecialidadeMedico" 
+                                                            value="${medico.especialidade}" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Registro Profissional *</label>
+                                                        <input type="text" class="form-control" id="editarRegistroMedico" 
+                                                            value="${medico.registro_profissional}" required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Telefone *</label>
+                                                        <input type="tel" class="form-control" id="editarTelefoneMedico"
+                                                            pattern="[0-9]{9,12}" 
+                                                            value="${telefoneEdicao}"
+                                                            placeholder="Ex: 841234567 ou 258841234567"
+                                                            required>
+                                                        <div class="form-text">
+                                                            Digite 9 dígitos (ex: 841234567) ou com código do país (258841234567)
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Email</label>
+                                                        <input type="email" class="form-control" id="editarEmailMedico" 
+                                                            value="${medico.email || ''}">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Horário de Trabalho</label>
+                                                        <input type="text" class="form-control" id="editarHorarioMedico" 
+                                                            value="${medico.horario_trabalho || ''}"
+                                                            placeholder="Ex: Segunda a Sexta, 8h às 17h">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="editarAtivoMedico" 
+                                                    ${medico.ativo ? 'checked' : ''}>
+                                                <label class="form-check-label">Médico ativo</label>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            <button type="submit" class="btn btn-warning" id="btnAtualizarMedico">Atualizar Médico</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    $('#modalEditarMedico').remove();
+                    $('body').append(modalHtml);
+                    
+                    $('#formEditarMedico').on('submit', function(e) {
+                        e.preventDefault();
+                        atualizarMedico(medico.id);
+                    });
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('modalEditarMedico'));
+                    modal.show();
+                    
+                    $('#modalEditarMedico').on('hidden.bs.modal', function() {
+                        $(this).remove();
+                    });
+                    
+                } else {
+                    mostrarMensagem(response.mensagem || 'Erro ao carregar dados do médico', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar médico para edição:', error);
+                mostrarMensagem('Erro ao carregar dados do médico', 'danger');
+            }
+        });
+    }
+    
+    function atualizarMedico(id) {
+        const nome = $('#editarNomeMedico').val().trim();
+        const especialidade = $('#editarEspecialidadeMedico').val().trim();
+        const registro = $('#editarRegistroMedico').val().trim();
+        const telefone = $('#editarTelefoneMedico').val().trim();
+        const email = $('#editarEmailMedico').val().trim();
+        const horarioTrabalho = $('#editarHorarioMedico').val().trim();
+        const ativo = $('#editarAtivoMedico').is(':checked');
+        
+        if (!nome || !especialidade || !registro || !telefone) {
+            mostrarMensagem('Por favor, preencha todos os campos obrigatórios', 'warning');
+            return;
+        }
+        
+        let telefoneProcessado = null;
+        if (telefone) {
+            const telefoneLimpo = telefone.replace(/\D/g, '');
+            
+            if (telefoneLimpo.length === 9) {
+                if (telefoneLimpo.startsWith('84') || telefoneLimpo.startsWith('85') || 
+                    telefoneLimpo.startsWith('86') || telefoneLimpo.startsWith('87')) {
+                    telefoneProcessado = '258' + telefoneLimpo;
+                } else {
+                    mostrarMensagem('Telefone inválido. Deve começar com 84, 85, 86 ou 87', 'warning');
+                    return;
+                }
+            } else if (telefoneLimpo.length === 12) {
+                if (telefoneLimpo.startsWith('258')) {
+                    telefoneProcessado = telefoneLimpo;
+                } else {
+                    mostrarMensagem('Código do país deve ser 258', 'warning');
+                    return;
+                }
+            } else {
+                mostrarMensagem('Telefone inválido. Deve ter 9 ou 12 dígitos', 'warning');
+                return;
+            }
+        }
+        
+        const dados = {
+            nome: nome,
+            especialidade: especialidade,
+            registro_profissional: registro,
+            telefone: telefoneProcessado,
+            email: email || null,
+            horario_trabalho: horarioTrabalho || null,
+            ativo: ativo
+        };
+        
+        $.ajax({
+            url: API_BASE + '/medicos/' + id,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(dados),
+            beforeSend: function() {
+                $('#btnAtualizarMedico')
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm"></span> Atualizando...');
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#modalEditarMedico').modal('hide');
+                    mostrarMensagem(response.mensagem || 'Médico atualizado com sucesso!', 'success');
+                    carregarMedicos();
+                    
+                    if (response.medico) {
+                        atualizarSelectsMedicos(response.medico);
+                    }
+                } else {
+                    mostrarMensagem(response.mensagem || 'Erro ao atualizar médico', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao atualizar médico:', error);
+                mostrarMensagem('Erro ao atualizar médico', 'danger');
+            },
+            complete: function() {
+                $('#btnAtualizarMedico')
+                    .prop('disabled', false)
+                    .html('Atualizar Médico');
+            }
+        });
+    }
+    
+    function excluirMedico(id) {
+        if (confirm('Tem certeza que deseja excluir este médico?\nEsta ação não pode ser desfeita!')) {
+            const $row = $(`#medico-row-${id}`);
+            $row.addClass('table-danger');
+            
+            $.ajax({
+                url: API_BASE + '/medicos/' + id,
+                method: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        $row.fadeOut(300, function() {
+                            $(this).remove();
+                            
+                            if ($('#tabelaMedicos tbody tr').length === 0) {
+                                carregarMedicos();
+                            }
+                        });
+                        
+                        mostrarMensagem(response.mensagem || 'Médico excluído com sucesso!', 'success');
+                        carregarEstatisticas();
+                    } else {
+                        $row.removeClass('table-danger');
+                        mostrarMensagem(response.mensagem || 'Não foi possível excluir o médico.', 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Erro na exclusão:', error);
+                    $row.removeClass('table-danger');
+                    mostrarMensagem('Erro ao excluir médico. Tente novamente.', 'danger');
+                }
+            });
+        }
+    }
+    
+    function atualizarSelectsMedicos(medico) {
+        // Atualizar filtro de médico
+        if (!$('#filtroMedico option[value="' + medico.id + '"]').length) {
+            $('#filtroMedico').append(new Option(medico.nome, medico.id));
+        }
+        
+        // Atualizar select de horário
+        if (!$('#horarioMedico option[value="' + medico.id + '"]').length) {
+            $('#horarioMedico').append(new Option(medico.nome, medico.id));
+        }
+        
+        // Atualizar filtro calendário
+        if (!$('#filtroCalendarioMedico option[value="' + medico.id + '"]').length) {
+            $('#filtroCalendarioMedico').append(new Option(medico.nome, medico.id));
+        }
+        
+        // Atualizar select em modal de novo agendamento
+        const selectMedicoAgendamento = $('#modalNovoAgendamento select[name="medico_id"]');
+        if (selectMedicoAgendamento.length && !selectMedicoAgendamento.find('option[value="' + medico.id + '"]').length) {
+            selectMedicoAgendamento.append(new Option(
+                `${medico.nome} - ${medico.especialidade}`,
+                medico.id
+            ));
+        }
+    }
+    
+    // ============== FUNÇÕES DE AGENDAMENTO ==============
+    
+    function criarAgendamento() {
+        console.log('=== INICIANDO CRIAÇÃO DE AGENDAMENTO ===');
+
+        const pacienteId = $('#selectPaciente').val();
+        const pacienteNome = $('#selectPaciente option:selected').text().split(' - ')[0];
+        const telefone = $('#telefonePaciente').val().trim();
+        const medicoId = $('#selectMedicoAgendamento').val();
+        const dataConsulta = $('#dataConsulta').val();
+        const horaConsulta = $('#horaConsulta').val();
+        const tipoConsulta = $('select[name="tipo_consulta"]').val();
+        const status = $('select[name="status"]').val();
+        const observacoes = $('textarea[name="observacoes"]').val();
+
+        // Validações
+        if (!pacienteId || !medicoId || !dataConsulta || !horaConsulta || !telefone) {
+            mostrarMensagem('Por favor, preencha todos os campos obrigatórios', 'warning');
+            return;
+        }
+
+        // Processar telefone
+        let telefoneProcessado = null;
+        if (telefone) {
+            const telefoneLimpo = telefone.replace(/\D/g, '');
+            
+            if (telefoneLimpo.length === 9) {
+                if (telefoneLimpo.startsWith('84') || telefoneLimpo.startsWith('85') || 
+                    telefoneLimpo.startsWith('86') || telefoneLimpo.startsWith('87')) {
+                    telefoneProcessado = '258' + telefoneLimpo;
+                } else {
+                    mostrarMensagem('Telefone inválido. Deve começar com 84, 85, 86 ou 87', 'warning');
+                    return;
+                }
+            } else if (telefoneLimpo.length === 12) {
+                if (telefoneLimpo.startsWith('258')) {
+                    telefoneProcessado = telefoneLimpo;
+                } else {
+                    mostrarMensagem('Código do país deve ser 258', 'warning');
+                    return;
+                }
+            } else {
+                mostrarMensagem('Telefone inválido. Deve ter 9 ou 12 dígitos', 'warning');
+                return;
+            }
+        }
+
+        const dados = {
+            paciente_id: pacienteId,
+            paciente_nome: pacienteNome,
+            telefone: telefoneProcessado,
+            medico_id: medicoId,
+            data_consulta: dataConsulta,
+            hora_consulta: horaConsulta + ':00',
+            tipo_consulta: tipoConsulta,
+            status: status,
+            observacoes: observacoes,
+            origem: 'web' // Marcar como origem web
+        };
+
+        $.ajax({
+            url: API_BASE + '/criar',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(dados),
+            beforeSend: function() {
+                $('#btnSalvarAgendamento')
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm"></span> Salvando...');
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#modalNovoAgendamento').modal('hide');
+                    mostrarMensagem(response.mensagem || 'Agendamento criado com sucesso!', 'success');
+                    carregarAgendamentos();
+                    carregarEstatisticas();
+                    
+                    if (calendar) {
+                        calendar.refetchEvents();
+                    }
+                } else {
+                    mostrarMensagem(response.mensagem || 'Erro ao criar agendamento', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao criar agendamento:', error);
+                mostrarMensagem('Erro ao criar agendamento. Tente novamente.', 'danger');
+            },
+            complete: function() {
+                $('#btnSalvarAgendamento')
+                    .prop('disabled', false)
+                    .html('Salvar Agendamento');
+            }
+        });
+    }
+    
+    function abrirEditarAgendamento(id) {
+        $.ajax({
+            url: API_BASE + '/' + id,
+            method: 'GET',
+            success: function(response) {
+                $('#editAgendamentoId').val(response.id);
+                $('#editStatus').val(response.status);
+                $('#editObservacoes').val(response.observacoes || '');
+                $('#modalEditarAgendamento').modal('show');
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao buscar agendamento:', error);
+                mostrarMensagem('Erro ao carregar agendamento', 'danger');
+            }
+        });
+    }
+    
+    function editarAgendamento() {
+        const dados = {
+            id: $('#editAgendamentoId').val(),
+            status: $('#editStatus').val(),
+            observacoes: $('#editObservacoes').val(),
+            enviar_sms: $('#editEnviarSMS').is(':checked')
+        };
+        
+        $.ajax({
+            url: API_BASE + '/editar',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(dados),
+            success: function(response) {
+                if (response.success) {
+                    $('#modalEditarAgendamento').modal('hide');
+                    mostrarMensagem('Agendamento atualizado com sucesso!', 'success');
+                    carregarAgendamentos();
+                    carregarEstatisticas();
+                    if (calendar) calendar.refetchEvents();
+                } else {
+                    mostrarMensagem(response.mensagem || 'Erro ao atualizar', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao editar agendamento:', error);
+                mostrarMensagem('Erro ao atualizar agendamento', 'danger');
+            }
+        });
+    }
+    
+    function cancelarAgendamentoAdmin(id) {
+        if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
+            $.ajax({
+                url: API_BASE + '/cancelar/' + id,
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        mostrarMensagem('Agendamento cancelado com sucesso!', 'success');
+                        carregarAgendamentos();
+                        carregarEstatisticas();
+                        if (calendar) calendar.refetchEvents();
+                    } else {
+                        mostrarMensagem(response.mensagem || 'Erro ao cancelar', 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Erro ao cancelar agendamento:', error);
+                    mostrarMensagem('Erro ao cancelar agendamento', 'danger');
+                }
+            });
+        }
+    }
+    
+    // ============== FUNÇÕES DE CALENDÁRIO (MELHORADAS) ==============
+    
+    function gerenciarCalendarioAbaHorarios() {
+        setTimeout(() => {
+            if (!calendarInicializado) {
+                console.log('Inicializando calendário pela primeira vez...');
+                inicializarCalendario();
+                calendarInicializado = true;
+            } else if (calendar) {
+                console.log('Atualizando calendário existente...');
+                calendar.render();
+                calendar.updateSize();
+                
+                const medicoId = $('#filtroCalendarioMedico').val();
+                if (medicoId) {
+                    calendar.refetchEvents();
+                }
+            }
+        }, 100);
+    }
+    
+    function inicializarCalendario() {
+        const calendarEl = document.getElementById('calendarioHorarios');
+        
+        if (!calendarEl) {
+            console.error('Elemento do calendário não encontrado');
+            return;
+        }
+        
+        // Adicionar botão de atualização manual
+        if (!$('#btn-atualizar-calendario').length) {
+            $('#calendarioHorarios').before(`
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h6 class="mb-0">Calendário de Horários</h6>
+                        <small id="medicoSelecionadoCalendario" class="text-muted">Todos os Médicos</small>
+                    </div>
+                    <button id="btn-atualizar-calendario" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-arrow-clockwise"></i> Atualizar
+                    </button>
+                </div>
+            `);
+        }
+        
+        // Destruir calendário anterior se existir
+        if (calendar && typeof calendar.destroy === 'function') {
+            try {
+                calendar.destroy();
+            } catch (e) {
+                console.log('Calendário anterior já destruído');
+            }
+        }
+        
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            locale: 'pt',
+            timeZone: 'UTC',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'timeGridWeek,timeGridDay'
+            },
+            events: function(fetchInfo, successCallback, failureCallback) {
+                console.log('Buscando eventos para:', fetchInfo.startStr, 'até', fetchInfo.endStr);
+                
+                const medicoId = $('#filtroCalendarioMedico').val();
+                const params = {
+                    start: fetchInfo.startStr,
+                    end: fetchInfo.endStr,
+                    medico_id: medicoId || '',
+                    incluir_mobile: true // Adicionar este parâmetro
+                };
+                
+                calendarEl.classList.add('fc-loading');
+                
                 $.ajax({
-                    url: '/admin/agendamentos/cancelar/' + id,
-                    method: 'POST',
-                    success: function(response) {
-                        if (response.success) {
-                            mostrarMensagem('Agendamento cancelado com sucesso!', 'success');
-                            carregarAgendamentos();
-                            carregarEstatisticas();
-                        } else {
-                            mostrarMensagem(response.mensagem, 'danger');
+                    url: API_BASE + '/horarios/calendario',
+                    method: 'GET',
+                    data: params,
+                    timeout: 10000,
+                    success: function(events) {
+                        console.log(`Recebidos ${events?.length || 0} eventos`);
+                        
+                        // Log para debug - mostrar todos os eventos
+                        if (events && events.length > 0) {
+                            console.log('Eventos recebidos:', events);
+                            events.forEach((evento, index) => {
+                                console.log(`Evento ${index + 1}:`, {
+                                    id: evento.id,
+                                    title: evento.title,
+                                    start: evento.start,
+                                    paciente: evento.paciente_nome,
+                                    medico: evento.medico_nome,
+                                    tipo: evento.tipo || 'desconhecido'
+                                });
+                            });
+                        }
+                        
+                        // Processar eventos para garantir formato correto
+                        const eventosProcessados = (events || []).map(evento => {
+                            // Determinar a cor baseado na origem (web vs mobile)
+                            let cor = getCorEvento(evento.status);
+                            let borda = getCorEvento(evento.status);
+                            
+                            // Se for agendamento via mobile, usar cor diferente
+                            if (evento.origem === 'mobile' || evento.fonte === 'mobile') {
+                                cor = '#6f42c1'; // Roxo para mobile
+                                borda = '#6f42c1';
+                            }
+                            
+                            return {
+                                ...evento,
+                                start: evento.start || evento.data_consulta,
+                                end: evento.end || evento.data_fim,
+                                title: evento.title || evento.paciente_nome || 'Agendamento',
+                                backgroundColor: cor,
+                                borderColor: borda,
+                                textColor: '#ffffff',
+                                extendedProps: {
+                                    ...evento.extendedProps,
+                                    origem: evento.origem || evento.fonte || 'web'
+                                }
+                            };
+                        });
+                        
+                        successCallback(eventosProcessados);
+                        calendarEl.classList.remove('fc-loading');
+                        
+                        // Mostrar contagem
+                        mostrarContagemEventos(eventosProcessados.length);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Erro ao carregar calendário:', error);
+                        failureCallback(error);
+                        calendarEl.classList.remove('fc-loading');
+                        
+                        if (status === 'timeout') {
+                            mostrarMensagem('A consulta de horários está demorando. Tente novamente.', 'warning');
                         }
                     }
                 });
-            }
-        }
-        
-        function inicializarCalendario() {
-            const calendarEl = document.getElementById('calendarioHorarios');
-            
-            if (!calendarEl) return;
-            
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek',
-                locale: 'pt',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'timeGridWeek,timeGridDay'
-                },
-                events: '/admin/horarios/calendario',
-                eventClick: function(info) {
-                    if (info.event.extendedProps.tipo === 'agendamento') {
-                        abrirEditarAgendamento(info.event.extendedProps.agendamento_id);
-                    }
-                },
-                slotMinTime: '06:00:00',
-                slotMaxTime: '20:00:00',
-                slotDuration: '00:30:00',
-                allDaySlot: false,
-                nowIndicator: true,
-                editable: true,
-                eventDrop: function(info) {
-                    atualizarHorarioAgendamento(
-                        info.event.extendedProps.agendamento_id,
-                        info.event.start
-                    );
+            },
+            eventDidMount: function(info) {
+                // Adicionar tooltip aos eventos
+                let tooltipContent = info.event.title;
+                
+                if (info.event.extendedProps.observacoes) {
+                    tooltipContent += `<br>Obs: ${info.event.extendedProps.observacoes}`;
                 }
-            });
-            
-            calendar.render();
+                
+                if (info.event.extendedProps.origem) {
+                    tooltipContent += `<br><small>Fonte: ${info.event.extendedProps.origem}</small>`;
+                }
+                
+                if (info.event.extendedProps.telefone) {
+                    tooltipContent += `<br>Tel: ${info.event.extendedProps.telefone}`;
+                }
+                
+                $(info.el).tooltip({
+                    title: tooltipContent,
+                    html: true,
+                    placement: 'top',
+                    trigger: 'hover'
+                });
+                
+                // Adicionar badge de origem (mobile/web)
+                if (info.event.extendedProps.origem === 'mobile') {
+                    $(info.el).append('<span class="badge bg-purple badge-origem">M</span>');
+                }
+            },
+            eventClick: function(info) {
+                if (info.event.extendedProps.tipo === 'agendamento' && info.event.extendedProps.agendamento_id) {
+                    abrirEditarAgendamento(info.event.extendedProps.agendamento_id);
+                }
+            },
+            slotMinTime: '06:00:00',
+            slotMaxTime: '21:00:00',
+            slotDuration: '00:30:00',
+            slotLabelInterval: '01:00:00',
+            allDaySlot: false,
+            nowIndicator: true,
+            editable: false,
+            selectable: false,
+            dayMaxEvents: 4,
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            }
+        });
+        
+        calendar.render();
+        
+        // Adicionar CSS para badges de origem
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .badge-origem {
+                position: absolute;
+                top: 2px;
+                right: 2px;
+                font-size: 8px;
+                padding: 1px 3px;
+                border-radius: 3px;
+            }
+            .bg-purple {
+                background-color: #6f42c1 !important;
+            }
+            .fc-event {
+                position: relative;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    function mostrarContagemEventos(total) {
+        const contador = $('#contador-eventos');
+        if (!contador.length) {
+            $('#btn-atualizar-calendario').after(`
+                <small id="contador-eventos" class="text-muted ms-2">(${total} agendamentos)</small>
+            `);
+        } else {
+            contador.text(`(${total} agendamentos)`);
+        }
+    }
+    
+    // ============== FUNÇÕES DE HORÁRIOS ==============
+    
+    function salvarHorario() {
+        const formData = {
+            medico_id: $('select[name="medico_id"]').val(),
+            dias: $('input[name="dias[]"]:checked').map(function() {
+                return $(this).val();
+            }).get(),
+            hora_inicio: $('input[name="hora_inicio"]').val(),
+            hora_fim: $('input[name="hora_fim"]').val(),
+            duracao: $('select[name="duracao"]').val(),
+            almoco_inicio: $('input[name="almoco_inicio"]').val(),
+            almoco_fim: $('input[name="almoco_fim"]').val()
+        };
+        
+        // Validações
+        if (!formData.dias.length) {
+            mostrarMensagem('Selecione pelo menos um dia da semana', 'warning');
+            return;
         }
         
-        function configurarSMS() {
-            // Carregar histórico
-            carregarHistoricoSMS();
-            
-            // Agendar atualização automática
-            setInterval(carregarHistoricoSMS, 30000); // A cada 30 segundos
+        if (!formData.hora_inicio || !formData.hora_fim) {
+            mostrarMensagem('Horário de início e fim são obrigatórios', 'warning');
+            return;
         }
         
-        function carregarHistoricoSMS() {
-            $.ajax({
-                url: '/admin/sms/historico',
-                method: 'GET',
-                success: function(response) {
-                    const tbody = $('#historicoSMS');
-                    tbody.empty();
+        $.ajax({
+            url: API_BASE + '/horarios/salvar',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            beforeSend: function() {
+                $('#formHorarioPadrao button[type="submit"]')
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm"></span> Salvando...');
+            },
+            success: function(response) {
+                if (response.success) {
+                    mostrarMensagem('Horário salvo com sucesso!', 'success');
+                    $('#formHorarioPadrao')[0].reset();
+                    $('input[name="dias[]"]').prop('checked', false);
                     
+                    if (calendar) {
+                        calendar.refetchEvents();
+                    }
+                    
+                    carregarEstatisticas();
+                } else {
+                    mostrarMensagem(response.mensagem || 'Erro ao salvar horário', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao salvar horário:', error);
+                mostrarMensagem('Erro ao salvar horário. Verifique os dados e tente novamente.', 'danger');
+            },
+            complete: function() {
+                $('#formHorarioPadrao button[type="submit"]')
+                    .prop('disabled', false)
+                    .html('<i class="bi bi-save me-1"></i> Salvar Horário');
+            }
+        });
+    }
+    
+    function abrirHorariosMedico(medicoId) {
+        console.log('Abrindo horários para médico ID:', medicoId);
+        
+        $.ajax({
+            url: API_BASE + '/medicos/' + medicoId,
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.medico) {
+                    const medico = response.medico;
+                    
+                    // Mudar para a aba de horários
+                    const horariosTab = document.querySelector('#horarios-tab');
+                    if (horariosTab) {
+                        const tab = new bootstrap.Tab(horariosTab);
+                        tab.show();
+                    }
+                    
+                    // Selecionar o médico nos filtros
+                    $('#filtroCalendarioMedico').val(medicoId);
+                    $('#horarioMedico').val(medicoId);
+                    
+                    // Atualizar texto
+                    $('#medicoSelecionadoCalendario').text(`Médico: ${medico.nome}`);
+                    
+                    // Atualizar calendário
+                    if (calendar) {
+                        calendar.refetchEvents();
+                    }
+                    
+                    mostrarMensagem(`Gerenciando horários do Dr(a). ${medico.nome}`, 'info');
+                    
+                    setTimeout(() => {
+                        $('html, body').animate({
+                            scrollTop: $('#horarios').offset().top - 100
+                        }, 500);
+                    }, 300);
+                    
+                } else {
+                    mostrarMensagem('Não foi possível carregar os dados do médico', 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar médico:', error);
+                mostrarMensagem('Erro ao carregar dados do médico', 'danger');
+            }
+        });
+    }
+    
+    // ============== FUNÇÕES DE SMS ==============
+    
+    function configurarSMS() {
+        carregarHistoricoSMS();
+        setInterval(carregarHistoricoSMS, 30000);
+    }
+    
+    function carregarHistoricoSMS() {
+        $.ajax({
+            url: API_BASE + '/sms/historico',
+            method: 'GET',
+            success: function(response) {
+                const tbody = $('#historicoSMS');
+                tbody.empty();
+                
+                if (response.historico && response.historico.length > 0) {
                     response.historico.forEach(sms => {
                         const statusIcon = sms.status === 'enviado' ? 'bi-check-circle text-success' :
                                          sms.status === 'falha' ? 'bi-x-circle text-danger' :
                                          'bi-clock text-warning';
                         
+                        const dataFormatada = sms.data_envio ? 
+                            new Date(sms.data_envio).toLocaleString('pt-MZ') : '';
+                        
                         const row = `
                             <tr>
-                                <td>${formatarDataHora(sms.data_envio)}</td>
-                                <td>${sms.destinatario}</td>
+                                <td>${dataFormatada}</td>
+                                <td>${sms.destinatario || ''}</td>
                                 <td>
-                                    <small>${sms.mensagem.substring(0, 50)}${sms.mensagem.length > 50 ? '...' : ''}</small>
+                                    <small title="${sms.mensagem || ''}">
+                                        ${(sms.mensagem || '').substring(0, 50)}${(sms.mensagem || '').length > 50 ? '...' : ''}
+                                    </small>
                                 </td>
                                 <td>
                                     <i class="bi ${statusIcon}"></i>
-                                    ${sms.status}
+                                    ${sms.status || ''}
                                 </td>
                                 <td>${sms.resposta || '-'}</td>
                             </tr>
@@ -871,100 +2286,192 @@
                         tbody.append(row);
                     });
                 }
-            });
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao carregar histórico SMS:', error);
+            }
+        });
+    }
+    
+    function enviarSMSManual() {
+        const formData = {
+            tipo_destino: $('select[name="tipo_destino"]').val(),
+            mensagem: $('textarea[name="mensagem"]').val(),
+            tipo_sms: $('select[name="tipo_sms"]').val(),
+            telefone: $('input[name="telefone"]').val(),
+            data_agendamento: $('input[name="data_agendamento"]').val()
+        };
+        
+        // Validação
+        if (formData.tipo_destino === 'telefone' && !/^[0-9]{9}$/.test(formData.telefone)) {
+            mostrarMensagem('Telefone inválido. Use 9 dígitos.', 'warning');
+            return;
         }
         
-        function enviarSMSManual() {
-            const formData = $('#formSMSManual').serializeArray().reduce((obj, item) => {
-                obj[item.name] = item.value;
-                return obj;
-            }, {});
-            
-            if (formData.tipo_destino === 'telefone' && !/^[0-9]{9}$/.test(formData.telefone)) {
-                mostrarMensagem('Telefone inválido. Use 9 dígitos.', 'warning');
-                return;
-            }
-            
-            if (!formData.mensagem.trim()) {
-                mostrarMensagem('Digite uma mensagem.', 'warning');
-                return;
-            }
-            
-            $.ajax({
-                url: '/admin/sms/enviar',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(formData),
-                beforeSend: function() {
-                    $('#formSMSManual button[type="submit"]')
-                        .prop('disabled', true)
-                        .html('<span class="spinner-border spinner-border-sm"></span> Enviando...');
-                },
-                success: function(response) {
-                    if (response.success) {
-                        mostrarMensagem('SMS enviado com sucesso!', 'success');
-                        $('#formSMSManual')[0].reset();
-                        $('#contadorCaracteres').text('0');
-                        carregarHistoricoSMS();
-                    } else {
-                        mostrarMensagem(response.mensagem, 'danger');
-                    }
-                },
-                error: function() {
-                    mostrarMensagem('Erro ao enviar SMS.', 'danger');
-                },
-                complete: function() {
-                    $('#formSMSManual button[type="submit"]')
-                        .prop('disabled', false)
-                        .html('<i class="bi bi-send me-1"></i> Enviar SMS');
-                }
-            });
+        if (!formData.mensagem || !formData.mensagem.trim()) {
+            mostrarMensagem('Digite uma mensagem.', 'warning');
+            return;
         }
         
-        function salvarHorarioPadrao() {
-            const formData = $('#formHorarioPadrao').serializeArray().reduce((obj, item) => {
-                if (item.name === 'dias[]') {
-                    if (!obj[item.name]) obj[item.name] = [];
-                    obj[item.name].push(item.value);
+        if (formData.tipo_destino === 'agendamento' && !formData.data_agendamento) {
+            mostrarMensagem('Selecione uma data para o agendamento', 'warning');
+            return;
+        }
+        
+        $.ajax({
+            url: API_BASE + '/sms/enviar',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            beforeSend: function() {
+                $('#formSMSManual button[type="submit"]')
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm"></span> Enviando...');
+            },
+            success: function(response) {
+                if (response.success) {
+                    mostrarMensagem(`SMS programado para ${response.total || 0} destinatários!`, 'success');
+                    $('#formSMSManual')[0].reset();
+                    $('#contadorCaracteres').text('0');
+                    carregarHistoricoSMS();
                 } else {
-                    obj[item.name] = item.value;
+                    mostrarMensagem(response.mensagem || 'Erro ao enviar SMS', 'danger');
                 }
-                return obj;
-            }, {});
-            
-            $.ajax({
-                url: '/admin/horarios/padrao',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(formData),
-                success: function(response) {
-                    if (response.success) {
-                        mostrarMensagem('Horário padrão salvo com sucesso!', 'success');
-                        if (calendar) calendar.refetchEvents();
-                    } else {
-                        mostrarMensagem(response.mensagem, 'danger');
-                    }
-                }
-            });
+            },
+            error: function(xhr, status, error) {
+                console.error('Erro ao enviar SMS:', error);
+                mostrarMensagem('Erro ao enviar SMS.', 'danger');
+            },
+            complete: function() {
+                $('#formSMSManual button[type="submit"]')
+                    .prop('disabled', false)
+                    .html('<i class="bi bi-send me-1"></i> Enviar SMS');
+            }
+        });
+    }
+    
+    // ============== FUNÇÕES AUXILIARES ==============
+    
+    function configurarPaginacao(totalPaginas, paginaAtual) {
+        const $paginacao = $('#paginacao');
+        $paginacao.empty();
+        
+        if (totalPaginas <= 1) return;
+        
+        // Botão anterior
+        $paginacao.append(`
+            <li class="page-item ${paginaAtual === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-pagina="${paginaAtual - 1}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+        `);
+        
+        // Números das páginas
+        for (let i = 1; i <= totalPaginas; i++) {
+            if (i === 1 || i === totalPaginas || (i >= paginaAtual - 2 && i <= paginaAtual + 2)) {
+                $paginacao.append(`
+                    <li class="page-item ${i === paginaAtual ? 'active' : ''}">
+                        <a class="page-link" href="#" data-pagina="${i}">${i}</a>
+                    </li>
+                `);
+            } else if (i === paginaAtual - 3 || i === paginaAtual + 3) {
+                $paginacao.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+            }
         }
         
-        function formatarData(dataStr) {
-            return new Date(dataStr).toLocaleDateString('pt-MZ');
+        // Botão próximo
+        $paginacao.append(`
+            <li class="page-item ${paginaAtual === totalPaginas ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-pagina="${paginaAtual + 1}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        `);
+        
+        // Evento de clique
+        $paginacao.find('.page-link').on('click', function(e) {
+            e.preventDefault();
+            const pagina = $(this).data('pagina');
+            if (pagina) carregarAgendamentos(pagina);
+        });
+    }
+    
+    function atualizarMedicoSelecionado(id, nome) {
+        medicoSelecionado.id = id;
+        medicoSelecionado.nome = nome;
+        
+        if (id && nome) {
+            $('#nomeMedicoSelecionado').text(nome);
+            $('#idMedicoSelecionado').text(id);
+            $('#medicoSelecionadoAlert').show();
+            $('#configMedicoNome').text(nome);
+            $('#infoConfigMedico').show();
+            $('#horarioMedico').val(id);
+        } else {
+            $('#medicoSelecionadoAlert').hide();
+            $('#infoConfigMedico').hide();
+            $('#horarioMedico').val('');
         }
         
-        function formatarDataHora(dataStr) {
-            return new Date(dataStr).toLocaleString('pt-MZ');
+        $('#filtroCalendarioMedico').val(id || '');
+        
+        if (id && nome) {
+            $('#medicoSelecionadoCalendario').text(`Médico: ${nome}`);
+        } else {
+            $('#medicoSelecionadoCalendario').text('Todos os Médicos');
         }
         
-        function mostrarMensagem(texto, tipo) {
-            // Implementar notificação
-            alert(`${tipo.toUpperCase()}: ${texto}`);
+        if (calendar) {
+            calendar.refetchEvents();
         }
-    });
+    }
+    
+    function getCorEvento(status) {
+        const cores = {
+            'pendente': '#ffc107',
+            'confirmado': '#198754',
+            'cancelado': '#dc3545',
+            'realizado': '#0dcaf0',
+            'disponivel': '#d1e7dd',
+            'mobile': '#6f42c1' // Cor especial para agendamentos via mobile
+        };
+        return cores[status] || '#a3d9b1';
+    }
+    
+    function mostrarMensagem(texto, tipo) {
+        const toastHtml = `
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div id="liveToast" class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header bg-${tipo} text-white">
+                        <strong class="me-auto">Notificação</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${texto}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('.position-fixed.bottom-0.end-0').remove();
+        $('body').append(toastHtml);
+        
+        setTimeout(() => {
+            $('.position-fixed.bottom-0.end-0').remove();
+        }, 5000);
+    }
+});
 </script>
 
 <!-- Incluir FullCalendar -->
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css' rel='stylesheet' />
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/locales/pt.min.js'></script>
+
+<!-- Incluir Toast do Bootstrap se não estiver incluído -->
+{% if not config.get('BOOTSTRAP_INCLUDED', False) %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endif %}
+
 {% endblock %}

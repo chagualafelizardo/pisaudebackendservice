@@ -53,6 +53,10 @@ from .ItemPendente import ItemPendente
 from .FormacaoItem import FormacaoItem
 from .Participante import Participante
 from .ItemsSolicitados import ItemsSolicitados
+from .Medico import Medico
+from .HorarioMedico import HorarioMedico
+from .Agendamento import Agendamento
+from .SMS import SMS
 
 __all__ = [
     'db', 'Role', 'State', 'Grouptype', 'Group', 'Location', 
@@ -66,5 +70,6 @@ __all__ = [
     'Provincia','Item','Armazem', 'Componente','UserComponente', 'Porto',
     'ItemHistorico','ItemLocationNecessidade', 'Distribuicao','TipoItem','NotaEnvio',
     'NotaEnvioItem', 'NotaEnvioDocument', 'ItemPendente', 'FormacaoItem','Participante',
-    'ItemsSolicitados', 'location_resource'
+    'ItemsSolicitados', 'location_resource','Medico','HorarioMedico','Agendamento',
+    'SMS'
 ]
