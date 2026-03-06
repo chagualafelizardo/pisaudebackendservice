@@ -74,6 +74,8 @@ class LocationController:
                     'anexospdf': encode_if_bytes(getattr(link, 'anexospdf', None)),
                     'datarecepcao': link.datarecepcao.isoformat() if getattr(link, "datarecepcao", None) else None,
                     'quantity': getattr(link, 'quantity', None),
+                    'status': getattr(link, 'status', None),
+                    'condition': getattr(link, 'condition', None),
                     'createAt': link.createAt.isoformat() if getattr(link, "createAt", None) else None,
                     'updateAt': link.updateAt.isoformat() if getattr(link, "updateAt", None) else None
                 }
@@ -129,6 +131,8 @@ class LocationController:
                     'anexospdf': encode_if_bytes(getattr(link, 'anexospdf', None)),
                     'datarecepcao': link.datarecepcao.isoformat() if getattr(link, "datarecepcao", None) else None,
                     'quantity': getattr(link, 'quantity', None),
+                    'status': getattr(link, 'status', None),
+                    'condition': getattr(link, 'condition', None),
                     'createAt': link.createAt.isoformat() if getattr(link, "createAt", None) else None,
                     'updateAt': link.updateAt.isoformat() if getattr(link, "updateAt", None) else None
                 }
@@ -200,6 +204,8 @@ class LocationController:
                         location_id=new_location.id,
                         resource_id=resource_data.get('resource_id'),
                         quantity=resource_data.get('quantity', 0),
+                        status=resource_data.get('status', 0),
+                        condition=resource_data.get('condition', 0),
                         name=resource_data.get('name', ''),
                         description=resource_data.get('description'),
                         recebidopor=resource_data.get('recebidopor'),
@@ -268,6 +274,8 @@ class LocationController:
                         location_id=loc.id,
                         resource_id=resource_data.get('resource_id'),
                         quantity=resource_data.get('quantity', 0),
+                        status=resource_data.get('status', 0),
+                        condition=resource_data.get('condition', 0),
                         name=resource_data.get('name', ''),
                         description=resource_data.get('description'),
                         recebidopor=resource_data.get('recebidopor'),
@@ -342,6 +350,8 @@ class LocationController:
                 )
             ).values(
                 quantity=data.get('quantity', existing.quantity),
+                status=data.get('status', existing.status),
+                condition=data.get('condition', existing.condition),
                 name=data.get('name', existing.name),
                 description=data.get('description', existing.description),
                 recebidopor=data.get('recebidopor', existing.recebidopor),

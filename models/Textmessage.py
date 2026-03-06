@@ -5,7 +5,7 @@ class Textmessage(db.Model):
     __tablename__ = 'textmessage'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    messagetext = db.Column(db.String(100), nullable=False, unique=True)
+    messagetext = db.Column(db.String(1000), nullable=False, unique=True)
     
     # Chave estrangeira para Grouptype (pode ser nula)
     grouptypeId = db.Column(db.Integer, db.ForeignKey('grouptype.id'), nullable=True)

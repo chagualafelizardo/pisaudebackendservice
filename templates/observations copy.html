@@ -3,9 +3,6 @@
 
 {% block content %}
 
-<!-- 👇 ID da unidade sanitária do utilizador logado -->
-<meta name="user-location-id" content="{{ locationId }}">
-
 <div class="container-fluid py-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -998,11 +995,6 @@ tr.unknown-state:hover {
 </style>
 
 <script>
-/* ======== ID DA UNIDADE DO UTILIZADOR LOGADO ======== */
-const metaTag = document.querySelector('meta[name="user-location-id"]');
-window.userLocationId = metaTag ? metaTag.content : null;
-console.log('📍 ID da unidade:', window.userLocationId);
-
 /* ======== API ENDPOINTS ======== */
 const apiObs = '/api/observation';
 const apiState = '/api/state';
@@ -1103,32 +1095,20 @@ async function loadDropdown(url, selectId, field = 'description', placeholder = 
     try {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
         const data = await res.json();
         const select = document.getElementById(selectId);
+        
         if (!select) return;
-
+        
         select.innerHTML = placeholder || `<option value="">-- Select --</option>`;
-
+        
         data.forEach(item => {
             const option = document.createElement('option');
             option.value = item.id;
             option.textContent = item[field] || item.name || item.description;
             select.appendChild(option);
         });
-
-        // --- SE FOR O DROPDOWN DE LOCALIZAÇÃO, SELECIONAR A UNIDADE DO UTILIZADOR ---
-        if (selectId === 'filterLocation' && window.userLocationId) {
-            // Tenta encontrar a opção com o ID correspondente
-            const optionToSelect = Array.from(select.options).find(opt => opt.value == window.userLocationId);
-            if (optionToSelect) {
-                select.value = window.userLocationId;
-                // Define o filtro ativo automaticamente
-                currentFilters.locationId = window.userLocationId;
-            } else {
-                console.warn('⚠️ Localização do utilizador não encontrada na lista de localizações.');
-            }
-        }
-
     } catch (error) {
         console.error(`Error loading dropdown ${selectId}:`, error);
         showAlert('error', `Error loading ${selectId.replace('filter', '')} options`);
@@ -1136,10 +1116,11 @@ async function loadDropdown(url, selectId, field = 'description', placeholder = 
 }
 
 /* ======== LOAD OBSERVATIONS ======== */
+/* ======== LOAD OBSERVATIONS ======== */
 async function loadObservationsWithProgress() {
     showOverlay('Loading Observations', 'Fetching data from server...');
     updateProgress(10, 'Starting process...');
-
+    
     try {
         // Simulate progress for large datasets
         let progress = 10;
@@ -1149,39 +1130,32 @@ async function loadObservationsWithProgress() {
                 updateProgress(progress, 'Fetching data...', 'Connecting to server...');
             }
         }, 100);
-
+        
         updateProgress(30, 'Connecting to server...');
         await new Promise(resolve => setTimeout(resolve, 500));
-
+        
         if (loadingCancelled) {
             clearInterval(progressInterval);
             return;
         }
-
+        
         updateProgress(50, 'Fetching observations data...');
         const res = await fetch(apiObs);
+        
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
         clearInterval(progressInterval);
         updateProgress(80, 'Processing data...');
-
-        const allData = await res.json();
-        console.log('Total de observações carregadas:', allData.length);
-
-        // --- FILTRAR POR LOCALIZAÇÃO DO UTILIZADOR ---
-        if (window.userLocationId) {
-            observationsData = allData.filter(obs => {
-                const obsLocationId = obs.locationId || obs.location_id || obs.location?.id;
-                return obsLocationId == window.userLocationId;
-            });
-            console.log(`✅ Observações filtradas: ${allData.length} → ${observationsData.length} da unidade ${window.userLocationId}`);
-        } else {
-            observationsData = allData;
-            console.log('🌍 Mostrando todas as observações (localização não definida)');
-        }
-
-        // --- FILTRAR POR STATUS 'INICIAL' AO CARREGAR ---
+        
+        const data = await res.json();
+        observationsData = data;
+        
+        // FILTRAR APENAS OBSERVAÇÕES COM STATUS 'INICIAL' AO CARREGAR
+        // Primeiro, vamos buscar o stateId correspondente a 'Inicial'
         const statusSelect = document.getElementById('filterStatus');
         let initialStateId = null;
+        
+        // Tentar encontrar o estado 'Inicial' no dropdown
         if (statusSelect && statusSelect.options.length > 0) {
             for (let option of statusSelect.options) {
                 if (option.text.toLowerCase() === 'inicial') {
@@ -1190,47 +1164,49 @@ async function loadObservationsWithProgress() {
                 }
             }
         }
-
+        
+        // Se encontrou o stateId, filtrar os dados
         if (initialStateId) {
             filteredData = observationsData.filter(obs => obs.stateId == initialStateId);
-            currentFilters = { stateId: initialStateId };
-            if (window.userLocationId) {
-                currentFilters.locationId = window.userLocationId;
-            }
+            
+            // Definir filtro ativo para 'Inicial'
+            currentFilters = {
+                stateId: initialStateId
+            };
+            
+            // Selecionar a opção no dropdown de filtro
             document.getElementById('filterStatus').value = initialStateId;
-            showAlert('info', `Mostrando observações com status "Inicial" da sua unidade sanitária.`);
+            
+            showAlert('info', `Showing observations with status "Inicial". Use filters to view other statuses.`);
         } else {
-            filteredData = observationsData;
-            currentFilters = {};
-            if (window.userLocationId) {
-                currentFilters.locationId = window.userLocationId;
-            }
-            showAlert('warning', 'Status "Inicial" não encontrado. Mostrando todas as observações.');
+            // Se não encontrou, mostrar todos os dados
+            filteredData = data;
+            showAlert('warning', 'Status "Inicial" not found. Showing all observations.');
         }
-
+        
         updateProgress(90, 'Updating UI...');
         updateSummaryCards();
-        updateActiveFiltersDisplay();
+        updateActiveFiltersDisplay(); // Atualizar display de filtros ativos
         renderTablePage(filteredData, currentPage);
-
-        updateProgress(100, 'Data loaded successfully!', `${filteredData.length} registos carregados`);
-
+        
+        updateProgress(100, 'Data loaded successfully!', `${filteredData.length} of ${data.length} records loaded`);
+        
         await new Promise(resolve => setTimeout(resolve, 500));
         hideOverlay();
-
+        
         if (filteredData.length === 0) {
-            showAlert('info', 'Nenhuma observação encontrada.');
+            showAlert('info', 'No observations found with status "Inicial". Import data or add new observations.');
         }
-
+        
     } catch (error) {
         console.error('Error loading observations:', error);
         updateProgress(100, 'Error loading data');
         showAlert('error', 'Failed to load observations: ' + error.message);
-
+        
         const tbody = document.getElementById('obsTableBody');
         tbody.innerHTML = `
             <tr>
-                <td colspan="18" class="text-center py-5">
+                <td colspan="10" class="text-center py-5">
                     <i class="fas fa-exclamation-triangle fs-1 text-danger mb-3"></i>
                     <h5 class="text-danger">Error Loading Data</h5>
                     <p class="text-muted">${error.message}</p>
@@ -1581,29 +1557,36 @@ function generateDefaultDates() {
 }
 
 async function filterObservations() {
+    // Collect filter values
     const filters = {
         stateId: document.getElementById('filterStatus').value,
         textmessageId: document.getElementById('filterTextmessage').value,
         group: document.getElementById('filterGroup').value,
-        locationId: document.getElementById('filterLocation').value, // pode ser alterado
+        locationId: document.getElementById('filterLocation').value,
         startDate: document.getElementById('filterStartDate').value,
         endDate: document.getElementById('filterEndDate').value
     };
-
-    if (currentFilters.unknownState) delete currentFilters.unknownState;
+    
+    // Limpar filtro de estados desconhecidos quando usar filtros normais
+    if (currentFilters.unknownState) {
+        delete currentFilters.unknownState;
+    }
+    
     showOverlay('Filtering Data', 'Applying filters...');
     updateProgress(30, 'Applying filters...');
-
+    
     try {
+        // Update current filters
         currentFilters = { ...currentFilters, ...filters };
-        // FORÇAR a localização do utilizador (nunca permitir outra)
-        if (window.userLocationId) {
-            currentFilters.locationId = window.userLocationId;
-        }
+        
+        // Apply filters locally
         applyFilters();
+        
         updateProgress(100, 'Filters applied successfully!', `${filteredData.length} records found`);
+        
         await new Promise(resolve => setTimeout(resolve, 500));
         hideOverlay();
+        
     } catch (error) {
         console.error('Error filtering observations:', error);
         updateProgress(100, 'Error applying filters');
@@ -1612,40 +1595,40 @@ async function filterObservations() {
     }
 }
 
-
 function clearFilters() {
+    // Buscar o estado 'Inicial'
     const initialStateId = findInitialStateId();
-
-    // Limpar campos de texto
-    document.getElementById('filterTextmessage').value = '';
-    document.getElementById('filterGroup').value = '';
-    document.getElementById('filterStartDate').value = '';
-    document.getElementById('filterEndDate').value = '';
-
-    // Restaurar o dropdown de localização para a unidade do utilizador
-    if (window.userLocationId) {
-        const locationSelect = document.getElementById('filterLocation');
-        if (locationSelect) {
-            locationSelect.value = window.userLocationId;
-        }
-        currentFilters.locationId = window.userLocationId;
-    } else {
-        document.getElementById('filterLocation').value = '';
-        delete currentFilters.locationId;
-    }
-
+    
     if (initialStateId) {
-        currentFilters.stateId = initialStateId;
+        // Limpar outros filtros mas manter 'Inicial'
+        document.getElementById('filterTextmessage').value = '';
+        document.getElementById('filterGroup').value = '';
+        document.getElementById('filterLocation').value = '';
+        document.getElementById('filterStartDate').value = '';
+        document.getElementById('filterEndDate').value = '';
+        
+        // Manter apenas o filtro de 'Inicial'
+        currentFilters = { stateId: initialStateId };
         document.getElementById('filterStatus').value = initialStateId;
+        
+        // Aplicar filtro
         filteredData = observationsData.filter(obs => obs.stateId == initialStateId);
-        showAlert('info', 'Redefinido para observações com status "Inicial" da sua unidade sanitária.');
+        
+        showAlert('info', 'Reset to observations with status "Inicial".');
     } else {
+        // Se não encontrou 'Inicial', limpar tudo
         document.getElementById('filterStatus').value = '';
-        delete currentFilters.stateId;
+        document.getElementById('filterTextmessage').value = '';
+        document.getElementById('filterGroup').value = '';
+        document.getElementById('filterLocation').value = '';
+        document.getElementById('filterStartDate').value = '';
+        document.getElementById('filterEndDate').value = '';
+        
+        currentFilters = {};
         filteredData = observationsData;
-        showAlert('info', 'Todos os filtros limpos. Mostrando todas as observações da sua unidade sanitária.');
+        showAlert('info', 'All filters cleared.');
     }
-
+    
     currentPage = 1;
     updateActiveFiltersDisplay();
     renderTablePage(filteredData, currentPage);
@@ -1787,34 +1770,22 @@ function clearAllFiltersIncludingStatus() {
     document.getElementById('filterStatus').value = '';
     document.getElementById('filterTextmessage').value = '';
     document.getElementById('filterGroup').value = '';
+    document.getElementById('filterLocation').value = '';
     document.getElementById('filterStartDate').value = '';
     document.getElementById('filterEndDate').value = '';
-
-    // Restaurar localização do utilizador
+    
     currentFilters = {};
-    if (window.userLocationId) {
-        const locationSelect = document.getElementById('filterLocation');
-        if (locationSelect) {
-            locationSelect.value = window.userLocationId;
-        }
-        currentFilters.locationId = window.userLocationId;
-    }
-
     filteredData = observationsData;
     currentPage = 1;
+    
     updateActiveFiltersDisplay();
     renderTablePage(filteredData, currentPage);
-    showAlert('info', 'Todos os filtros limpos. Mostrando todas as observações da sua unidade sanitária.');
+    showAlert('info', 'All filters cleared. Showing all observations.');
 }
 
 function clearFilter(filterId) {
-    if (filterId === 'filterLocation' && window.userLocationId) {
-        showAlert('info', 'O filtro de localização da sua unidade não pode ser removido.');
-        return;
-    }
     document.getElementById(filterId).value = '';
-    const filterName = filterId.replace('filter', '').toLowerCase();
-    delete currentFilters[filterName];
+    delete currentFilters[filterId.replace('filter', '').toLowerCase()];
     applyFilters();
 }
 
@@ -2799,17 +2770,29 @@ function showOperationResults(results) {
 
 /* ======== INITIALIZATION ======== */
 window.onload = async function() {
-    // Checkboxes
-    document.getElementById('selectAll').addEventListener('change', function() { selectAllRows(this.checked); });
-    document.getElementById('selectAllHeader').addEventListener('change', function() { selectAllRows(this.checked); });
-    document.addEventListener('change', function(e) { if (e.target.classList.contains('rowCheck')) updateSelectedCount(); });
-
+    // Initialize select all checkboxes
+    document.getElementById('selectAll').addEventListener('change', function() {
+        selectAllRows(this.checked);
+    });
+    
+    document.getElementById('selectAllHeader').addEventListener('change', function() {
+        selectAllRows(this.checked);
+    });
+    
+    // Update selected count when checkboxes change
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('rowCheck')) {
+            updateSelectedCount();
+        }
+    });
+    
+    // Load dropdowns
     showOverlay('Initializing', 'Loading application data...');
     updateProgress(20, 'Loading dropdowns...');
-
+    
     try {
-        // Carregar todos os dropdowns
         await Promise.all([
+            // Carregar o filtro de status da API
             loadDropdown(apiState, 'filterStatus', 'description', '<option value="">All Status</option>'),
             loadDropdown(apiTextMessage, 'filterTextmessage', 'messagetext', '<option value="">All Messages</option>'),
             loadDropdown(apiGroup, 'filterGroup', 'description', '<option value="">All Groups</option><option value="no_group">No Group</option>'),
@@ -2821,26 +2804,24 @@ window.onload = async function() {
             loadDropdown(apiLocation, 'locationSelect', 'name'),
             loadDropdown(apiUser, 'userSelect', 'fullname')
         ]);
-
+        
         updateProgress(80, 'Loading observations...');
+        
+        // Load observations
         await loadObservationsWithProgress();
-
+        
         updateProgress(100, 'Application ready');
         await new Promise(resolve => setTimeout(resolve, 300));
         hideOverlay();
-
-        if (window.userLocationId) {
-            showAlert('info', `Visualizando apenas dados da sua unidade sanitária.`);
-        }
-
+        
     } catch (error) {
         console.error('Error during initialization:', error);
         updateProgress(100, 'Initialization failed');
         showAlert('error', 'Error initializing application: ' + error.message);
         hideOverlay();
     }
-
-    // Event listeners para filtros
+    
+    // Add event listeners for filters
     document.getElementById('filterStartDate').addEventListener('change', filterObservations);
     document.getElementById('filterEndDate').addEventListener('change', filterObservations);
     document.getElementById('filterTextmessage').addEventListener('change', filterObservations);
@@ -2848,7 +2829,6 @@ window.onload = async function() {
     document.getElementById('filterLocation').addEventListener('change', filterObservations);
     document.getElementById('filterStatus').addEventListener('change', filterObservations);
 };
-
 </script>
 
 <!-- Font Awesome -->

@@ -1,13 +1,18 @@
 {% extends 'base.html' %}
-{% block title %}PI-SAÚDE / Observations Import - Faltosos ao Levantamento de ARVs{% endblock %}
+{% block title %}PI-SAÚDE / Observations Import - Pacientes Marcados para Levantamento de ARVs{% endblock %}
 
 {% block content %}
+
+<meta name="user-location-id" content="{{ locationId }}">
+<meta name="user-location-name" content="{{ locationName }}">
+<meta name="user-id" content="{{ userId }}">
+<meta name="user-name" content="{{ userName }}">
 
 <div class="container-fluid py-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="mb-1">📥 Import Observations - Faltosos ao Levantamento de ARVs</h2>
+            <h2 class="mb-1">📥 Import Observations - Pacientes Marcados para Levantamento de ARVs</h2>
             <p class="text-muted mb-0">Import patient data from Excel/CSV files</p>
         </div>
         <div class="btn-group" role="group">
@@ -128,12 +133,6 @@
                     <small class="text-muted d-block">Age: age, Age, idade_actual, Idade</small>
                     <small class="text-muted d-block">Contact: telefone, Telefone, contact, Contact, contacto_paciente</small>
                     <small class="text-muted d-block">Occupation: occupation, Occupation, Profissao</small>
-                    <!-- ADICIONE ESTAS LINHAS PARA AS DATAS -->
-                    <small class="text-muted d-block">Data Início: data_inicio, DataInicio, data inicio, Data Inicio, datainiciotarv</small>
-                    <small class="text-muted d-block">Data Seguimento: data_seguimento, DataSeguimento, data seguimento, Data Seguimento, dataseguimento</small>
-                    <small class="text-muted d-block">Data Próximo Levantamento: dataproximolevantamento, DataProximoLevantamento</small>
-                    <small class="text-muted d-block">Data Consulta: dataconsulta, DataConsulta</small>
-                    <small class="text-muted d-block">Data Próxima Consulta: dataproximaconsulta, DataProximaConsulta</small>
 
                     <div class="alert alert-warning mt-3">
                         <i class="fas fa-exclamation-triangle me-1"></i>
@@ -187,7 +186,7 @@
             <div class="row align-items-center">
                 <div class="col">
                     <h5 class="mb-0">
-                        <i class="fas fa-table me-2"></i> Observations List - Faltosos ao Levantamento de ARVs
+                        <i class="fas fa-table me-2"></i> Observations List - Pacientes Marcados para Levantamento de ARVs
                     </h5>
                     <small class="text-muted">Showing <span id="currentCount">0</span> of <span id="totalCount">0</span> observations</small>
                 </div>
@@ -196,10 +195,10 @@
                         <button class="btn btn-outline-primary" onclick="loadObservations()">
                             <i class="fas fa-redo me-1"></i> Refresh
                         </button>
-                        <button class="btn btn-outline-info" onclick="showAllFaltososObservations()">
-                            <i class="fas fa-eye me-1"></i> Show All Faltosos
+                        <button class="btn btn-outline-info" onclick="showAllLevantamentoObservations()">
+                            <i class="fas fa-eye me-1"></i> Show All Levantamento
                         </button>
-                        <button class="btn btn-outline-warning" onclick="filterFaltososInicialObservations()">
+                        <button class="btn btn-outline-warning" onclick="filterLevantamentoInicialObservations()">
                             <i class="fas fa-filter me-1"></i> Filter Inicial
                         </button>
                     </div>
@@ -259,7 +258,7 @@
                     <small class="text-muted">
                         Page <span id="pageInfo">1</span> of <span id="totalPages">1</span>
                         | Showing <span id="itemsPerPage">50</span> per page
-                        | Filter: <span id="currentFilter" class="badge bg-orange">Faltosos + Inicial</span>
+                        | Filter: <span id="currentFilter" class="badge bg-teal">Levantamento + Inicial</span>
                     </small>
                 </div>
             </nav>
@@ -427,33 +426,33 @@
     color: #2e7d32 !important;
 }
 
-.status-faltoso {
-    background-color: #ffeaa7 !important;
-    color: #e17055 !important;
+.status-levantamento {
+    background-color: #b2ebf2 !important;
+    color: #006064 !important;
 }
 
 .status-arv {
-    background-color: #d1ecf1 !important;
-    color: #0c5460 !important;
+    background-color: #b3e5fc !important;
+    color: #01579b !important;
 }
 
-/* Cor laranja para faltosos */
-.bg-orange {
-    background-color: #fd7e14 !important;
+/* Cor teal para levantamento */
+.bg-teal {
+    background-color: #20c997 !important;
 }
 
-.text-orange {
-    color: #fd7e14 !important;
+.text-teal {
+    color: #20c997 !important;
 }
 
-.btn-outline-orange {
-    color: #fd7e14;
-    border-color: #fd7e14;
+.btn-outline-teal {
+    color: #20c997;
+    border-color: #20c997;
 }
 
-.btn-outline-orange:hover {
-    background-color: #fd7e14;
-    border-color: #fd7e14;
+.btn-outline-teal:hover {
+    background-color: #20c997;
+    border-color: #20c997;
     color: white;
 }
 
@@ -521,13 +520,13 @@
 let fileData = [];
 let mappedData = [];
 let allObservationsData = []; // Todos os dados da API
-let filteredObservationsData = []; // Dados filtrados por "Faltosos"
+let filteredObservationsData = []; // Dados filtrados por "Levantamento"
 let displayObservationsData = []; // Dados que estão sendo exibidos (com filtros adicionais)
 let currentPage = 1;
 let itemsPerPage = 50;
 let totalPages = 1;
 let totalObservations = 0;
-let currentFilterMode = 'faltosos-inicial'; // 'all', 'faltosos', 'faltosos-inicial'
+let currentFilterMode = 'levantamento-inicial'; // 'all', 'levantamento', 'levantamento-inicial'
 
 let currentImportStats = {
     total: 0,
@@ -546,13 +545,6 @@ const requiredFields = {
     age: ['age', 'Age', 'idade_actual', 'Idade'],
     contact: ['telefone','Telefone','contact', 'Contact', 'contacto_paciente'],
     occupation: ['occupation', 'Occupation', 'Profissao'],
-    // ADICIONE ESTES CAMPOS DE DATA
-    data_inicio: ['data_inicio', 'DataInicio', 'data inicio', 'Data Inicio', 'datainiciotarv', 'dataInicioTARV'],
-    data_seguimento: ['data_seguimento', 'DataSeguimento', 'data seguimento', 'Data Seguimento', 'dataseguimento', 'dataSeguimento'],
-    // Adicione outros campos de data se necessário
-    dataproximolevantamento: ['dataproximolevantamento', 'DataProximoLevantamento'],
-    dataconsulta: ['dataconsulta', 'DataConsulta'],
-    dataproximaconsulta: ['dataproximaconsulta', 'DataProximaConsulta']
 };
 
 // DOM Elements
@@ -576,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initializePage() {
     await Promise.all([
         loadDropdown('/api/state', 'stateDropdown', 'Inicial'),
-        loadDropdown('/api/grouptype', 'grouptypeDropdown', 'Faltosos ao Levantamento de ARVs')
+        loadDropdownForLevantamento('/api/grouptype', 'grouptypeDropdown', 'Marcados para levantamento de ARV')
     ]);
     
     // Update file info when file is selected
@@ -630,6 +622,74 @@ function updateProgress(percent, message = '', stats = '') {
     }
 }
 
+// Função específica para carregar o dropdown de "Levantamento de ARVs"
+async function loadDropdownForLevantamento(url, selectId, defaultDescription) {
+    try {
+        const select = document.getElementById(selectId);
+        select.innerHTML = `<option value="">Loading...</option>`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        select.innerHTML = `<option value="">Select...</option>`;
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            const description = item.description || item.name;
+            option.textContent = description;
+            
+            // Verificar múltiplas possibilidades para "Marcados para levantamento de ARV"
+            const normalizedDescription = normalizeText(description);
+            
+            // Lista de termos de busca para "Marcados para Levantamento de ARVs"
+            const searchTerms = [
+                'marcados para levantamento',
+                'levantamento de arv',
+                'levantamento arv',
+                'pacientes marcados',
+                'marcados arv',
+                'levantamento',
+                'marcados'
+            ];
+            
+            // Verificar se algum dos termos está presente na descrição
+            const matches = searchTerms.some(term => 
+                normalizedDescription.includes(normalizeText(term))
+            );
+            
+            if (matches) {
+                option.selected = true;
+                console.log('Found matching group type:', description);
+            }
+            
+            select.appendChild(option);
+        });
+        
+        // Se nenhum foi selecionado automaticamente, tentar encontrar por similaridade
+        if (select.value === "") {
+            console.log('No exact match found, trying fuzzy match...');
+            const options = Array.from(select.options);
+            options.forEach(option => {
+                if (option.value !== "") {
+                    const normalizedOption = normalizeText(option.textContent);
+                    // Tentar encontrar por partes do termo
+                    if (normalizedOption.includes('marcados') || 
+                        normalizedOption.includes('levantamento') ||
+                        normalizedOption.includes('arv')) {
+                        option.selected = true;
+                        console.log('Selected by partial match:', option.textContent);
+                    }
+                }
+            });
+        }
+        
+    } catch (error) {
+        console.error(`Error loading dropdown ${selectId}:`, error);
+        document.getElementById(selectId).innerHTML = `<option value="">Error loading options</option>`;
+    }
+}
+
+// Função genérica para outros dropdowns
 async function loadDropdown(url, selectId, defaultDescription) {
     try {
         const select = document.getElementById(selectId);
@@ -832,15 +892,19 @@ function startImport() {
         return;
     }
     
+    // Obter o texto do group type selecionado
+    const groupTypeSelect = document.getElementById('grouptypeDropdown');
+    const selectedGroupTypeText = groupTypeSelect.options[groupTypeSelect.selectedIndex].textContent;
+    
     if (!confirm(`Are you ready to import ${mappedData.length || 'the'} records?`)) {
         return;
     }
     
     importCancelled = false;
-    performImport(file, stateId, 1, groupTypeId, 'Faltosos ao Levantamento de ARVs');
+    performImport(file, stateId, groupTypeId, 'Marcados para levantamento de ARV');
 }
 
-async function performImport(file, stateId, textmessageId, groupTypeId, grupoPacientes) {
+async function performImport(file, stateId, groupTypeId, grupoPacientes) {
     try {
         showOverlay('Importing Data', 'Starting import process...');
         updateProgress(10, 'Starting import process...');
@@ -898,9 +962,12 @@ async function performImport(file, stateId, textmessageId, groupTypeId, grupoPac
                     observations: mappedData
                 };
 
+                console.log('Sending import payload:', payload);
+
                 const res = await fetch('/api/observations/import', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',   // 👈 ESSENCIAL
                     body: JSON.stringify(payload)
                 });
 
@@ -1064,9 +1131,9 @@ async function loadObservations() {
         
         updateProgress(90, 'Applying filters...');
         
-        // Filtrar observações com groupTypeDescription contendo 'faltoso'
-        filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'faltoso');
-        console.log('Filtered observations (Faltosos):', filteredObservationsData.length);
+        // Filtrar observações com groupTypeDescription contendo 'levantamento' ou 'marcados'
+        filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'levantamento');
+        console.log('Filtered observations (Levantamento):', filteredObservationsData.length);
         
         // Aplicar o filtro atual
         applyCurrentFilter();
@@ -1119,10 +1186,10 @@ function filterByGroupTypeDescription(data, groupTypeText) {
             groupTypeDesc = obs.group.groupTypeDescription;
         }
         
-        // Verificar se contém "faltoso" ou "faltosos"
+        // Verificar se contém "levantamento" ou "marcados"
         const groupTypeNormalized = normalizeText(groupTypeDesc);
-        const matches = groupTypeNormalized.includes('faltoso') || 
-                       groupTypeNormalized.includes('faltosos');
+        const matches = groupTypeNormalized.includes('levantamento') || 
+                       groupTypeNormalized.includes('marcados');
         
         // Log para debugging
         if (matches) {
@@ -1168,17 +1235,17 @@ function applyCurrentFilter() {
             document.getElementById('currentFilter').className = 'badge bg-secondary';
             break;
             
-        case 'faltosos':
+        case 'levantamento':
             displayObservationsData = filteredObservationsData;
-            document.getElementById('currentFilter').textContent = 'Faltosos';
-            document.getElementById('currentFilter').className = 'badge bg-orange';
+            document.getElementById('currentFilter').textContent = 'Levantamento';
+            document.getElementById('currentFilter').className = 'badge bg-teal';
             break;
             
-        case 'faltosos-inicial':
-            // Primeiro filtra por "Faltosos", depois por state "Inicial"
+        case 'levantamento-inicial':
+            // Primeiro filtra por "Levantamento", depois por state "Inicial"
             displayObservationsData = filterByStateInicial(filteredObservationsData);
-            document.getElementById('currentFilter').textContent = 'Faltosos + Inicial';
-            document.getElementById('currentFilter').className = 'badge bg-orange';
+            document.getElementById('currentFilter').textContent = 'Levantamento + Inicial';
+            document.getElementById('currentFilter').className = 'badge bg-teal';
             break;
     }
     
@@ -1235,11 +1302,11 @@ function showCurrentPage() {
             case 'all':
                 message = 'No observations in the system.';
                 break;
-            case 'faltosos':
-                message = 'No observations found with "Faltosos" group type.';
+            case 'levantamento':
+                message = 'No observations found with "Levantamento" group type.';
                 break;
-            case 'faltosos-inicial':
-                message = 'No observations found with "Faltosos" group type and state "Inicial".';
+            case 'levantamento-inicial':
+                message = 'No observations found with "Levantamento" group type and state "Inicial".';
                 break;
         }
         
@@ -1276,7 +1343,7 @@ function showCurrentPage() {
         let groupTypeDesc = obs.groupTypeDescription || 
                            (obs.group && obs.group.grouptypeDescription) || 
                            (obs.group && obs.group.groupTypeDescription) || 
-                           'Faltosos ao Levantamento de ARVs';
+                           'Marcados para levantamento de ARV';
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -1327,8 +1394,8 @@ function getStateClass(stateDescription) {
         return 'status-inicial';
     }
     
-    if (stateLower.includes('faltoso')) {
-        return 'status-faltoso';
+    if (stateLower.includes('levantamento') || stateLower.includes('marcados')) {
+        return 'status-levantamento';
     }
     
     if (stateLower.includes('arv')) {
@@ -1360,31 +1427,31 @@ function deleteObservation(id) {
         obs.id !== id && index !== id
     );
     // Reapply filters
-    filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'faltoso');
+    filteredObservationsData = filterByGroupTypeDescription(allObservationsData, 'levantamento');
     applyCurrentFilter();
     updatePagination();
 }
 
-function showAllFaltososObservations() {
-    currentFilterMode = 'faltosos';
+function showAllLevantamentoObservations() {
+    currentFilterMode = 'levantamento';
     currentPage = 1;
     applyCurrentFilter();
     updatePagination();
-    showAlert('info', 'Showing all observations with "Faltosos" group type');
+    showAlert('info', 'Showing all observations with "Levantamento" group type');
 }
 
-function filterFaltososInicialObservations() {
-    currentFilterMode = 'faltosos-inicial';
+function filterLevantamentoInicialObservations() {
+    currentFilterMode = 'levantamento-inicial';
     currentPage = 1;
     applyCurrentFilter();
     updatePagination();
-    showAlert('info', 'Filtered to show only observations with "Faltosos" group type and state "Inicial"');
+    showAlert('info', 'Filtered to show only observations with "Levantamento" group type and state "Inicial"');
 }
 
 function debugData() {
     console.log('=== DEBUG DATA ===');
     console.log('All observations:', allObservationsData.length);
-    console.log('Filtered observations (Faltosos):', filteredObservationsData.length);
+    console.log('Filtered observations (Levantamento):', filteredObservationsData.length);
     console.log('Display observations:', displayObservationsData.length);
     
     // Mostrar os primeiros 5 registros de cada
@@ -1406,6 +1473,11 @@ function debugData() {
             console.log('  - group.groupTypeDescription:', sample.group.groupTypeDescription);
         }
     }
+    
+    // Verificar o dropdown selecionado
+    const groupTypeSelect = document.getElementById('grouptypeDropdown');
+    const selectedOption = groupTypeSelect.options[groupTypeSelect.selectedIndex];
+    console.log('Selected group type:', selectedOption.textContent, 'Value:', selectedOption.value);
     
     showAlert('info', 'Debug data logged to console. Check browser developer tools.');
 }

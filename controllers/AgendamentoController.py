@@ -395,26 +395,69 @@ class AgendamentoController:
     # CANCELAR AGENDAMENTO
     # ====================
     @staticmethod
-    def cancelar_agendamento(id):
+    def editar_agendamento():
         try:
-            agendamento = Agendamento.query.get(id)
+            data = request.get_json()
+            agendamento_id = data.get('id')
+            agendamento = Agendamento.query.get(agendamento_id)
             if not agendamento:
                 return jsonify({'success': False, 'mensagem': 'Agendamento não encontrado'}), 404
-            
-            agendamento.status = 'cancelado'
-            agendamento.observacoes = (agendamento.observacoes or '') + '\n[CANCELADO pelo administrador]'
-            
+
+            status_anterior = agendamento.status
+            if 'status' in data:
+                agendamento.status = data['status']
+            if 'observacoes' in data:
+                agendamento.observacoes = data['observacoes']
+
             db.session.commit()
-            
-            return jsonify({
-                'success': True,
-                'mensagem': 'Agendamento cancelado com sucesso'
-            }), 200
-            
+
+            # Se houve mudança de status e o checkbox "enviar_sms" foi marcado
+            if status_anterior != agendamento.status and data.get('enviar_sms', False):
+                mensagem = None
+                if agendamento.status == 'confirmado':
+                    mensagem = (
+                        f"✅ AGENDAMENTO CONFIRMADO\n\n"
+                        f"Paciente: {agendamento.paciente_nome}\n"
+                        f"Data: {agendamento.data_consulta.strftime('%d/%m/%Y')}\n"
+                        f"Hora: {agendamento.hora_consulta.strftime('%H:%M')}\n"
+                        f"Médico: Dr(a). {agendamento.medico.nome}\n"
+                        f"\nPor favor, chegue 15 minutos antes.\n"
+                        f"Obrigado!"
+                    )
+                elif agendamento.status == 'cancelado':
+                    mensagem = (
+                        f"❌ AGENDAMENTO CANCELADO\n\n"
+                        f"Paciente: {agendamento.paciente_nome}\n"
+                        f"Data: {agendamento.data_consulta.strftime('%d/%m/%Y')}\n"
+                        f"Hora: {agendamento.hora_consulta.strftime('%H:%M')}\n"
+                        f"Médico: Dr(a). {agendamento.medico.nome}\n"
+                        f"\nSe precisar remarcar, entre em contato.\n"
+                        f"Obrigado!"
+                    )
+                elif agendamento.status == 'realizado':
+                    mensagem = (
+                        f"✅ CONSULTA REALIZADA\n\n"
+                        f"Paciente: {agendamento.paciente_nome}\n"
+                        f"Data: {agendamento.data_consulta.strftime('%d/%m/%Y')}\n"
+                        f"Hora: {agendamento.hora_consulta.strftime('%H:%M')}\n"
+                        f"Médico: Dr(a). {agendamento.medico.nome}\n"
+                        f"\nObrigado pela preferência!"
+                    )
+
+                if mensagem:
+                    AgendamentoController.enviar_sms_individual(
+                        telefone=agendamento.telefone,
+                        mensagem=mensagem,
+                        nome_destinatario=agendamento.paciente_nome,
+                        agendamento_id=agendamento.id
+                    )
+
+            return jsonify({'success': True, 'mensagem': 'Agendamento atualizado com sucesso'}), 200
+
         except Exception as e:
             db.session.rollback()
-            logger.exception(f"[CANCELAR] Erro ao cancelar agendamento {id}: {str(e)}")
-            return jsonify({'error': str(e), 'success': False}), 500
+            logger.exception("[EDITAR] Erro: %s", e)
+            return jsonify({'success': False, 'error': str(e)}), 500
 
     # ====================
     # LISTAR MÉDICOS
@@ -1012,6 +1055,30 @@ class AgendamentoController:
         except Exception as e:
             logger.exception(f"[HORARIOS MÉDICO] Erro ao buscar horários: {str(e)}")
             return jsonify({'success': False, 'error': str(e)}), 500
+        
+
+    @staticmethod
+    def enviar_sms_individual(telefone, mensagem, nome_destinatario=None, agendamento_id=None):
+        """
+        Registra um SMS no banco de dados para envio posterior.
+        Em produção, aqui deve ser integrado com um gateway de SMS real.
+        """
+        try:
+            sms = SMS(
+                destinatario=telefone,
+                destinatario_nome=nome_destinatario,
+                mensagem=mensagem,
+                tipo='confirmacao_agendamento',
+                agendamento_id=agendamento_id,
+                status='pendente'
+            )
+            db.session.add(sms)
+            db.session.commit()
+            logger.info(f"SMS de confirmação registrado para {telefone}")
+            return True
+        except Exception as e:
+            logger.exception(f"Erro ao registrar SMS: {e}")
+            return False
         
     @staticmethod
     def criar_agendamento_from_sms(sms_data):

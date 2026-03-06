@@ -10,6 +10,10 @@ location_resource = db.Table('location_resource',
     db.Column('resource_id', db.Integer, db.ForeignKey('resource.id'), nullable=False),
     db.Column('quantity', db.Integer, nullable=False, default=0),
     
+    # 🔹 NOVOS CAMPOS STATUS E CONDITION
+    db.Column('status', db.String(50), nullable=False, default='Available'),  # Ou outro valor padrão apropriado
+    db.Column('condition', db.String(50), nullable=True, default='Good'),  # P
+
     # 🔹 NOVOS CAMPOS ADICIONADOS
     db.Column('name', db.String(100), nullable=False),
     db.Column('description', db.String(1000), nullable=True),

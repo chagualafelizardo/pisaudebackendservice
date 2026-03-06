@@ -8,6 +8,11 @@ observation_bp = Blueprint('observation', __name__)
 def get_observations():
     return ObservationController.get_all()
 
+@observation_bp.route('/observation/filtered', methods=['GET'])
+def get_filtered_observations():
+    """Nova rota para filtragem avançada"""
+    return ObservationController.get_filtered()
+
 @observation_bp.route('/observation/<int:id>', methods=['GET'])
 def get_observation(id):
     return ObservationController.get_by_id(id)

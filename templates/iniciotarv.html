@@ -475,6 +475,7 @@ let currentImportStats = {
 };
 
 // Field mapping configuration
+// Field mapping configuration
 const requiredFields = {
     nid: ['nid', 'NID'],
     fullname: ['fullname', 'FullName', 'NomeCompleto'],
@@ -482,6 +483,13 @@ const requiredFields = {
     age: ['age', 'Age', 'idade_actual', 'Idade'],
     contact: ['telefone','Telefone','contact', 'Contact', 'contacto_paciente'],
     occupation: ['occupation', 'Occupation', 'Profissao'],
+    // ADICIONE ESTES CAMPOS DE DATA
+    data_inicio: ['data_inicio', 'DataInicio', 'data inicio', 'Data Inicio', 'datainiciotarv', 'dataInicioTARV'],
+    data_seguimento: ['data_seguimento', 'DataSeguimento', 'data seguimento', 'Data Seguimento', 'dataseguimento', 'dataSeguimento'],
+    // Adicione outros campos de data se necessário
+    dataproximolevantamento: ['dataproximolevantamento', 'DataProximoLevantamento'],
+    dataconsulta: ['dataconsulta', 'DataConsulta'],
+    dataproximaconsulta: ['dataproximaconsulta', 'DataProximaConsulta']
 };
 
 // DOM Elements

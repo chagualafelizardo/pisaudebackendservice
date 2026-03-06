@@ -520,6 +520,13 @@ const requiredFields = {
     age: ['age', 'Age', 'idade_actual', 'Idade'],
     contact: ['telefone','Telefone','contact', 'Contact', 'contacto_paciente'],
     occupation: ['occupation', 'Occupation', 'Profissao'],
+    // ADICIONE ESTES CAMPOS DE DATA
+    data_inicio: ['data_inicio', 'DataInicio', 'data inicio', 'Data Inicio', 'datainiciotarv', 'dataInicioTARV'],
+    data_seguimento: ['data_seguimento', 'DataSeguimento', 'data seguimento', 'Data Seguimento', 'dataseguimento', 'dataSeguimento'],
+    // Adicione outros campos de data se necessário
+    dataproximolevantamento: ['dataproximolevantamento', 'DataProximoLevantamento'],
+    dataconsulta: ['dataconsulta', 'DataConsulta'],
+    dataproximaconsulta: ['dataproximaconsulta', 'DataProximaConsulta']
 };
 
 // DOM Elements
@@ -804,10 +811,10 @@ function startImport() {
     }
     
     importCancelled = false;
-    performImport(file, stateId, groupTypeId, 'Abandonos ao Levantamento de ARVs');
+    performImport(file, stateId, 1, groupTypeId, 'Abandonos ao Levantamento de ARVs');
 }
 
-async function performImport(file, stateId, groupTypeId, grupoPacientes) {
+async function performImport(file, stateId, textmessageId, groupTypeId, grupoPacientes) {
     try {
         showOverlay('Importing Data', 'Starting import process...');
         updateProgress(10, 'Starting import process...');

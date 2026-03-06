@@ -718,6 +718,18 @@
     font-weight: 500;
 }
 
+.bg-available { background-color: #28a745 !important; }
+.bg-in-use { background-color: #007bff !important; }
+.bg-maintenance { background-color: #ffc107 !important; color: #000; }
+.bg-reserved { background-color: #17a2b8 !important; }
+.bg-out-of-service { background-color: #dc3545 !important; }
+
+.bg-good { background-color: #28a745 !important; }
+.bg-fair { background-color: #17a2b8 !important; }
+.bg-poor { background-color: #ffc107 !important; color: #000; }
+.bg-damaged { background-color: #dc3545 !important; }
+.bg-needs-repair { background-color: #dc3545 !important; }
+
 /* Filter tags */
 .filter-tag {
     display: inline-flex;
@@ -740,6 +752,48 @@
 .filter-tag .remove-filter:hover {
     color: #dc3545;
 }
+
+/* Adicione ou atualize no bloco de estilo existente */
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.preview-grid img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.preview-grid img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+/* Estilos para cards de recursos */
+.card {
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
 </style>
 
 <script>
@@ -1187,7 +1241,7 @@ function addResourceRow(resourceData = {}) {
         <div class="resource-card">
             <div class="resource-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0 text-primary">
-                    <i class="fas fa-box me-2"></i>Resource Details
+                    <i class="fas fa-box me-2"></i> Resource Details
                 </h6>
                 <div>
                     <button type="button" class="btn btn-sm btn-danger" onclick="removeResourceRow('${rowId}')" title="Remove">
@@ -1219,6 +1273,29 @@ function addResourceRow(resourceData = {}) {
                            placeholder="Optional custom name for this resource">
                 </div>
 
+                <!-- Status and Condition -->
+                <div class="col-md-3">
+                    <label class="form-label">Status *</label>
+                    <select class="form-select status-input" required>
+                        <option value="Available" ${resourceData.status === 'Available' ? 'selected' : ''}>Available</option>
+                        <option value="In Use" ${resourceData.status === 'In Use' ? 'selected' : ''}>In Use</option>
+                        <option value="Maintenance" ${resourceData.status === 'Maintenance' ? 'selected' : ''}>Under Maintenance</option>
+                        <option value="Reserved" ${resourceData.status === 'Reserved' ? 'selected' : ''}>Reserved</option>
+                        <option value="Out of Service" ${resourceData.status === 'Out of Service' ? 'selected' : ''}>Out of Service</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Condition</label>
+                    <select class="form-select condition-input">
+                        <option value="Good" ${resourceData.condition === 'Good' ? 'selected' : ''}>Good</option>
+                        <option value="Fair" ${resourceData.condition === 'Fair' ? 'selected' : ''}>Fair</option>
+                        <option value="Poor" ${resourceData.condition === 'Poor' ? 'selected' : ''}>Poor</option>
+                        <option value="Damaged" ${resourceData.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                        <option value="Needs Repair" ${resourceData.condition === 'Needs Repair' ? 'selected' : ''}>Needs Repair</option>
+                    </select>
+                </div>
+
                 <!-- Quantity and Recepção -->
                 <div class="col-md-3">
                     <label class="form-label">Quantity *</label>
@@ -1233,20 +1310,11 @@ function addResourceRow(resourceData = {}) {
                            placeholder="Person who received">
                 </div>
 
+                <!-- Reception Date -->
                 <div class="col-md-3">
                     <label class="form-label">Reception Date</label>
                     <input type="date" class="form-control datarecepcao-input" 
                            value="${resourceData.datarecepcao || ''}">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Status</label>
-                    <select class="form-select status-input">
-                        <option value="available" ${resourceData.status === 'available' ? 'selected' : ''}>Available</option>
-                        <option value="in-use" ${resourceData.status === 'in-use' ? 'selected' : ''}>In Use</option>
-                        <option value="maintenance" ${resourceData.status === 'maintenance' ? 'selected' : ''}>Maintenance</option>
-                        <option value="unavailable" ${resourceData.status === 'unavailable' ? 'selected' : ''}>Unavailable</option>
-                    </select>
                 </div>
 
                 <!-- Description -->
@@ -1575,7 +1643,8 @@ function collectResourceData() {
             description: card.querySelector('.description-input')?.value?.trim() || null,
             recebidopor: card.querySelector('.recebidopor-input')?.value?.trim() || null,
             datarecepcao: card.querySelector('.datarecepcao-input')?.value || null,
-            status: card.querySelector('.status-input')?.value || 'available',
+            status: card.querySelector('.status-input')?.value || 'Available',
+            condition: card.querySelector('.condition-input')?.value || 'Good',
             imagem_principal: card.querySelector('.imagem-principal-data')?.value || null,
             imagens: card.querySelector('.imagens-data')?.value || null,
             anexospdf: card.querySelector('.anexospdf-data')?.value || null
@@ -1696,6 +1765,9 @@ function viewFacilityResources(locationId, locationName) {
     fetch(`${apiUrl}/${locationId}`)
         .then(res => res.json())
         .then(location => {
+            // Adicionar depuração
+            debugData(location);
+            
             const resourcesList = document.getElementById('resourcesList');
             const title = document.getElementById('resourcesModalTitle');
             
@@ -1705,28 +1777,43 @@ function viewFacilityResources(locationId, locationName) {
             if (location.resources && location.resources.length > 0) {
                 location.resources.forEach((resource, index) => {
                     const resourceCard = document.createElement('div');
-                    resourceCard.className = 'col-md-6';
+                    resourceCard.className = 'col-md-6 mb-3';
                     
-                    let imagesHtml = '';
+                    // Construir seção de imagens
+                    let filesSection = '';
+                    
+                    // Imagem principal
                     if (resource.imagem_principal) {
-                        imagesHtml += `
-                            <div class="mb-2">
+                        filesSection += `
+                            <div class="mb-3">
                                 <strong>Main Image:</strong>
-                                <img src="${resource.imagem_principal}" class="img-thumbnail mt-1 d-block" style="max-width: 150px; cursor: pointer;" onclick="viewImage('${resource.imagem_principal}')">
+                                <div class="mt-2">
+                                    <img src="${resource.imagem_principal}" 
+                                         class="img-thumbnail" 
+                                         style="max-width: 200px; cursor: pointer;" 
+                                         onclick="viewImage('${resource.imagem_principal.replace(/'/g, "\\'")}')"
+                                         onerror="this.src='https://via.placeholder.com/200x150?text=Image+Error'">
+                                </div>
                             </div>
                         `;
                     }
                     
+                    // Imagens adicionais
                     if (resource.imagens) {
                         try {
                             const additionalImages = JSON.parse(resource.imagens);
                             if (Array.isArray(additionalImages) && additionalImages.length > 0) {
-                                imagesHtml += `
-                                    <div class="mb-2">
-                                        <strong>Additional Images:</strong>
-                                        <div class="preview-grid mt-1">
-                                            ${additionalImages.map(img => `
-                                                <img src="${img}" class="img-thumbnail" style="cursor: pointer;" onclick="viewImage('${img}')">
+                                filesSection += `
+                                    <div class="mb-3">
+                                        <strong>Additional Images (${additionalImages.length}):</strong>
+                                        <div class="preview-grid mt-2">
+                                            ${additionalImages.map((img, idx) => `
+                                                <img src="${img}" 
+                                                     class="img-thumbnail" 
+                                                     style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;" 
+                                                     onclick="viewImage('${img.replace(/'/g, "\\'")}')"
+                                                     onerror="this.src='https://via.placeholder.com/80x80?text=Image'"
+                                                     title="Image ${idx + 1}">
                                             `).join('')}
                                         </div>
                                     </div>
@@ -1734,14 +1821,45 @@ function viewFacilityResources(locationId, locationName) {
                             }
                         } catch (e) {
                             console.error('Error parsing images:', e);
+                            // Tentar exibir como string única
+                            if (resource.imagens) {
+                                filesSection += `
+                                    <div class="mb-3">
+                                        <strong>Image:</strong>
+                                        <div class="mt-2">
+                                            <img src="${resource.imagens}" 
+                                                 class="img-thumbnail" 
+                                                 style="max-width: 200px; cursor: pointer;" 
+                                                 onclick="viewImage('${resource.imagens.replace(/'/g, "\\'")}')">
+                                        </div>
+                                    </div>
+                                `;
+                            }
                         }
                     }
                     
+                    // PDF Document
                     if (resource.anexospdf) {
-                        imagesHtml += `
-                            <div class="mb-2">
-                                <strong>Signed Document:</strong><br>
-                                <span class="badge bg-success">PDF attached</span>
+                        const pdfId = `pdf_${locationId}_${resource.id}_${index}`;
+                        filesSection += `
+                            <div class="mb-3">
+                                <strong>Signed Document:</strong>
+                                <div class="mt-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fas fa-file-pdf text-danger fs-4"></i>
+                                        <div>
+                                            <div class="fw-bold">Document.pdf</div>
+                                            <div class="btn-group btn-group-sm mt-1">
+                                                <button class="btn btn-outline-primary" onclick="viewPdf('${resource.anexospdf.replace(/'/g, "\\'")}')">
+                                                    <i class="fas fa-eye me-1"></i> View
+                                                </button>
+                                                <button class="btn btn-outline-success" onclick="downloadFile('${resource.anexospdf.replace(/'/g, "\\'")}', 'document_${resource.id}.pdf')">
+                                                    <i class="fas fa-download me-1"></i> Download
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         `;
                     }
@@ -1750,15 +1868,40 @@ function viewFacilityResources(locationId, locationName) {
                         <div class="card h-100">
                             <div class="card-header bg-light">
                                 <h6 class="mb-0">${resource.name || 'Unnamed Resource'}</h6>
+                                <small class="text-muted">ID: ${resource.resource_id || resource.id}</small>
                             </div>
                             <div class="card-body">
                                 <p><strong>Type:</strong> ${getResourceName(resource.resource_id)}</p>
                                 <p><strong>Quantity:</strong> ${resource.quantity}</p>
+                                <p><strong>Status:</strong> 
+                                    <span class="badge ${getStatusBadgeClass(resource.status)}">
+                                        ${resource.status || 'Available'}
+                                    </span>
+                                </p>
+                                <p><strong>Condition:</strong> 
+                                    <span class="badge ${getConditionBadgeClass(resource.condition)}">
+                                        ${resource.condition || 'Good'}
+                                    </span>
+                                </p>
                                 ${resource.description ? `<p><strong>Description:</strong> ${resource.description}</p>` : ''}
                                 ${resource.recebidopor ? `<p><strong>Received by:</strong> ${resource.recebidopor}</p>` : ''}
                                 ${resource.datarecepcao ? `<p><strong>Reception Date:</strong> ${resource.datarecepcao}</p>` : ''}
-                                ${resource.status ? `<p><strong>Status:</strong> <span class="badge bg-${getStatusBadgeClass(resource.status)}">${resource.status}</span></p>` : ''}
-                                ${imagesHtml}
+                                
+                                <!-- Files Section -->
+                                ${filesSection ? `
+                                    <div class="mt-4 pt-3 border-top">
+                                        <h6 class="mb-3"><i class="fas fa-paperclip me-2"></i>Attachments</h6>
+                                        ${filesSection}
+                                    </div>
+                                ` : ''}
+                                
+                                <!-- Timestamps -->
+                                <div class="mt-3 pt-3 border-top text-muted small">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Created: ${resource.createAt ? new Date(resource.createAt).toLocaleDateString() : 'N/A'}</span>
+                                        <span>Updated: ${resource.updateAt ? new Date(resource.updateAt).toLocaleDateString() : 'N/A'}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1775,12 +1918,135 @@ function viewFacilityResources(locationId, locationName) {
                 `;
             }
             
-            new bootstrap.Modal(document.getElementById('viewResourcesModal')).show();
+            // Mostrar o modal
+            const modalElement = document.getElementById('viewResourcesModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+            
+            // Resetar imagens se houver erro de carregamento
+            setTimeout(() => {
+                const images = modalElement.querySelectorAll('img');
+                images.forEach(img => {
+                    if (!img.complete || img.naturalHeight === 0) {
+                        img.src = 'https://via.placeholder.com/200x150?text=Image+Not+Available';
+                    }
+                });
+            }, 1000);
+            
         })
         .catch(error => {
             console.error('Error fetching resources:', error);
-            showAlert('error', 'Error loading resources.');
-        });
+            showAlert('error', 'Error loading resources: ' + error.message);
+    });
+}
+
+// Função para visualizar PDF
+function viewPdf(base64Data, filename = 'document.pdf') {
+    try {
+        // Limpar a string base64 (remover possíveis cabeçalhos)
+        let cleanedData = base64Data;
+        if (base64Data.includes(',')) {
+            cleanedData = base64Data.split(',')[1];
+        }
+        
+        // Decodificar base64
+        const byteCharacters = atob(cleanedData);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        
+        // Criar link para download/visualização
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        
+        // Se o navegador suportar, abrir em nova aba
+        if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+            // Para Internet Explorer
+            window.navigator.msSaveOrOpenBlob(blob, filename);
+        } else {
+            // Para outros navegadores
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Limpar URL após algum tempo
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 10000);
+        
+    } catch (error) {
+        console.error('Error viewing PDF:', error);
+        showAlert('error', 'Could not open PDF: ' + error.message);
+    }
+}
+
+// Função para download de arquivos
+function downloadFile(base64Data, filename) {
+    try {
+        // Limpar dados base64
+        let cleanedData = base64Data;
+        if (base64Data.includes(',')) {
+            cleanedData = base64Data.split(',')[1];
+        }
+        
+        const byteCharacters = atob(cleanedData);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray]);
+        
+        // Criar link de download
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.style.display = 'none';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Limpar URL
+        setTimeout(() => {
+            URL.revokeObjectURL(link.href);
+        }, 10000);
+        
+        showAlert('success', 'Download started!');
+        
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        showAlert('error', 'Could not download file: ' + error.message);
+    }
+}
+
+// Melhorar a função viewImage para lidar com diferentes formatos
+function viewImage(src) {
+    // Verificar se é base64 ou URL
+    let imageSrc = src;
+    if (src && !src.startsWith('http') && !src.startsWith('data:image')) {
+        // Se não começar com http ou data:, assumir que é base64 sem cabeçalho
+        imageSrc = 'data:image/jpeg;base64,' + src;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('imageViewModal'));
+    const img = document.getElementById('imageViewModalImg');
+    if (img) {
+        img.src = imageSrc;
+        img.onerror = function() {
+            // Tentar outro formato se falhar
+            img.src = 'data:image/png;base64,' + src;
+        };
+        modal.show();
+    }
 }
 
 function getResourceName(resourceId) {
@@ -1789,12 +2055,26 @@ function getResourceName(resourceId) {
 }
 
 function getStatusBadgeClass(status) {
-    switch(status) {
-        case 'available': return 'success';
-        case 'in-use': return 'primary';
-        case 'maintenance': return 'warning';
-        case 'unavailable': return 'danger';
-        default: return 'secondary';
+    if (!status) return 'bg-secondary';
+    switch(status.toLowerCase()) {
+        case 'available': return 'bg-success';
+        case 'in use': return 'bg-primary';
+        case 'maintenance': return 'bg-warning';
+        case 'reserved': return 'bg-info';
+        case 'out of service': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+function getConditionBadgeClass(condition) {
+    if (!condition) return 'bg-secondary';
+    switch(condition.toLowerCase()) {
+        case 'good': return 'bg-success';
+        case 'fair': return 'bg-info';
+        case 'poor': return 'bg-warning';
+        case 'damaged': return 'bg-danger';
+        case 'needs repair': return 'bg-danger';
+        default: return 'bg-secondary';
     }
 }
 
@@ -2799,32 +3079,40 @@ function viewMovementDocs(movementId) {
     }
 }
 
-function viewImage(imageSrc) {
-    const modalHTML = `
-        <div class="modal fade" id="imageModal" tabindex="-1">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body text-center">
-                        <img src="${imageSrc}" class="img-fluid" style="max-height: 80vh;">
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Add modal to DOM if not exists
-    if (!document.getElementById('imageModal')) {
-        const modalDiv = document.createElement('div');
-        modalDiv.innerHTML = modalHTML;
-        document.body.appendChild(modalDiv);
+function viewImage(src) {
+    // Verificar se é uma string base64 válida
+    if (!src || src.trim() === '') {
+        console.error('Empty image source');
+        showAlert('error', 'No image data available');
+        return;
     }
     
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('imageModal'));
-    modal.show();
+    // Se não for base64 com cabeçalho, adicionar o cabeçalho apropriado
+    let imageSrc = src;
+    if (!src.startsWith('data:image/') && !src.startsWith('http')) {
+        // Tentar determinar o tipo da imagem pelo conteúdo
+        if (src.startsWith('/9j/') || src.startsWith('iVBORw')) {
+            // JPEG ou PNG em base64 sem cabeçalho
+            imageSrc = 'data:image/jpeg;base64,' + src;
+        } else {
+            // Tentar como JPEG genérico
+            imageSrc = 'data:image/jpeg;base64,' + src;
+        }
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('imageViewModal'));
+    const img = document.getElementById('imageViewModalImg');
+    if (img) {
+        img.src = imageSrc;
+        img.onerror = function() {
+            console.error('Error loading image');
+            // Tentar como PNG se JPEG falhar
+            if (imageSrc.includes('jpeg')) {
+                img.src = imageSrc.replace('jpeg', 'png');
+            }
+        };
+        modal.show();
+    }
 }
 
 // ==================== FUNÇÕES DE EDIÇÃO E EXCLUSÃO ====================
@@ -3020,6 +3308,24 @@ function updateFilteredMovementPagination(totalCount) {
     document.getElementById('movementNextBtn').disabled = movementCurrentPage === totalPages;
 }
 
+// Função de depuração para verificar dados
+function debugData(location) {
+    console.log('Dados recebidos do servidor:', location);
+    
+    if (location.resources && location.resources.length > 0) {
+        location.resources.forEach((resource, index) => {
+            console.log(`Recurso ${index + 1}:`, {
+                nome: resource.name,
+                temImagemPrincipal: !!resource.imagem_principal,
+                temAnexoPDF: !!resource.anexospdf,
+                temImagens: !!resource.imagens,
+                tamanhoImagemPrincipal: resource.imagem_principal ? resource.imagem_principal.length : 0,
+                tipoImagemPrincipal: resource.imagem_principal ? resource.imagem_principal.substring(0, 50) : 'N/A'
+            });
+        });
+    }
+}
+
 // ==================== INICIALIZAÇÃO ====================
 
 // Event listeners for filters
@@ -3033,15 +3339,18 @@ document.getElementById('movementDateTo').addEventListener('change', filterMovem
 document.getElementById('movementEquipment').addEventListener('change', updateEquipmentDetails);
 document.getElementById('movementFrom').addEventListener('change', updateAvailableLocations);
 
-// Load initial data
+// Tratamento global de erros de imagem
 document.addEventListener('DOMContentLoaded', function() {
-    loadMovementHistory();
-    
-    // Set default date range to last 30 days
-    const dateFrom = new Date();
-    dateFrom.setDate(dateFrom.getDate() - 30);
-    document.getElementById('movementDateFrom').value = dateFrom.toISOString().slice(0, 10);
-    document.getElementById('movementDateTo').value = new Date().toISOString().slice(0, 10);
+    document.addEventListener('error', function(e) {
+        if (e.target.tagName === 'IMG') {
+            console.warn('Image failed to load:', e.target.src);
+            // Substituir por placeholder
+            if (!e.target.src.includes('placeholder')) {
+                e.target.src = 'https://via.placeholder.com/150x100?text=Image+Error';
+                e.target.onerror = null; // Prevenir loop infinito
+            }
+        }
+    }, true);
 });
 
 </script>

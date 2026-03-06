@@ -1149,7 +1149,7 @@ function validateRow(row, rowNumber) {
     const warnings = [];
     
     // Validar campos obrigatórios básicos
-    const basicRequired = ['nid', 'fullname', 'gender', 'age', 'contact'];
+    const basicRequired = ['nid', 'fullname', 'gender', 'age'];
     basicRequired.forEach(field => {
         if (!row[field] && row[field] !== 0 && row[field] !== '0') {
             errors.push(`Linha ${rowNumber}: Campo "${field}" é obrigatório`);
@@ -1367,7 +1367,8 @@ function startImport() {
     
     const stateId = document.getElementById('stateDropdown').value;
     const groupTypeId = document.getElementById('grouptypeDropdown').value;
-    
+    const textmessageId = 2;  // Vou usar constantes
+
     if (!stateId || !groupTypeId) {
         showAlert('warning', 'Por favor selecione ambos Estado e Tipo de Grupo antes de importar.');
         return;
@@ -1391,10 +1392,10 @@ function startImport() {
     }
     
     importCancelled = false;
-    performImport(file, stateId, groupTypeId, 'Pacientes com Carga Viral');
+    performImport(file, stateId, 1, groupTypeId, 'Pacientes com Carga Viral');
 }
 
-async function performImport(file, stateId, groupTypeId, grupoPacientes) {
+async function performImport(file, stateId,textmessageId, groupTypeId, grupoPacientes) {
     try {
         showOverlay('Importando Dados', 'A iniciar processo de importação...');
         updateProgress(10, 'A iniciar processo de importação...');
@@ -1473,11 +1474,33 @@ async function performImport(file, stateId, groupTypeId, grupoPacientes) {
                 console.log('Nomes de colunas detectados:', sheetData.length > 0 ? Object.keys(sheetData[0]) : []);
                 
                 // Preparar dados para envio (remover _validation)
-                const dataToSend = validData.map(row => {
+                let dataToSend = validData.map(row => {
                     const { _validation, ...cleanRow } = row;
                     return cleanRow;
                 });
                 
+                // --- NOVO: Aplicar regra de negócio: se CV > 1000, stateId = 3 ---
+                dataToSend = dataToSend.map(row => {
+                    // Verifica os valores (podem estar em campos normalizados ou originais)
+                    let firstCV = row.valorprimeiracv ?? row.valor_primeira_carga;
+                    let lastCV = row.valorultimacv ?? row.valor_ultima_carga;
+
+                    // Converte para número se for string
+                    if (firstCV != null && firstCV !== '') firstCV = parseFloat(firstCV);
+                    if (lastCV != null && lastCV !== '') lastCV = parseFloat(lastCV);
+
+                    // Se qualquer um dos valores for > 1000, define stateId = 3
+                    if ((!isNaN(firstCV) && firstCV > 1000) || (!isNaN(lastCV) && lastCV > 1000)) {
+                        row.stateId = 3;  // ID do estado "chamada"
+                        console.log(`Paciente ${row.nid} tem CV > 1000 → estado "chamada"`);
+                    } else {
+                        // Remove stateId para que o backend use o valor padrão do payload
+                        delete row.stateId;
+                    }
+                    return row;
+                });
+                // --- FIM NOVO ---
+
                 // Debug: mostrar o que será enviado
                 console.log('Dados a serem enviados (primeiros 3):', dataToSend.slice(0, 3));
                 console.log('Total de registos válidos:', dataToSend.length);
@@ -1491,6 +1514,7 @@ async function performImport(file, stateId, groupTypeId, grupoPacientes) {
                 const payload = {
                     stateID: stateId,
                     groupTypeID: groupTypeId,
+                    selectTextMessage: textmessageId,
                     grupoPacientes: grupoPacientes,
                     observations: dataToSend
                 };

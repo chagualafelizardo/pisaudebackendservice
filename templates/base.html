@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ _('PI-SAÚDE') }}{% endblock %}</title>
+    <title>{% block title %}{{ _('PI-SAÚDE Tool') }}{% endblock %}</title>
     
     <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -691,6 +691,8 @@
                 <i class="bi bi-speedometer2"></i>{{ _('Dashboard') }}
             </a>
 
+            <!-- Gestão de Localizações -->
+            {% if 'locationMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#locationMenu">
                     <span><i class="bi bi-clipboard-data"></i>{{ _('Gestão de Localizações') }}</span>
@@ -701,6 +703,22 @@
                     <a href="/content/provincia" class="submenu">{{ _('Provincia') }}</a>
                     <li><hr class="dropdown-divider"></li>
                     <a href="/content/location" class="submenu">{{ _('Health Facility') }}</a>
+                    <a href="/content/subunidade" class="submenu">{{ _('Subunidade') }}</a>
+                    <li><hr class="dropdown-divider"></li>
+                </div>
+            </div>
+            {% endif %}
+
+             <div class="main-menu">
+                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#locationMenu">
+                    <span><i class="bi bi-clipboard-data"></i>{{ _('Gestão de Localizações') }}</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="collapse" id="locationMenu">
+                    <a href="/content/pais" class="submenu">{{ _('Pais') }}</a>
+                    <a href="/content/provincia" class="submenu">{{ _('Provincia') }}</a>
+                    <li><hr class="dropdown-divider"></li>
+                    <a href="/content/location" class="submenu">{{ _('Unidade Sanitária') }}</a>
                     <a href="/content/subunidade" class="submenu">{{ _('Subunidade') }}</a>
                     <li><hr class="dropdown-divider"></li>
                 </div>
@@ -730,7 +748,7 @@
             {% if 'alosaudeMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#alosaudeMenu">
-                    <span><i class="bi bi-heart-pulse"></i>{{ _('Linha Alo-Saúde') }}</span>
+                    <span><i class="bi bi-heart-pulse"></i>{{ _('Gestão Linha Alo-Saúde') }}</span>
                     <i class="bi bi-chevron-down"></i>
                 </button>
                 <div class="collapse" id="alosaudeMenu">
@@ -741,11 +759,13 @@
                     <a href="/content/cargaviral" class="submenu">{{ _('Carga Viral') }}</a>
                     <a href="/content/faltosos" class="submenu">{{ _('Faltosos') }}</a>
                     <a href="/content/abandonos" class="submenu">{{ _('Abandonos') }}</a>
-                    <a href="/content/observations" class="submenu">{{ _('Observations') }}</a>
+                    <a href="/content/observations" class="submenu">{{ _('Observations Management') }}</a>
                 </div>
             </div>
             {% endif %}
 
+            <!-- Testagem HIV -->
+            {% if 'testagemMenu' in user_menus %}
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#testagemMenu">
                     <span><i class="bi bi-heart-pulse"></i>{{ _('Testagem HIV') }}</span>
@@ -755,6 +775,7 @@
                     <a href="/content/pisaudedashboard" class="submenu">{{ _('PI-Saúde DashBoard') }}</a>
                 </div>
             </div>
+            {% endif %}
 
             <!-- Resources Mapping -->
             {% if 'mappingMenu' in user_menus %}
@@ -820,6 +841,19 @@
             </div>
             {% endif %}
 
+            <!-- Items DOD Tracking -->
+            {% if 'DODtrackingMenu' in user_menus %}
+            <div class="main-menu">
+                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#DODtrackingMenu">
+                    <span><i class="bi bi-box-seam"></i>{{ _('DOD Tracking') }}</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="collapse" id="DODtrackingMenu">
+                    <a href="/content/dashboarddoddistribuicao" class="submenu">{{ _('Distribuição de Recursos') }}</a>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="main-menu">
                 <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#DODtrackingMenu">
                     <span><i class="bi bi-box-seam"></i>{{ _('DOD Tracking') }}</span>
@@ -873,6 +907,23 @@
                     <a href="/content/settings" class="submenu">{{ _('Configurações') }}</a>
                 </div>
             </div>
+
+            <!-- User farmaciaMenu -->
+            {% if 'farmaciaMenu' in user_menus %}
+            <div class="main-menu">
+                <button class="sidebar-collapse" data-bs-toggle="collapse" data-bs-target="#farmaciaMenu">
+                    <span><i class="bi bi-person-gear"></i>{{ _('Gestão de Medicamentos') }}</span>
+                    <i class="bi bi-chevron-down"></i>
+                </button>
+                <div class="collapse" id="farmaciaMenu">
+                    <a href="/content/dashboard" class="submenu">{{ _('Dashboard') }}</a>
+                    <a href="/content/dashboard" class="submenu">{{ _('Dashboard') }}</a>
+                    <a href="/content/dashboard" class="submenu">{{ _('Dashboard') }}</a>
+                    <a href="/content/dashboard" class="submenu">{{ _('Dashboard') }}</a>
+                </div>
+            </div>
+            {% endif %}
+
         </div>
 
         <!-- Usuário no fundo -->

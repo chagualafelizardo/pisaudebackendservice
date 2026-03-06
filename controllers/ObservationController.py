@@ -14,6 +14,10 @@ class ObservationController:
             groupId = request.args.get('groupId')
             groupTypeId = request.args.get('grouptypeId')
             locationId = request.args.get('locationId')
+            
+            # 🔥 NOVOS FILTROS POR DATA DE ENVIO
+            startDate = request.args.get('startDate')
+            endDate = request.args.get('endDate')
 
             if textId:
                 query = query.filter(Observation.textmessageId == int(textId))
@@ -22,15 +26,56 @@ class ObservationController:
                 query = query.filter(Observation.stateId == int(stateId))
 
             if groupId:
-                query = query.filter(Observation.groupId == int(groupId))
+                if groupId == '0' or groupId == 'no_group':
+                    # Filtro para observações SEM grupo
+                    query = query.filter(Observation.groupId.is_(None))
+                else:
+                    query = query.filter(Observation.groupId == int(groupId))
 
             if groupTypeId:
                 query = query.filter(Observation.grouptypeId == int(groupTypeId))
 
             if locationId:
                 query = query.filter(Observation.locationId == int(locationId))
+            
+            # 🔥 FILTROS POR DATA DE ENVIO (dataenvio) - CORRIGIDO
+            if startDate:
+                try:
+                    # Formato: YYYY-MM-DD
+                    from datetime import datetime
+                    start_date = datetime.strptime(startDate, '%Y-%m-%d')
+                    query = query.filter(Observation.dataenvio >= start_date)
+                    print(f"Filtrando por startDate: {startDate} -> {start_date}")
+                except Exception as e:
+                    print(f"Erro ao converter startDate {startDate}: {e}")
+                    # Tenta outro formato
+                    try:
+                        start_date = datetime.fromisoformat(startDate.replace('Z', '+00:00'))
+                        query = query.filter(Observation.dataenvio >= start_date)
+                    except Exception as e2:
+                        print(f"Erro ao converter startDate (formato ISO): {e2}")
+            
+            if endDate:
+                try:
+                    # Formato: YYYY-MM-DD
+                    from datetime import datetime, timedelta
+                    end_date = datetime.strptime(endDate, '%Y-%m-%d')
+                    # Adiciona 23:59:59.999 ao final do dia
+                    end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                    query = query.filter(Observation.dataenvio <= end_date)
+                    print(f"Filtrando por endDate: {endDate} -> {end_date}")
+                except Exception as e:
+                    print(f"Erro ao converter endDate {endDate}: {e}")
+                    # Tenta outro formato
+                    try:
+                        end_date = datetime.fromisoformat(endDate.replace('Z', '+00:00'))
+                        end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                        query = query.filter(Observation.dataenvio <= end_date)
+                    except Exception as e2:
+                        print(f"Erro ao converter endDate (formato ISO): {e2}")
 
             observations = query.all()
+            print(f"Total de observações encontradas após filtros: {len(observations)}")
 
             result = []
             for obs in observations:
@@ -97,7 +142,136 @@ class ObservationController:
 
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+        
+    @staticmethod
+    def get_filtered():
+        """Endpoint específico para filtragem avançada do dashboard - FILTRO POR dataenvio"""
+        try:
+            query = Observation.query
 
+            # Parâmetros de filtro
+            state_id = request.args.get('stateId')
+            group_id = request.args.get('groupId')
+            location_id = request.args.get('locationId')
+            start_date_str = request.args.get('startDate')
+            end_date_str = request.args.get('endDate')
+
+            print(f"📋 Filtros recebidos: stateId={state_id}, groupId={group_id}, "
+                f"locationId={location_id}, startDate={start_date_str}, endDate={end_date_str}")
+
+            # Aplicar filtros
+            if state_id and state_id != '' and state_id != 'null':
+                query = query.filter(Observation.stateId == int(state_id))
+                print(f"✅ Filtro stateId aplicado: {state_id}")
+
+            if group_id and group_id != '' and group_id != 'null':
+                if group_id == 'no_group':
+                    query = query.filter(Observation.groupId.is_(None))
+                    print(f"✅ Filtro grupo aplicado: SEM GRUPO")
+                else:
+                    query = query.filter(Observation.groupId == int(group_id))
+                    print(f"✅ Filtro grupo aplicado: {group_id}")
+
+            if location_id and location_id != '' and location_id != 'null':
+                query = query.filter(Observation.locationId == int(location_id))
+                print(f"✅ Filtro localização aplicado: {location_id}")
+
+            # Filtro por dataenvio (data de envio) - CORRIGIDO
+            from datetime import datetime
+            
+            if start_date_str and start_date_str != '' and start_date_str != 'null':
+                try:
+                    # Converter string para datetime (formato: YYYY-MM-DD)
+                    start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                    print(f"📅 Filtro dataenvio - INÍCIO: {start_date}")
+                    
+                    # Filtrar onde dataenvio é >= data_inicio
+                    # IMPORTANTE: Observações sem dataenvio não serão incluídas
+                    query = query.filter(Observation.dataenvio >= start_date)
+                    
+                except Exception as e:
+                    print(f"❌ Erro ao processar startDate {start_date_str}: {e}")
+
+            if end_date_str and end_date_str != '' and end_date_str != 'null':
+                try:
+                    # Converter string para datetime (formato: YYYY-MM-DD)
+                    end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    # Ajustar para fim do dia (23:59:59.999)
+                    end_date = end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                    print(f"📅 Filtro dataenvio - FIM: {end_date}")
+                    
+                    # Filtrar onde dataenvio é <= data_fim
+                    query = query.filter(Observation.dataenvio <= end_date)
+                    
+                except Exception as e:
+                    print(f"❌ Erro ao processar endDate {end_date_str}: {e}")
+
+            # Se ambas as datas foram fornecidas, podemos fazer verificação adicional
+            if start_date_str and end_date_str:
+                print(f"📊 Filtro por INTERVALO de dataenvio: {start_date_str} a {end_date_str}")
+            
+            # Executar query
+            observations = query.order_by(Observation.dataenvio.desc()).all()
+            print(f"✅ Total de observações filtradas: {len(observations)}")
+            
+            # Para debug: mostrar algumas datas
+            for i, obs in enumerate(observations[:3]):
+                print(f"  Obs {i+1}: id={obs.id}, dataenvio={obs.dataenvio}, estado={obs.state.description if obs.state else 'N/A'}")
+
+            # Serializar resultados
+            result = []
+            for obs in observations:
+                result.append({
+                    'id': obs.id,
+                    'nid': obs.nid,
+                    'fullname': obs.fullname,
+                    'gender': obs.gender,
+                    'age': obs.age,
+                    'contact': obs.contact,
+                    'occupation': obs.occupation,
+                    'datainiciotarv': obs.datainiciotarv.isoformat() if obs.datainiciotarv else None,
+                    'datalevantamento': obs.datalevantamento.isoformat() if obs.datalevantamento else None,
+                    'dataproximolevantamento': obs.dataproximolevantamento.isoformat() if obs.dataproximolevantamento else None,
+                    'dataconsulta': obs.dataconsulta.isoformat() if obs.dataconsulta else None,
+                    'dataproximaconsulta': obs.dataproximaconsulta.isoformat() if obs.dataproximaconsulta else None,
+                    'dataalocacao': obs.dataalocacao.isoformat() if obs.dataalocacao else None,
+                    'dataenvio': obs.dataenvio.isoformat() if obs.dataenvio else None,
+                    'dataprimeiracv': obs.dataprimeiracv.isoformat() if obs.dataprimeiracv else None,
+                    'valorprimeiracv': obs.valorprimeiracv,
+                    'dataultimacv': obs.dataultimacv.isoformat() if obs.dataultimacv else None,
+                    'valorultimacv': obs.valorultimacv,
+                    'linhaterapeutica': obs.linhaterapeutica,
+                    'regime': obs.regime,
+                    'status': obs.status,
+                    'smsStatus': obs.smsStatus,
+                    
+                    'stateId': obs.stateId,
+                    'textmessageId': obs.textmessageId,
+                    'grouptypeId': obs.grouptypeId,
+                    'groupId': obs.groupId,
+                    'locationId': obs.locationId,
+                    'userId': obs.userId,
+                    
+                    'stateDescription': obs.state.description if obs.state else None,
+                    'textMessageDescription': obs.textmessage.messagetext if obs.textmessage else None,
+                    'groupTypeDescription': obs.grouptype.description if obs.grouptype else None,
+                    'groupDescription': obs.group.description if obs.group else None,
+                    'locationName': obs.location.name if obs.location else None,
+                    'userFullName': obs.user.fullname if obs.user else None,
+                    
+                    'createAt': obs.createAt.isoformat() if obs.createAt else None,
+                    'updateAt': obs.updateAt.isoformat() if obs.updateAt else None
+                })
+
+            return jsonify(result), 200
+
+        except Exception as e:
+            print(f"❌ ERRO CRÍTICO no endpoint filtrado: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': str(e)}), 500
+        
+            
     @staticmethod
     def get_by_id(id):
         try:
@@ -162,8 +336,6 @@ class ObservationController:
             return jsonify({'message': 'Observation not found'}), 404
         except Exception as e:
             return jsonify({'error': str(e)}), 500
-
-    # ... (mantenha os outros métodos CREATE, UPDATE, DELETE, etc. exatamente como estavam no código original que funcionava)
 
     @staticmethod
     def create():

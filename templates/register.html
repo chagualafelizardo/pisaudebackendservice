@@ -4,62 +4,471 @@
     <meta charset="UTF-8">
     <title>Register - PI-SAÚDE</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .register-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .register-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border-radius: 15px 15px 0 0;
+            padding: 30px;
+            color: white;
+        }
+        
+        .register-logo {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .register-logo i {
+            font-size: 40px;
+            color: #007bff;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        .password-strength {
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .password-strength.weak { background-color: #dc3545; width: 25%; }
+        .password-strength.medium { background-color: #ffc107; width: 50%; }
+        .password-strength.strong { background-color: #28a745; width: 75%; }
+        .password-strength.very-strong { background-color: #20c997; width: 100%; }
+        
+        .password-requirements {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .requirement-met {
+            color: #28a745;
+        }
+        
+        .requirement-unmet {
+            color: #dc3545;
+        }
+        
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+        }
+        
+        .btn-link {
+            color: #007bff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-link:hover {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            border-radius: 0 0 15px 15px;
+            padding: 15px;
+            text-align: center;
+            color: #6c757d;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active {
+            background: #007bff;
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .step.completed {
+            background: #28a745;
+            color: white;
+        }
+        
+        .step-line {
+            flex: 1;
+            height: 3px;
+            background: #e9ecef;
+            margin: 0 10px;
+            align-self: center;
+        }
+        
+        .step-line.active {
+            background: #007bff;
+        }
+        
+        .step-content {
+            display: none;
+        }
+        
+        .step-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .location-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .location-card:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+        
+        .location-card.selected {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        
+        .role-badge {
+            margin-right: 5px;
+            margin-bottom: 5px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .role-badge:hover {
+            transform: scale(1.05);
+        }
+        
+        .role-badge.selected {
+            background: #007bff;
+            color: white;
+        }
+    </style>
 </head>
-<body class="bg-light">
+<body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-spinner"></div>
+</div>
 
 <div class="container">
     <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-body">
-                    <h3 class="text-center mb-4">Create Your Account</h3>
+        <div class="col-md-8 col-lg-6">
+            <div class="register-card">
+                <!-- Header -->
+                <div class="register-header text-center">
+                    <div class="register-logo">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <h2>Create Your Account</h2>
+                    <p class="mb-0">Join PI-SAÚDE platform for healthcare management</p>
+                </div>
+                
+                <!-- Step Indicator -->
+                <div class="step-indicator mt-4">
+                    <div class="step active" id="step1">1</div>
+                    <div class="step-line"></div>
+                    <div class="step" id="step2">2</div>
+                    <div class="step-line"></div>
+                    <div class="step" id="step3">3</div>
+                </div>
+                
+                <!-- Form -->
+                <div class="card-body p-4">
+                    <div id="errorAlert" class="alert alert-danger d-none" role="alert"></div>
+                    <div id="successAlert" class="alert alert-success d-none" role="alert"></div>
+                    
                     <form id="registerForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-2">
-                                <input type="text" id="fullname" class="form-control" placeholder="Full Name" required>
+                        <!-- Step 1: Personal Information -->
+                        <div class="step-content active" id="stepContent1">
+                            <h5 class="mb-4"><i class="fas fa-user me-2"></i> Personal Information</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Full Name *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                        <input type="text" id="fullname" class="form-control" placeholder="Enter your full name" required>
+                                    </div>
+                                    <div class="invalid-feedback" id="fullnameError">Please enter your full name</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Username *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-at"></i></span>
+                                        <input type="text" id="username" class="form-control" placeholder="Choose a username" required>
+                                    </div>
+                                    <div class="invalid-feedback" id="usernameError">Please choose a username</div>
+                                    <small class="text-muted" id="usernameCheck"></small>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email Address *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        <input type="email" id="email" class="form-control" placeholder="your@email.com" required>
+                                    </div>
+                                    <div class="invalid-feedback" id="emailError">Please enter a valid email address</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Contact Number *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                        <input type="text" id="contact" class="form-control" placeholder="+258 84 000 0000" required>
+                                    </div>
+                                    <div class="invalid-feedback" id="contactError">Please enter a contact number</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Gender *</label>
+                                    <select id="gender" class="form-select" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="M">Male</option>
+                                        <option value="F">Female</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="genderError">Please select your gender</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Profile *</label>
+                                    <input type="text" id="profile" class="form-control" placeholder="e.g., Doctor, Nurse, Admin" required>
+                                    <div class="invalid-feedback" id="profileError">Please enter your profile</div>
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-2">
-                                <input type="text" id="username" class="form-control" placeholder="Username" required>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <input type="password" id="password" class="form-control" placeholder="Password" required>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <select id="gender" class="form-select" required>
-                                    <option value="">Select Gender</option>
-                                    <option value="M">M</option>
-                                    <option value="F">F</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <input type="email" id="email" class="form-control" placeholder="Email" required>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <input type="text" id="profile" class="form-control" placeholder="Profile" required>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <input type="text" id="contact" class="form-control" placeholder="Contact" required>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <select id="locationSelect" class="form-select" required>
-                                    <option value="">Select Location</option>
-                                </select>
-                            </div>
-                            <div class="col-md-12 mb-2">
-                                <label for="rolesSelect">Roles</label>
-                                <select id="rolesSelect" class="form-select" multiple required>
-                                    <!-- Populado via JS -->
-                                </select>
+                            
+                            <div class="form-navigation">
+                                <div></div>
+                                <button type="button" class="btn btn-primary" onclick="nextStep()">Next <i class="fas fa-arrow-right ms-1"></i></button>
                             </div>
                         </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary mt-3">Register</button>
-                            <a href="/login" class="btn btn-link mt-2">Already have an account? Login</a>
+                        
+                        <!-- Step 2: Security & Location -->
+                        <div class="step-content" id="stepContent2">
+                            <h5 class="mb-4"><i class="fas fa-lock me-2"></i> Security & Location</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Password *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                        <input type="password" id="password" class="form-control" placeholder="Create a strong password" required>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="password-strength" id="passwordStrength"></div>
+                                    <div class="password-requirements">
+                                        <div><i class="fas fa-circle" id="lengthCheck"></i> At least 8 characters</div>
+                                        <div><i class="fas fa-circle" id="uppercaseCheck"></i> One uppercase letter</div>
+                                        <div><i class="fas fa-circle" id="lowercaseCheck"></i> One lowercase letter</div>
+                                        <div><i class="fas fa-circle" id="numberCheck"></i> One number</div>
+                                    </div>
+                                    <div class="invalid-feedback" id="passwordError">Please enter a valid password</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Confirm Password *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                        <input type="password" id="confirmPassword" class="form-control" placeholder="Confirm your password" required>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('confirmPassword')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="invalid-feedback" id="confirmPasswordError">Passwords do not match</div>
+                                </div>
+                                
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Health Facility *</label>
+                                    <select id="locationSelect" class="form-select" required>
+                                        <option value="">Select Health Facility</option>
+                                    </select>
+                                    <div class="invalid-feedback" id="locationError">Please select a health facility</div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-navigation">
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                                    <i class="fas fa-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="nextStep()">Next <i class="fas fa-arrow-right ms-1"></i></button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3: Roles & Completion -->
+                        <div class="step-content" id="stepContent3">
+                            <h5 class="mb-4"><i class="fas fa-user-tag me-2"></i> User Roles</h5>
+                            
+                            <div class="row">
+                                <div class="col-12 mb-4">
+                                    <p class="text-muted">Select the roles for this user (Hold Ctrl/Cmd to select multiple):</p>
+                                    <select id="rolesSelect" class="form-select" multiple size="6" required>
+                                        <!-- Populated via JS -->
+                                    </select>
+                                    <div class="invalid-feedback" id="rolesError">Please select at least one role</div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <div class="card border-primary">
+                                        <div class="card-body">
+                                            <h6><i class="fas fa-check-circle text-success me-2"></i> Account Summary</h6>
+                                            <div class="row mt-3">
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">Full Name:</small>
+                                                    <div id="summaryFullname" class="fw-bold">-</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">Username:</small>
+                                                    <div id="summaryUsername" class="fw-bold">-</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">Email:</small>
+                                                    <div id="summaryEmail" class="fw-bold">-</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">Health Facility:</small>
+                                                    <div id="summaryLocation" class="fw-bold">-</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">Selected Roles:</small>
+                                                    <div id="summaryRoles" class="fw-bold">-</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-navigation mt-4">
+                                <button type="button" class="btn btn-outline-secondary" onclick="prevStep()">
+                                    <i class="fas fa-arrow-left me-1"></i> Back
+                                </button>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-user-plus me-1"></i> Create Account
+                                </button>
+                            </div>
                         </div>
                     </form>
+                    
+                    <div class="text-center mt-4">
+                        <p class="text-muted">Already have an account? 
+                            <a href="/login" class="btn-link fw-bold">Sign In Here</a>
+                        </p>
+                    </div>
                 </div>
-                <div class="card-footer text-center">
-                    <small>© 2025 PI-SAÚDE</small>
+                
+                <!-- Footer -->
+                <div class="footer">
+                    <small>© 2025 PI-SAÚDE - Healthcare Management Platform</small>
                 </div>
             </div>
         </div>
@@ -67,75 +476,472 @@
 </div>
 
 <script>
+// API Endpoints
 const apiUsers = '/api/user';
 const apiRoles = '/api/role';
 const apiLocations = '/api/location';
 const apiUserRole = '/api/userrole';
 
-// Carrega locais e roles
-async function loadLocationsAndRoles() {
-    const locRes = await fetch(apiLocations);
-    const locations = await locRes.json();
-    const locationSelect = document.getElementById('locationSelect');
-    locationSelect.innerHTML = '<option value="">Select Location</option>';
-    locations.forEach(loc => {
-        locationSelect.innerHTML += `<option value="${loc.id}">${loc.name}</option>`;
-    });
+// State variables
+let currentStep = 1;
+let locations = [];
+let roles = [];
 
-    const roleRes = await fetch(apiRoles);
-    const roles = await roleRes.json();
-    const roleSelect = document.getElementById('rolesSelect');
-    roleSelect.innerHTML = '';
-    roles.forEach(role => {
-        roleSelect.innerHTML += `<option value="${role.id}">${role.description}</option>`;
+// DOM Elements
+const loadingOverlay = document.getElementById('loadingOverlay');
+
+// Initialize form
+async function initForm() {
+    showLoading();
+    
+    try {
+        // Load locations
+        const locRes = await fetch(apiLocations);
+        if (!locRes.ok) throw new Error('Failed to load locations');
+        locations = await locRes.json();
+        
+        const locationSelect = document.getElementById('locationSelect');
+        locationSelect.innerHTML = '<option value="">Select Health Facility</option>';
+        locations.forEach(loc => {
+            locationSelect.innerHTML += `<option value="${loc.id}">${loc.name}</option>`;
+        });
+        
+        // Load roles
+        const roleRes = await fetch(apiRoles);
+        if (!roleRes.ok) throw new Error('Failed to load roles');
+        roles = await roleRes.json();
+        
+        const roleSelect = document.getElementById('rolesSelect');
+        roleSelect.innerHTML = '';
+        roles.forEach(role => {
+            roleSelect.innerHTML += `<option value="${role.id}">${role.description}</option>`;
+        });
+        
+        // Setup event listeners
+        setupEventListeners();
+        
+    } catch (error) {
+        showError('Failed to initialize form: ' + error.message);
+    } finally {
+        hideLoading();
+    }
+}
+
+// Setup event listeners
+function setupEventListeners() {
+    // Username availability check
+    document.getElementById('username').addEventListener('blur', checkUsernameAvailability);
+    
+    // Password strength checker
+    document.getElementById('password').addEventListener('input', checkPasswordStrength);
+    
+    // Password confirmation check
+    document.getElementById('confirmPassword').addEventListener('input', validatePasswordConfirmation);
+    
+    // Form submission
+    document.getElementById('registerForm').addEventListener('submit', handleSubmit);
+    
+    // Update summary on change
+    document.getElementById('fullname').addEventListener('input', updateSummary);
+    document.getElementById('username').addEventListener('input', updateSummary);
+    document.getElementById('email').addEventListener('input', updateSummary);
+    document.getElementById('locationSelect').addEventListener('change', updateSummary);
+    document.getElementById('rolesSelect').addEventListener('change', updateSummary);
+}
+
+// Step navigation
+function nextStep() {
+    if (!validateCurrentStep()) return;
+    
+    currentStep++;
+    updateStepIndicator();
+    
+    if (currentStep === 3) {
+        updateSummary();
+    }
+}
+
+function prevStep() {
+    currentStep--;
+    updateStepIndicator();
+}
+
+function updateStepIndicator() {
+    // Update steps
+    for (let i = 1; i <= 3; i++) {
+        const step = document.getElementById('step' + i);
+        const content = document.getElementById('stepContent' + i);
+        
+        if (i < currentStep) {
+            step.className = 'step completed';
+        } else if (i === currentStep) {
+            step.className = 'step active';
+            content.className = 'step-content active';
+        } else {
+            step.className = 'step';
+            content.className = 'step-content';
+        }
+    }
+    
+    // Update step lines
+    const lines = document.querySelectorAll('.step-line');
+    lines.forEach((line, index) => {
+        if (index < currentStep - 1) {
+            line.className = 'step-line active';
+        } else {
+            line.className = 'step-line';
+        }
     });
 }
 
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const data = {
-        fullname: document.getElementById('fullname').value,
-        username: document.getElementById('username').value,
-        password: document.getElementById('password').value,
-        gender: document.getElementById('gender').value,
-        email: document.getElementById('email').value,
-        profile: document.getElementById('profile').value,
-        contact: document.getElementById('contact').value,
-        locationId: parseInt(document.getElementById('locationSelect').value)
-    };
+// Step validation
+function validateCurrentStep() {
+    let isValid = true;
+    
+    switch(currentStep) {
+        case 1:
+            const fullname = document.getElementById('fullname');
+            const username = document.getElementById('username');
+            const email = document.getElementById('email');
+            const contact = document.getElementById('contact');
+            const gender = document.getElementById('gender');
+            const profile = document.getElementById('profile');
+            
+            if (!fullname.value.trim()) {
+                showFieldError(fullname, 'Please enter your full name');
+                isValid = false;
+            } else {
+                clearFieldError(fullname);
+            }
+            
+            if (!username.value.trim()) {
+                showFieldError(username, 'Please choose a username');
+                isValid = false;
+            } else {
+                clearFieldError(username);
+            }
+            
+            if (!email.value.trim() || !validateEmail(email.value)) {
+                showFieldError(email, 'Please enter a valid email address');
+                isValid = false;
+            } else {
+                clearFieldError(email);
+            }
+            
+            if (!contact.value.trim()) {
+                showFieldError(contact, 'Please enter a contact number');
+                isValid = false;
+            } else {
+                clearFieldError(contact);
+            }
+            
+            if (!gender.value) {
+                showFieldError(gender, 'Please select your gender');
+                isValid = false;
+            } else {
+                clearFieldError(gender);
+            }
+            
+            if (!profile.value.trim()) {
+                showFieldError(profile, 'Please enter your profile');
+                isValid = false;
+            } else {
+                clearFieldError(profile);
+            }
+            break;
+            
+        case 2:
+            const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirmPassword');
+            const locationSelect = document.getElementById('locationSelect');
+            
+            if (!password.value || password.value.length < 8) {
+                showFieldError(password, 'Password must be at least 8 characters');
+                isValid = false;
+            } else if (!validatePasswordStrength(password.value)) {
+                showFieldError(password, 'Password does not meet requirements');
+                isValid = false;
+            } else {
+                clearFieldError(password);
+            }
+            
+            if (password.value !== confirmPassword.value) {
+                showFieldError(confirmPassword, 'Passwords do not match');
+                isValid = false;
+            } else {
+                clearFieldError(confirmPassword);
+            }
+            
+            if (!locationSelect.value) {
+                showFieldError(locationSelect, 'Please select a health facility');
+                isValid = false;
+            } else {
+                clearFieldError(locationSelect);
+            }
+            break;
+            
+        case 3:
+            const rolesSelect = document.getElementById('rolesSelect');
+            const selectedRoles = Array.from(rolesSelect.selectedOptions);
+            
+            if (selectedRoles.length === 0) {
+                showFieldError(rolesSelect, 'Please select at least one role');
+                isValid = false;
+            } else {
+                clearFieldError(rolesSelect);
+            }
+            break;
+    }
+    
+    return isValid;
+}
 
+// Form submission
+async function handleSubmit(e) {
+    e.preventDefault();
+    
+    if (!validateCurrentStep()) return;
+    
+    showLoading();
+    
     try {
-        // Criação do usuário
+        // Collect form data
+        const data = {
+            fullname: document.getElementById('fullname').value.trim(),
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value,
+            gender: document.getElementById('gender').value,
+            email: document.getElementById('email').value.trim(),
+            profile: document.getElementById('profile').value.trim(),
+            contact: document.getElementById('contact').value.trim(),
+            locationId: parseInt(document.getElementById('locationSelect').value)
+        };
+        
+        // Create user
         const res = await fetch(apiUsers, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-
-        if (!res.ok) throw await res.json();
+        
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || 'Failed to create user');
+        }
+        
         const createdUser = await res.json();
         const userId = createdUser.id;
-
-        // Adiciona roles
-        const selectedRoles = Array.from(document.getElementById('rolesSelect').selectedOptions).map(o => parseInt(o.value));
-        for (const roleId of selectedRoles) {
-            await fetch(apiUserRole, {
+        
+        // Add roles
+        const selectedRoles = Array.from(document.getElementById('rolesSelect').selectedOptions)
+            .map(o => parseInt(o.value));
+        
+        const rolePromises = selectedRoles.map(roleId => 
+            fetch(apiUserRole, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, roleId })
-            });
-        }
-
-        alert('User registered successfully!');
-        window.location.href = '/login';
-    } catch (err) {
-        alert(err.message || 'Error registering user');
+            })
+        );
+        
+        await Promise.all(rolePromises);
+        
+        showSuccess('Account created successfully! Redirecting to login...');
+        
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 2000);
+        
+    } catch (error) {
+        showError(error.message || 'Error creating account');
+    } finally {
+        hideLoading();
     }
-});
+}
 
-window.onload = loadLocationsAndRoles;
+// Validation helpers
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+function validatePasswordStrength(password) {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasMinimumLength = password.length >= 8;
+    
+    return hasUpperCase && hasLowerCase && hasNumbers && hasMinimumLength;
+}
+
+function checkPasswordStrength() {
+    const password = document.getElementById('password').value;
+    const strengthBar = document.getElementById('passwordStrength');
+    const checks = {
+        length: document.getElementById('lengthCheck'),
+        uppercase: document.getElementById('uppercaseCheck'),
+        lowercase: document.getElementById('lowercaseCheck'),
+        number: document.getElementById('numberCheck')
+    };
+    
+    let score = 0;
+    
+    // Length check
+    if (password.length >= 8) {
+        score++;
+        checks.length.className = 'fas fa-check-circle requirement-met';
+    } else {
+        checks.length.className = 'fas fa-circle requirement-unmet';
+    }
+    
+    // Uppercase check
+    if (/[A-Z]/.test(password)) {
+        score++;
+        checks.uppercase.className = 'fas fa-check-circle requirement-met';
+    } else {
+        checks.uppercase.className = 'fas fa-circle requirement-unmet';
+    }
+    
+    // Lowercase check
+    if (/[a-z]/.test(password)) {
+        score++;
+        checks.lowercase.className = 'fas fa-check-circle requirement-met';
+    } else {
+        checks.lowercase.className = 'fas fa-circle requirement-unmet';
+    }
+    
+    // Number check
+    if (/\d/.test(password)) {
+        score++;
+        checks.number.className = 'fas fa-check-circle requirement-met';
+    } else {
+        checks.number.className = 'fas fa-circle requirement-unmet';
+    }
+    
+    // Update strength bar
+    strengthBar.className = 'password-strength';
+    if (score === 0) {
+        strengthBar.className += ' weak';
+    } else if (score <= 2) {
+        strengthBar.className += ' medium';
+    } else if (score === 3) {
+        strengthBar.className += ' strong';
+    } else {
+        strengthBar.className += ' very-strong';
+    }
+}
+
+async function checkUsernameAvailability() {
+    const username = document.getElementById('username').value;
+    const checkElement = document.getElementById('usernameCheck');
+    
+    if (!username.trim()) {
+        checkElement.textContent = '';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${apiUsers}/check-username?username=${encodeURIComponent(username)}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.available) {
+                checkElement.textContent = '✓ Username is available';
+                checkElement.className = 'text-success';
+            } else {
+                checkElement.textContent = '✗ Username is already taken';
+                checkElement.className = 'text-danger';
+            }
+        }
+    } catch (error) {
+        // Silently fail - this is just a nice-to-have feature
+    }
+}
+
+function validatePasswordConfirmation() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const errorElement = document.getElementById('confirmPasswordError');
+    
+    if (password !== confirmPassword && confirmPassword) {
+        errorElement.textContent = 'Passwords do not match';
+        document.getElementById('confirmPassword').classList.add('is-invalid');
+    } else {
+        errorElement.textContent = '';
+        document.getElementById('confirmPassword').classList.remove('is-invalid');
+    }
+}
+
+// UI helpers
+function showLoading() {
+    loadingOverlay.style.display = 'flex';
+}
+
+function hideLoading() {
+    loadingOverlay.style.display = 'none';
+}
+
+function showError(message) {
+    const alert = document.getElementById('errorAlert');
+    alert.textContent = message;
+    alert.classList.remove('d-none');
+    setTimeout(() => alert.classList.add('d-none'), 5000);
+}
+
+function showSuccess(message) {
+    const alert = document.getElementById('successAlert');
+    alert.textContent = message;
+    alert.classList.remove('d-none');
+}
+
+function showFieldError(field, message) {
+    const errorId = field.id + 'Error';
+    const errorElement = document.getElementById(errorId);
+    if (errorElement) {
+        errorElement.textContent = message;
+        field.classList.add('is-invalid');
+    }
+}
+
+function clearFieldError(field) {
+    const errorId = field.id + 'Error';
+    const errorElement = document.getElementById(errorId);
+    if (errorElement) {
+        errorElement.textContent = '';
+        field.classList.remove('is-invalid');
+    }
+}
+
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const icon = field.parentElement.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
+function updateSummary() {
+    document.getElementById('summaryFullname').textContent = document.getElementById('fullname').value || '-';
+    document.getElementById('summaryUsername').textContent = document.getElementById('username').value || '-';
+    document.getElementById('summaryEmail').textContent = document.getElementById('email').value || '-';
+    
+    const locationId = document.getElementById('locationSelect').value;
+    const location = locations.find(l => l.id == locationId);
+    document.getElementById('summaryLocation').textContent = location ? location.name : '-';
+    
+    const selectedRoles = Array.from(document.getElementById('rolesSelect').selectedOptions)
+        .map(o => o.text);
+    document.getElementById('summaryRoles').textContent = selectedRoles.join(', ') || '-';
+}
+
+// Initialize on load
+window.onload = initForm;
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -436,7 +436,6 @@ def alterar_status_medico(id):
         logger.exception("Erro ao alterar status do médico: %s", str(e))
         return jsonify({'success': False, 'error': str(e)}), 500
     
-
 # Agendamento apartir do Smartphone
 @agendamento_bp.route('/appointments/process-sms', methods=['POST'])
 def process_sms_appointment():

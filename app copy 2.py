@@ -442,16 +442,13 @@ def get_user_menus(user_id):
         'Mapeamento de recursos': 'mappingMenu', 
         'Afetação / Alocação': 'gestaoAlocacaoMenu',
         'Itens Traking': 'trackingMenu',
-        'DOD tracking': 'DODtrackingMenu',
         'Alo-Saúde': 'alosaudeMenu',
         'Menu de registos': 'registoMenu',
         'Menu de Recursos Humanos': 'rhMenu',
         'Menus do usuário': 'userMenu',
         'Menus de localização': 'locationMenu',
         'Menus de grupos de alo saúde': 'gruposAlosaudeMenus',
-        'Módulo Alo-Saúde': 'moduloAloSaude',
-        'Módulo de Agendamento de Consultas':'agendarConsultaMenu',
-        'Módulo de Farmácia': 'farmaciaMenu'
+        'Módulo Alo-Saúde': 'moduloAloSaude'
     }
     
     for component_name in user_component_names:
@@ -490,8 +487,7 @@ def import_observations():
 
     stateId = data.get("stateID")
     grouptypeId = data.get("groupTypeID")
-    textmessageId = data.get("selectTextMessage")
-    # grupoPacientes = data.get("grupoPacientes")
+    grupoPacientes = data.get("grupoPacientes")
     observations = data.get("observations", [])
 
     batch, imported_count, errors = [], 0, []
@@ -612,44 +608,34 @@ def import_observations():
             # Debug: mostrar dados da linha
             print(f"\n=== Processando linha {idx} ===")
             print(f"Dados: {row}")
-
-            # --- Campos normalizados vs originais ---
-            nid_val = row.get('NID') or row.get('nid') or ''
-            fullname_val = row.get('NomeCompleto') or row.get('fullname') or row.get('Nome') or ''
-            gender_val = row.get('gender') or row.get('Gender') or ''
-            age_val = row.get('idade_actual') or row.get('age') or row.get('Idade') or 0
-            contact_val = row.get('Telefone') or row.get('contact') or row.get('telefone') or ''
-
-            # Datas de carga viral
+            
+            # Extrair e converter datas importantes
             data_primeiro_carga_raw = row.get('data_primeiro_carga') or row.get('dataprimeiracv')
             data_ultima_carga_raw = row.get('data_ultima_carga') or row.get('dataultimacv')
-            # Valores de carga viral
-            valor_primeira_carga_raw = row.get('valor_primeira_carga') or row.get('valorprimeiracv')
-            valor_ultima_carga_raw = row.get('valor_ultima_carga') or row.get('valorultimacv')
-
-            # Outras datas
-            data_inicio_raw = row.get('data_inicio')
-            data_seguimento_raw = row.get('data_seguimento')
-
-            # --- stateId individual (prioritário) ---
-            obs_state_id = row.get('stateId')
-            if obs_state_id is None:
-                obs_state_id = stateId   # valor geral do payload
-
+            
+            print(f"data_primeiro_carga (raw): {data_primeiro_carga_raw}")
+            print(f"data_ultima_carga (raw): {data_ultima_carga_raw}")
+            
             # Converter datas
             data_primeiro_carga = parse_date(data_primeiro_carga_raw)
             data_ultima_carga = parse_date(data_ultima_carga_raw)
-            data_inicio = parse_date(data_inicio_raw)
-            data_seguimento = parse_date(data_seguimento_raw)
-
+            
+            print(f"data_primeiro_carga (converted): {data_primeiro_carga}")
+            print(f"data_ultima_carga (converted): {data_ultima_carga}")
+            
+            # Converter outras datas
+            data_inicio = parse_date(row.get('data_inicio'))
+            data_seguimento = parse_date(row.get('data_seguimento'))
+            
             obs = Observation(
-                nid=str(nid_val).strip(),
-                fullname=str(fullname_val).strip(),
-                gender=str(gender_val).strip().upper()[:1],
-                age=int(parse_numeric_value(age_val)),
-                contact=str(contact_val).strip(),
+                nid=str(row.get('NID', '') or row.get('nid', '')).strip(),
+                fullname=str(row.get('NomeCompleto', '') or row.get('Nome', '') or row.get('fullname', '')).strip(),
+                gender=str(row.get('gender', '')).strip().upper()[:1],
+                age=int(parse_numeric_value(row.get('idade_actual') or row.get('age') or row.get('idade') or 0)),
+                contact=str(row.get('Telefone', '') or row.get('contact', '') or row.get('telefone', '')).strip(),
                 occupation='',
                 
+                # DATAS IMPORTADAS DA PLANILHA
                 datainiciotarv=data_inicio or datetime.now(),
                 datalevantamento=data_seguimento or datetime.now(),
                 dataproximolevantamento=datetime.now(),
@@ -661,31 +647,31 @@ def import_observations():
                 smssendernumber='',
                 smssuporternumber='',
                 
+                # CV - IMPORTADOS DA PLANILHA
                 dataprimeiracv=data_primeiro_carga,
-                valorprimeiracv=parse_numeric_value(valor_primeira_carga_raw),
-                dataultimacv=data_ultima_carga,
-                valorultimacv=parse_numeric_value(valor_ultima_carga_raw),
+                valorprimeiracv=parse_numeric_value(row.get('valor_primeira_carga') or row.get('valorprimeiracv')),
+                dataultimacv=data_ultima_carga,  # Pode ser None
+                valorultimacv=parse_numeric_value(row.get('valor_ultima_carga') or row.get('valorultimacv')),
                 
                 linhaterapeutica='',
                 regime='',
                 status='',
-                smsStatus='',
                 
-                stateId=obs_state_id,   # usa o individual se existir
-                textmessageId=textmessageId,
+                stateId=stateId,
+                textmessageId=1,
                 grouptypeId=grouptypeId,
                 groupId=1,
-                locationId=location_id,
-                userId=user_id,
+                locationId=location_id,   # <-- do usuário logado
+                userId=user_id,            # <-- do usuário logado
             )
             batch.append(obs)
             imported_count += 1
-
+            
             if len(batch) >= BATCH_SIZE:
                 db.session.add_all(batch)
                 db.session.flush()
                 batch = []
-
+                
         except Exception as e:
             errors.append({'row': idx, 'error': str(e), 'data': row})
             print(f"Erro na linha {idx}: {str(e)}")

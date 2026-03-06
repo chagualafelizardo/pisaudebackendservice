@@ -3,6 +3,11 @@
 
 {% block content %}
 
+<meta name="user-location-id" content="{{ locationId }}">
+<meta name="user-location-name" content="{{ locationName }}">
+<meta name="user-id" content="{{ userId }}">
+<meta name="user-name" content="{{ userName }}">
+
 <div class="container-fluid py-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -563,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initializePage() {
     await Promise.all([
         loadDropdown('/api/state', 'stateDropdown', 'Inicial'),
-        loadDropdownForLevantamento('/api/grouptype', 'grouptypeDropdown')
+        loadDropdownForLevantamento('/api/grouptype', 'grouptypeDropdown', 'Marcados para levantamento de ARV')
     ]);
     
     // Update file info when file is selected
@@ -618,66 +623,76 @@ function updateProgress(percent, message = '', stats = '') {
 }
 
 // Função específica para carregar o dropdown de "Levantamento de ARVs"
-async function loadDropdownForLevantamento(url, selectId) {
+async function loadDropdownForLevantamento(url, selectId, defaultDescription) {
     try {
         const select = document.getElementById(selectId);
         select.innerHTML = `<option value="">Loading...</option>`;
-        
+
         const response = await fetch(url);
         const data = await response.json();
-        
+
         select.innerHTML = `<option value="">Select...</option>`;
+        let selected = false;
         data.forEach(item => {
             const option = document.createElement('option');
             option.value = item.id;
             const description = item.description || item.name;
             option.textContent = description;
-            
-            // Verificar múltiplas possibilidades para "Marcados para levantamento de ARV"
-            const normalizedDescription = normalizeText(description);
-            
-            // Lista de termos de busca para "Marcados para Levantamento de ARVs"
-            const searchTerms = [
-                'marcados para levantamento',
-                'levantamento de arv',
-                'levantamento arv',
-                'pacientes marcados',
-                'marcados arv',
-                'levantamento',
-                'marcados'
-            ];
-            
-            // Verificar se algum dos termos está presente na descrição
-            const matches = searchTerms.some(term => 
-                normalizedDescription.includes(normalizeText(term))
-            );
-            
-            if (matches) {
-                option.selected = true;
-                console.log('Found matching group type:', description);
+
+            // Tenta selecionar baseado no defaultDescription, se fornecido
+            if (defaultDescription && !selected) {
+                const normalizedDefault = normalizeText(defaultDescription);
+                const normalizedDesc = normalizeText(description);
+                if (normalizedDesc === normalizedDefault || normalizedDesc.includes(normalizedDefault)) {
+                    option.selected = true;
+                    selected = true;
+                    console.log('Selected by default description:', description);
+                }
             }
-            
+
+            // Se ainda não selecionou, tenta por palavras-chave
+            if (!selected) {
+                const normalizedDescription = normalizeText(description);
+                const searchTerms = [
+                    'marcados para levantamento',
+                    'levantamento de arv',
+                    'levantamento arv',
+                    'pacientes marcados',
+                    'marcados arv',
+                    'levantamento',
+                    'marcados'
+                ];
+                const matches = searchTerms.some(term => 
+                    normalizedDescription.includes(normalizeText(term))
+                );
+                if (matches) {
+                    option.selected = true;
+                    selected = true;
+                    console.log('Found matching group type:', description);
+                }
+            }
+
             select.appendChild(option);
         });
-        
-        // Se nenhum foi selecionado automaticamente, tentar encontrar por similaridade
-        if (select.value === "") {
+
+        // Se ainda não selecionou, tenta selecionar o primeiro que contenha alguma palavra-chave
+        if (!selected) {
             console.log('No exact match found, trying fuzzy match...');
             const options = Array.from(select.options);
             options.forEach(option => {
-                if (option.value !== "") {
+                if (option.value !== "" && !selected) {
                     const normalizedOption = normalizeText(option.textContent);
-                    // Tentar encontrar por partes do termo
                     if (normalizedOption.includes('marcados') || 
                         normalizedOption.includes('levantamento') ||
                         normalizedOption.includes('arv')) {
                         option.selected = true;
+                        selected = true;
                         console.log('Selected by partial match:', option.textContent);
                     }
                 }
             });
         }
-        
+
     } catch (error) {
         console.error(`Error loading dropdown ${selectId}:`, error);
         document.getElementById(selectId).innerHTML = `<option value="">Error loading options</option>`;
@@ -881,7 +896,7 @@ function startImport() {
     
     const stateId = document.getElementById('stateDropdown').value;
     const groupTypeId = document.getElementById('grouptypeDropdown').value;
-    
+
     if (!stateId || !groupTypeId) {
         showAlert('warning', 'Please select both State and Group Type before importing.');
         return;
@@ -896,10 +911,10 @@ function startImport() {
     }
     
     importCancelled = false;
-    performImport(file, stateId, groupTypeId, selectedGroupTypeText);
+    performImport(file, stateId, 1, groupTypeId, 'Marcados para levantamento de ARV');
 }
 
-async function performImport(file, stateId, groupTypeId, grupoPacientes) {
+async function performImport(file, stateId, groupTypeId,textmessageId, grupoPacientes) {
     try {
         showOverlay('Importing Data', 'Starting import process...');
         updateProgress(10, 'Starting import process...');
@@ -953,6 +968,7 @@ async function performImport(file, stateId, groupTypeId, grupoPacientes) {
                 const payload = {
                     stateID: stateId,
                     groupTypeID: groupTypeId,
+                    textmessageId:textmessageId,
                     grupoPacientes: grupoPacientes,
                     observations: mappedData
                 };
@@ -962,6 +978,7 @@ async function performImport(file, stateId, groupTypeId, grupoPacientes) {
                 const res = await fetch('/api/observations/import', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',   // 👈 ESSENCIAL
                     body: JSON.stringify(payload)
                 });
 
@@ -1337,7 +1354,7 @@ function showCurrentPage() {
         let groupTypeDesc = obs.groupTypeDescription || 
                            (obs.group && obs.group.grouptypeDescription) || 
                            (obs.group && obs.group.groupTypeDescription) || 
-                           'Pacientes Marcados para Levantamento de ARVs';
+                           'Marcados para levantamento de ARV';
         
         const row = document.createElement('tr');
         row.innerHTML = `
