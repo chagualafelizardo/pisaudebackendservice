@@ -2429,12 +2429,12 @@ $(document).ready(function() {
     
     function getCorEvento(status) {
         const cores = {
-            'pendente': '#ffc107',
-            'confirmado': '#198754',
-            'cancelado': '#dc3545',
-            'realizado': '#0dcaf0',
+            'pendente': '#e6a800',  // amarelo mais escuro
+            'confirmado': '#146c43', // verde mais escuro
+            'cancelado': '#b02a37',  // vermelho mais escuro
+            'realizado': '#0a7c8c',  // azul mais escuro
             'disponivel': '#d1e7dd',
-            'mobile': '#6f42c1' // Cor especial para agendamentos via mobile
+            'mobile': '#6f42c1'
         };
         return cores[status] || '#a3d9b1';
     }

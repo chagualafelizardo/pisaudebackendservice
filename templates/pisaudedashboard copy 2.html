@@ -268,18 +268,6 @@ tr.unknown-state:hover {
     background: linear-gradient(135deg, #f8f9fa 0%, #f8d7da 100%);
 }
 
-/* Estilo para métrica de CV suprimida (CV < 1000) */
-.metric-box.cv-suprimida {
-    border-left-color: #6f42c1;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9d8fd 100%);
-}
-
-/* NOVO: Estilo para métrica de CV alta (CV ≥ 1000) */
-.metric-box.cv-alta {
-    border-left-color: #d63384;
-    background: linear-gradient(135deg, #f8f9fa 0%, #f8d7da 100%);
-}
-
 /* Estilo para as tabelas de resumo */
 .summary-table {
     font-size: 0.85rem;
@@ -359,11 +347,6 @@ tr.unknown-state:hover {
     background-color: #dc3545;
     color: white;
     border-color: #dc3545;
-}
-
-.filter-btn.active {
-    box-shadow: 0 0 0 3px rgba(0,123,255,0.5);
-    transform: scale(1.05);
 }
 
 /* Estilo para o contador de filtros ativos */
@@ -588,48 +571,32 @@ tr.unknown-state:hover {
 
     <!-- ============== ACTION METRICS ============== -->
     <div class="row mb-4">
-        <div class="col-md-2 col-sm-4 mb-3">
+        <div class="col-md-3">
             <div class="metric-box chamada">
                 <h5><i class="fas fa-phone me-1"></i> Chamadas</h5>
                 <div class="metric-value" id="chamadasCount">0</div>
                 <div class="metric-trend">Pacientes para contactar</div>
             </div>
         </div>
-        <div class="col-md-2 col-sm-4 mb-3">
+        <div class="col-md-3">
             <div class="metric-box sms">
                 <h5><i class="fas fa-sms me-1"></i> SMS</h5>
                 <div class="metric-value" id="smsCount">0</div>
                 <div class="metric-trend">Mensagens a enviar</div>
             </div>
         </div>
-        <div class="col-md-2 col-sm-4 mb-3">
+        <div class="col-md-3">
             <div class="metric-box faltosos">
                 <h5><i class="fas fa-user-clock me-1"></i> Faltosos</h5>
                 <div class="metric-value" id="faltososCount">0</div>
                 <div class="metric-trend">Pacientes em atraso</div>
             </div>
         </div>
-        <div class="col-md-2 col-sm-4 mb-3">
+        <div class="col-md-3">
             <div class="metric-box visita">
                 <h5><i class="fas fa-home me-1"></i> Visitas</h5>
                 <div class="metric-value" id="visitasCount">0</div>
                 <div class="metric-trend">Visitas domiciliares</div>
-            </div>
-        </div>
-        <!-- Card CV < 1000 -->
-        <div class="col-md-2 col-sm-4 mb-3">
-            <div class="metric-box cv-suprimida">
-                <h5><i class="fas fa-vial me-1"></i> CV < 1000</h5>
-                <div class="metric-value" id="cvSuprimidaCount">0</div>
-                <div class="metric-trend">Pacientes com supressão viral</div>
-            </div>
-        </div>
-        <!-- NOVO Card CV ≥ 1000 -->
-        <div class="col-md-2 col-sm-4 mb-3">
-            <div class="metric-box cv-alta">
-                <h5><i class="fas fa-vial me-1"></i> CV ≥ 1000</h5>
-                <div class="metric-value" id="cvAltaCount">0</div>
-                <div class="metric-trend">Pacientes com carga viral não suprimida</div>
             </div>
         </div>
     </div>
@@ -678,9 +645,9 @@ tr.unknown-state:hover {
         </div>
     </div>
 
-    <!-- ============== CHARTS SECTION - SEGUNDA LINHA (ATUALIZADA) ============== -->
+    <!-- ============== CHARTS SECTION - SEGUNDA LINHA (NOVOS GRÁFICOS) ============== -->
     <div class="chart-grid mt-4">
-        <!-- Gráfico por Unidade Sanitária com categorias -->
+        <!-- Gráfico por Unidade Sanitária -->
         <div class="chart-card">
             <div class="chart-header">
                 <h6 class="mb-0"><i class="fas fa-hospital me-2"></i> Observações por Unidade Sanitária</h6>
@@ -692,7 +659,7 @@ tr.unknown-state:hover {
             </div>
         </div>
 
-        <!-- Gráfico de Funil de Elegibilidade (novo) -->
+        <!-- Gráfico de Cascata (Elegibilidade) -->
         <div class="chart-card">
             <div class="chart-header">
                 <h6 class="mb-0"><i class="fas fa-filter me-2"></i> Funil de Elegibilidade</h6>
@@ -776,10 +743,8 @@ tr.unknown-state:hover {
 <script>
 /* ======== GLOBAL VARIABLES & CONFIGURATION ======== */
 let observationsData = [];
-let baseFilteredData = [];       // dados para os gráficos (filtros principais)
-let actionFilteredData = [];     // dados para métricas de ação e tabela (filtros principais + ação)
+let filteredData = [];
 let currentFilters = {};
-let currentAction = null;        // 'chamada', 'sms', 'faltosos', 'visita' ou null
 let charts = {};
 
 // DOM Elements
@@ -880,26 +845,16 @@ async function loadDashboardData() {
         
         // Se encontrou, filtrar por 'Inicial' por padrão
         if (initialStateId) {
-            baseFilteredData = observationsData.filter(obs => obs.stateId == initialStateId);
-            if (baseFilteredData.length === 0) {
-                // Se não houver observações com estado Inicial, mostra todos os dados
-                console.log('Nenhuma observação com estado "Inicial". Mostrando todos os dados.');
-                baseFilteredData = observationsData;
-                currentFilters = {};
-                document.getElementById('filterStatus').value = '';
-                showAlert('info', 'Nenhuma observação com estado "Inicial". Exibindo todos os dados.');
-            } else {
-                currentFilters = { stateId: initialStateId };
-                document.getElementById('filterStatus').value = initialStateId;
-                console.log(`Filtrando por 'Inicial' (ID: ${initialStateId}). Total filtrado: ${baseFilteredData.length}`);
-            }
+            filteredData = observationsData.filter(obs => obs.stateId == initialStateId);
+            currentFilters = { stateId: initialStateId };
+            document.getElementById('filterStatus').value = initialStateId;
+            
+            console.log(`Filtrando por 'Inicial' (ID: ${initialStateId}). Total filtrado: ${filteredData.length}`);
         } else {
-            baseFilteredData = observationsData;
+            // Se não encontrou, mostrar todos os dados
+            filteredData = observationsData;
             console.log('Estado "Inicial" não encontrado. Mostrando todos os dados.');
         }
-        
-        // Inicialmente, actionFilteredData = baseFilteredData (sem ação)
-        actionFilteredData = [...baseFilteredData];
         
         // Update all dashboard components
         updateMetrics();
@@ -908,8 +863,8 @@ async function loadDashboardData() {
         updateActiveFiltersDisplay();
         updateLastUpdated();
         
-        // Load charts with base data
-        loadCharts(baseFilteredData);
+        // Load charts
+        loadCharts();
         
         showAlert('success', 'Dashboard data refreshed successfully');
         
@@ -919,8 +874,7 @@ async function loadDashboardData() {
         
         // Fallback
         observationsData = [];
-        baseFilteredData = [];
-        actionFilteredData = [];
+        filteredData = [];
         updateMetrics();
         updateActionMetrics();
         updateRecentObservations();
@@ -929,50 +883,24 @@ async function loadDashboardData() {
     }
 }
 
-/* ======== APPLY ACTION FILTER ======== */
-function applyActionFilter(data, action) {
-    if (!action) return data;
-    return data.filter(obs => {
-        const text = (obs.observation || '').toLowerCase() + 
-                     (obs.stateDescription || '').toLowerCase() + 
-                     (obs.textMessageDescription || '').toLowerCase();
-        switch(action) {
-            case 'chamada':
-                return text.includes('chamada') || text.includes('contactar') || 
-                       text.includes('telefone') || text.includes('ligação');
-            case 'sms':
-                return text.includes('sms') || text.includes('mensagem') || 
-                       text.includes('texto') || text.includes('envio');
-            case 'faltosos':
-                return text.includes('faltoso') || text.includes('falta') || 
-                       text.includes('atraso') || text.includes('não compareceu');
-            case 'visita':
-                return text.includes('visita') || text.includes('domiciliar') || 
-                       text.includes('casa') || text.includes('domicílio');
-            default:
-                return true;
-        }
-    });
-}
-
 /* ======== METRICS FUNCTIONS ======== */
 function updateMetrics() {
-    const totalObservations = baseFilteredData.length;
+    const totalObservations = filteredData.length;
     
     // Count initial status
     const initialStateId = findInitialStateId();
     const initialStatusCount = initialStateId ? 
-        baseFilteredData.filter(obs => obs.stateId == initialStateId).length : 0;
+        filteredData.filter(obs => obs.stateId == initialStateId).length : 0;
     
     // Count unique health facilities
-    const uniqueLocations = new Set(baseFilteredData.map(obs => obs.locationId).filter(id => id));
+    const uniqueLocations = new Set(filteredData.map(obs => obs.locationId).filter(id => id));
     const healthFacilitiesCount = uniqueLocations.size;
     
     // Calculate SMS coverage
-    const smsCoverage = baseFilteredData.filter(o => 
+    const smsCoverage = filteredData.filter(o => 
         o.textMessageDescription && o.textMessageDescription !== 'No message').length;
-    const smsCoveragePercentage = baseFilteredData.length > 0 ? 
-        Math.round((smsCoverage / baseFilteredData.length) * 100) : 0;
+    const smsCoveragePercentage = filteredData.length > 0 ? 
+        Math.round((smsCoverage / filteredData.length) * 100) : 0;
     
     document.getElementById('totalObservations').textContent = totalObservations.toLocaleString();
     document.getElementById('initialStatusCount').textContent = initialStatusCount.toLocaleString();
@@ -981,10 +909,10 @@ function updateMetrics() {
 }
 
 function updateActionMetrics() {
+    // IMPORTANTE: Só contar observações que NÃO são do estado "Inicial"
+    // para as métricas de ação
     const initialStateId = findInitialStateId();
-    
-    // Para chamada, SMS, faltosos: excluir estado Inicial
-    const observationsWithoutInitial = baseFilteredData.filter(obs => {
+    const observationsToCount = filteredData.filter(obs => {
         if (initialStateId) {
             return obs.stateId != initialStateId;
         }
@@ -994,60 +922,47 @@ function updateActionMetrics() {
     let chamadasCount = 0;
     let smsCount = 0;
     let faltososCount = 0;
+    let visitasCount = 0;
     
-    observationsWithoutInitial.forEach(obs => {
+    observationsToCount.forEach(obs => {
         const stateDesc = obs.stateDescription ? obs.stateDescription.toLowerCase() : '';
+        const textMsg = obs.textMessageDescription ? obs.textMessageDescription.toLowerCase() : '';
         const obsText = obs.observation ? obs.observation.toLowerCase() : '';
         
-        // Chamadas
+        // Verificar se é uma ação específica
+        // Chamadas: estado contém "chamada" ou "contactar"
         if (stateDesc.includes('chamada') || stateDesc.includes('contactar') || 
             stateDesc.includes('ligação') || stateDesc.includes('telefone') ||
             obsText.includes('chamada') || obsText.includes('contactar') ||
             obsText.includes('ligação') || obsText.includes('telefone')) {
             chamadasCount++;
         }
-        // SMS
+        
+        // SMS: estado contém "sms" ou "mensagem"
         else if (stateDesc.includes('sms') || stateDesc.includes('mensagem') || 
                  obsText.includes('sms') || obsText.includes('mensagem')) {
             smsCount++;
         }
-        // Faltosos
+        
+        // Faltosos: estado contém "faltoso" ou "falta"
         else if (stateDesc.includes('faltoso') || stateDesc.includes('falta') || 
                  stateDesc.includes('atraso') || stateDesc.includes('não compareceu') ||
                  obsText.includes('faltoso') || obsText.includes('falta')) {
             faltososCount++;
         }
+        
+        // Visitas: estado contém "visita" ou "domiciliar"
+        else if (stateDesc.includes('visita') || stateDesc.includes('domiciliar') || 
+                 stateDesc.includes('casa') || obsText.includes('visita') ||
+                 obsText.includes('domiciliar')) {
+            visitasCount++;
+        }
     });
-    
-    // Visitas: todos os pacientes sem contacto (incluindo estado Inicial)
-    let visitasCount = baseFilteredData.filter(obs => {
-        const hasContact = !!(obs.contact && obs.contact.trim() !== '');
-        return !hasContact;
-    }).length;
     
     document.getElementById('chamadasCount').textContent = chamadasCount.toLocaleString();
     document.getElementById('smsCount').textContent = smsCount.toLocaleString();
     document.getElementById('faltososCount').textContent = faltososCount.toLocaleString();
     document.getElementById('visitasCount').textContent = visitasCount.toLocaleString();
-    
-    // CV: apenas para o grupo "Pacientes com Carga Viral", sem exclusão de estado
-    let cvSuprimidaCount = 0;
-    let cvAltaCount = 0;
-    baseFilteredData.forEach(obs => {
-        const groupDesc = obs.groupTypeDescription || '';
-        if (groupDesc.trim() === 'Pacientes com Carga Viral') {
-            const viralLoad = parseFloat(obs.valorultimacv);
-            if (!isNaN(viralLoad)) {
-                if (viralLoad < 1000) {
-                    cvSuprimidaCount++;
-                } else {
-                    cvAltaCount++;
-                }
-            }
-        }
-    });
-    document.getElementById('cvSuprimidaCount').textContent = cvSuprimidaCount.toLocaleString();
-    document.getElementById('cvAltaCount').textContent = cvAltaCount.toLocaleString();
 }
 
 function updateRecentObservations() {
@@ -1055,8 +970,8 @@ function updateRecentObservations() {
     
     if (!container) return;
     
-    // Sort by update date and take top 5 from actionFilteredData
-    const recentObservations = [...actionFilteredData]
+    // Sort by update date and take top 5
+    const recentObservations = [...filteredData]
         .sort((a, b) => new Date(b.updateAt || b.createdAt) - new Date(a.updateAt || a.createdAt))
         .slice(0, 5);
     
@@ -1093,9 +1008,9 @@ function updateRecentObservations() {
     }).join('');
 }
 
-/* ======== CHART FUNCTIONS (recebem data) ======== */
-function loadCharts(data) {
-    if (data.length === 0) {
+/* ======== CHART FUNCTIONS ======== */
+function loadCharts() {
+    if (filteredData.length === 0) {
         console.log('No data to display in charts');
         return;
     }
@@ -1108,27 +1023,27 @@ function loadCharts(data) {
     charts = {};
     
     // Create original charts
-    createStatusChart(data);
-    createTimelineChart(data);
-    createLocationChart(data);
+    createStatusChart();
+    createTimelineChart();
+    createLocationChart();
     
     // Create new charts
-    createLocationBarChart(data);
-    createFunnelChart(data);
+    createLocationBarChart();
+    createFunnelChart();
 }
 
-function createStatusChart(data) {
+function createStatusChart() {
     const ctx = document.getElementById('statusChart').getContext('2d');
     
     // Group by status
     const statusCounts = {};
-    data.forEach(obs => {
+    filteredData.forEach(obs => {
         const status = obs.stateDescription || 'Unknown';
         statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
     
     const labels = Object.keys(statusCounts);
-    const dataVals = Object.values(statusCounts);
+    const data = Object.values(statusCounts);
     const backgroundColors = labels.map(label => {
         const lowerLabel = label.toLowerCase();
         if (lowerLabel.includes('active')) return '#28a745';
@@ -1147,7 +1062,7 @@ function createStatusChart(data) {
         data: {
             labels: labels,
             datasets: [{
-                data: dataVals,
+                data: data,
                 backgroundColor: backgroundColors,
                 borderColor: '#fff',
                 borderWidth: 2
@@ -1182,12 +1097,12 @@ function createStatusChart(data) {
     });
 }
 
-function createTimelineChart(data, period = 'week') {
+function createTimelineChart(period = 'week') {
     const ctx = document.getElementById('timelineChart').getContext('2d');
     
     // Group by date
     const dateCounts = {};
-    data.forEach(obs => {
+    filteredData.forEach(obs => {
         const date = new Date(obs.createdAt || obs.updateAt || Date.now());
         let key;
         
@@ -1211,7 +1126,7 @@ function createTimelineChart(data, period = 'week') {
     // Sort dates
     const sortedDates = Object.keys(dateCounts).sort();
     const labels = sortedDates;
-    const dataVals = sortedDates.map(date => dateCounts[date]);
+    const data = sortedDates.map(date => dateCounts[date]);
     
     charts.timeline = new Chart(ctx, {
         type: 'line',
@@ -1219,7 +1134,7 @@ function createTimelineChart(data, period = 'week') {
             labels: labels,
             datasets: [{
                 label: 'Observations',
-                data: dataVals,
+                data: data,
                 borderColor: '#007bff',
                 backgroundColor: 'rgba(0, 123, 255, 0.1)',
                 borderWidth: 2,
@@ -1248,12 +1163,12 @@ function createTimelineChart(data, period = 'week') {
     });
 }
 
-function createLocationChart(data) {
+function createLocationChart() {
     const ctx = document.getElementById('locationChart').getContext('2d');
     
     // Group by location
     const locationCounts = {};
-    data.forEach(obs => {
+    filteredData.forEach(obs => {
         const location = obs.locationName || 'Unknown Location';
         locationCounts[location] = (locationCounts[location] || 0) + 1;
     });
@@ -1264,7 +1179,7 @@ function createLocationChart(data) {
         .slice(0, 5);
     
     const labels = sortedLocations.map(([location]) => location);
-    const dataVals = sortedLocations.map(([, count]) => count);
+    const data = sortedLocations.map(([, count]) => count);
     const colors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6c757d'];
     
     charts.location = new Chart(ctx, {
@@ -1272,7 +1187,7 @@ function createLocationChart(data) {
         data: {
             labels: labels,
             datasets: [{
-                data: dataVals,
+                data: data,
                 backgroundColor: colors,
                 borderColor: '#fff',
                 borderWidth: 2
@@ -1294,88 +1209,28 @@ function updateTimelineChart(period) {
     if (charts.timeline) {
         charts.timeline.destroy();
     }
-    createTimelineChart(baseFilteredData, period);
+    createTimelineChart(period);
 }
 
-// Gráfico de barras empilhadas por unidade sanitária com base no tipo de grupo
-function createLocationBarChart(data) {
+/* ======== NOVOS GRÁFICOS ======== */
+
+function createLocationBarChart() {
     const ctx = document.getElementById('locationBarChart').getContext('2d');
     
-    // Categorias baseadas no grupo de pacientes (groupTypeDescription)
-    const categorias = [
-        { chave: 'Inicio ao TARV', rotulo: 'Início TARV', cor: '#007bff' },
-        { chave: 'Adesão ao TARV', rotulo: 'Adesão TARV', cor: '#28a745' },
-        { chave: 'Marcados para levantamento de ARV', rotulo: 'Marcados Levantamento', cor: '#ffc107' },
-        { chave: 'Pacientes com Carga Viral', rotulo: 'Carga Viral', cor: '#17a2b8' },
-        { chave: 'Faltosos ao levantamento de arv', rotulo: 'Faltosos', cor: '#dc3545' },
-        { chave: 'Abandonos', rotulo: 'Abandonos', cor: '#6c757d' }
-    ];
-    // Outros grupos vão para "Outros"
-    
-    // Agrupar por localidade
-    const locationMap = new Map(); // chave: nome local, valor: array de contagens por categoria
-    data.forEach(obs => {
+    // Agrupar por localidade (locationName)
+    const locationCounts = {};
+    filteredData.forEach(obs => {
         const loc = obs.locationName || 'Desconhecido';
-        if (!locationMap.has(loc)) {
-            locationMap.set(loc, new Array(categorias.length + 1).fill(0)); // +1 para "Outros"
-        }
-        const counts = locationMap.get(loc);
-        
-        // Obter a descrição do grupo (groupTypeDescription)
-        const groupDesc = obs.groupTypeDescription || '';
-        
-        let found = false;
-        // Primeiro tenta correspondência exata (case-sensitive)
-        for (let i = 0; i < categorias.length; i++) {
-            if (groupDesc === categorias[i].chave) {
-                counts[i]++;
-                found = true;
-                break;
-            }
-        }
-        // Se não encontrou, tenta normalização (ignora acentos e diferenças de maiúsculas/minúsculas)
-        if (!found) {
-            const normalizedDesc = groupDesc.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            for (let i = 0; i < categorias.length; i++) {
-                const normalizedChave = categorias[i].chave.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                if (normalizedDesc.includes(normalizedChave) || normalizedChave.includes(normalizedDesc)) {
-                    counts[i]++;
-                    found = true;
-                    break;
-                }
-            }
-        }
-        if (!found) {
-            counts[categorias.length]++; // Outros
-        }
+        locationCounts[loc] = (locationCounts[loc] || 0) + 1;
     });
     
-    // Ordenar localidades por total de observações (decrescente) e pegar top 5
-    const sortedLocs = Array.from(locationMap.entries())
-        .map(([loc, counts]) => ({ loc, total: counts.reduce((a,b) => a+b, 0), counts }))
-        .sort((a,b) => b.total - a.total)
-        .slice(0, 5);
+    // Ordenar por contagem decrescente e pegar top 10 para não poluir
+    const sorted = Object.entries(locationCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
     
-    const labels = sortedLocs.map(item => item.loc);
-    // datasets para cada categoria
-    const datasets = [];
-    for (let i = 0; i < categorias.length; i++) {
-        datasets.push({
-            label: categorias[i].rotulo,
-            data: sortedLocs.map(item => item.counts[i]),
-            backgroundColor: categorias[i].cor,
-            borderColor: 'rgba(0,0,0,0.1)',
-            borderWidth: 1
-        });
-    }
-    // Dataset "Outros"
-    datasets.push({
-        label: 'Outros',
-        data: sortedLocs.map(item => item.counts[categorias.length]),
-        backgroundColor: '#cccccc',
-        borderColor: 'rgba(0,0,0,0.1)',
-        borderWidth: 1
-    });
+    const labels = sorted.map(([loc]) => loc);
+    const data = sorted.map(([, count]) => count);
     
     // Destruir gráfico anterior se existir
     if (charts.locationBar) charts.locationBar.destroy();
@@ -1384,106 +1239,88 @@ function createLocationBarChart(data) {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            indexAxis: 'y', // barras horizontais
-            plugins: {
-                tooltip: {
-                    mode: 'index',
-                    intersect: false,
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            let value = context.raw || 0;
-                            let total = context.dataset.data.reduce((a,b) => a + b, 0);
-                            let percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                            return `${label}: ${value} (${percentage}%)`;
-                        }
-                    }
-                },
-                legend: {
-                    position: 'top',
-                    labels: { boxWidth: 12, font: { size: 10 } }
-                }
-            },
-            scales: {
-                x: { 
-                    stacked: true, 
-                    title: { display: true, text: 'Nº de Pacientes' },
-                    beginAtZero: true
-                },
-                y: { stacked: true }
-            }
-        }
-    });
-}
-
-// Gráfico de funil de elegibilidade
-function createFunnelChart(data) {
-    const ctx = document.getElementById('funnelChart').getContext('2d');
-    
-    let totalComContacto = 0;
-    let totalCVBaixa = 0;
-    let totalCVAlta = 0;
-    let totalSemContacto = 0;
-    
-    data.forEach(obs => {
-        const hasContact = !!(obs.contact && obs.contact.trim() !== '');
-        const viralLoad = parseFloat(obs.valorultimacv);
-        const groupDesc = obs.groupTypeDescription || '';
-        
-        // Contacto (global)
-        if (hasContact) {
-            totalComContacto++;
-        } else {
-            totalSemContacto++;
-        }
-        
-        // CV apenas para o grupo "Pacientes com Carga Viral"
-        if (groupDesc === 'Pacientes com Carga Viral' && !isNaN(viralLoad)) {
-            if (viralLoad < 1000) {
-                totalCVBaixa++;
-            } else {
-                totalCVAlta++;
-            }
-        }
-    });
-    
-    if (charts.funnel) charts.funnel.destroy();
-    
-    charts.funnel = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: [
-                'Com contacto | Elegíveis SMS',
-                'CV < 1000',
-                'CV ≥ 1000',
-                'Sem contacto | Elegíveis Visitas'
-            ],
             datasets: [{
-                data: [totalComContacto, totalCVBaixa, totalCVAlta, totalSemContacto],
-                backgroundColor: ['#17a2b8', '#28a745', '#dc3545', '#ffc107'],
-                borderColor: ['#17a2b8', '#28a745', '#dc3545', '#ffc107'],
+                label: 'Observações',
+                data: data,
+                backgroundColor: '#17a2b8',
+                borderColor: '#117a8b',
                 borderWidth: 1
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            indexAxis: 'y',
+            indexAxis: 'y', // barras horizontais para caber melhor
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (ctx) => `${ctx.raw} observações` } }
+            },
+            scales: {
+                x: { beginAtZero: true, title: { display: true, text: 'Nº de Observações' } }
+            }
+        }
+    });
+}
+
+function createFunnelChart() {
+    const ctx = document.getElementById('funnelChart').getContext('2d');
+    
+    // Calcular métricas
+    let comContacto = 0;
+    let comContactoECVBaixa = 0;
+    let semContacto = 0;
+    
+    filteredData.forEach(obs => {
+        // Verifica se tem contacto (campo 'contact' ou 'telefone' ou 'contacto')
+        const hasContact = !!(obs.contact || obs.telefone || obs.contacto);
+        // Tenta obter carga viral de diferentes nomes possíveis
+        const viralLoad = parseFloat(obs.cargaViral) || parseFloat(obs.cv) || 999999; // se não existir, assume alto
+        
+        if (!hasContact) {
+            semContacto++;
+        } else {
+            comContacto++;
+            if (viralLoad < 1000) {
+                comContactoECVBaixa++;
+            }
+        }
+    });
+    
+    // Destruir gráfico anterior
+    if (charts.funnel) charts.funnel.destroy();
+    
+    charts.funnel = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [
+                'Com Contacto',
+                'Com Contacto e CV < 1000',
+                'Sem Contacto (Visita)'
+            ],
+            datasets: [{
+                data: [comContacto, comContactoECVBaixa, semContacto],
+                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                borderColor: ['#1e7e34', '#d39e00', '#bd2130'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => `${ctx.raw} pacientes`
+                        label: (ctx) => {
+                            const total = comContacto + semContacto;
+                            const percent = total ? ((ctx.raw / total) * 100).toFixed(1) : 0;
+                            return `${ctx.raw} pacientes (${percent}%)`;
+                        }
                     }
                 }
             },
             scales: {
-                x: { beginAtZero: true, title: { display: true, text: 'Nº de Pacientes' } }
+                y: { beginAtZero: true, title: { display: true, text: 'Nº de Pacientes' } }
             }
         }
     });
@@ -1539,39 +1376,36 @@ async function filterObservations() {
         
         const apiData = await res.json();
         
-        // Update base data
-        baseFilteredData = apiData;
+        // Update our data
+        filteredData = apiData;
         
-        // Reapply action filter if active
-        actionFilteredData = currentAction ? applyActionFilter(baseFilteredData, currentAction) : [...baseFilteredData];
-        
-        console.log('Filtered data received:', baseFilteredData.length);
+        console.log('Filtered data received:', filteredData.length);
         
         // Update current filters
         currentFilters = { ...filters };
         
-        // Update all dashboard components
+        // Update all dashboard components with filtered data
         updateMetrics();
         updateActionMetrics();
         updateRecentObservations();
         updateActiveFiltersDisplay();
         
-        // Reload charts with base data
+        // Reload charts with filtered data
         if (charts.status) charts.status.destroy();
         if (charts.timeline) charts.timeline.destroy();
         if (charts.location) charts.location.destroy();
         if (charts.locationBar) charts.locationBar.destroy();
         if (charts.funnel) charts.funnel.destroy();
-        loadCharts(baseFilteredData);
+        loadCharts();
         
-        showAlert('success', `Filtro aplicado: ${baseFilteredData.length} observações encontradas`);
+        showAlert('success', `Filtro aplicado: ${filteredData.length} observações encontradas`);
         
     } catch (error) {
         console.error('Error filtering observations:', error);
         showAlert('error', 'Error applying filters: ' + error.message);
         
         // Fallback: apply filters locally
-        baseFilteredData = observationsData.filter(obs => {
+        filteredData = observationsData.filter(obs => {
             let pass = true;
             
             // Status filter
@@ -1609,9 +1443,7 @@ async function filterObservations() {
             return pass;
         });
         
-        actionFilteredData = currentAction ? applyActionFilter(baseFilteredData, currentAction) : [...baseFilteredData];
-        
-        // Update components
+        // Update components with locally filtered data
         updateMetrics();
         updateActionMetrics();
         updateRecentObservations();
@@ -1623,9 +1455,9 @@ async function filterObservations() {
         if (charts.location) charts.location.destroy();
         if (charts.locationBar) charts.locationBar.destroy();
         if (charts.funnel) charts.funnel.destroy();
-        loadCharts(baseFilteredData);
+        loadCharts();
         
-        showAlert('warning', `Filtro aplicado localmente: ${baseFilteredData.length} observações`);
+        showAlert('warning', `Filtro aplicado localmente: ${filteredData.length} observações`);
     } finally {
         showDashboardLoader(false);
     }
@@ -1635,21 +1467,112 @@ async function filterObservations() {
 async function filterByAction(action) {
     console.log(`Filtering by action: ${action}`);
     
-    if (currentAction === action) {
-        currentAction = null;
-        actionFilteredData = [...baseFilteredData];
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    } else {
-        currentAction = action;
-        actionFilteredData = applyActionFilter(baseFilteredData, action);
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector(`.filter-btn.${action}`).classList.add('active');
+    try {
+        // First, load all states to find the right one
+        const res = await fetch('/api/state');
+        const states = await res.json();
+        
+        let stateId = null;
+        let stateName = '';
+        
+        // Find state that matches the action
+        states.forEach(state => {
+            const desc = state.description.toLowerCase();
+            
+            switch(action) {
+                case 'chamada':
+                    if (desc.includes('chamada') || desc.includes('contactar') || desc.includes('telefone')) {
+                        stateId = state.id;
+                        stateName = state.description;
+                    }
+                    break;
+                case 'sms':
+                    if (desc.includes('sms') || desc.includes('mensagem') || desc.includes('texto')) {
+                        stateId = state.id;
+                        stateName = state.description;
+                    }
+                    break;
+                case 'faltosos':
+                    if (desc.includes('faltoso') || desc.includes('falta') || desc.includes('atraso')) {
+                        stateId = state.id;
+                        stateName = state.description;
+                    }
+                    break;
+                case 'visita':
+                    if (desc.includes('visita') || desc.includes('domiciliar') || desc.includes('casa')) {
+                        stateId = state.id;
+                        stateName = state.description;
+                    }
+                    break;
+            }
+        });
+        
+        if (stateId) {
+            // Clear other filters
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            document.getElementById('filterGroup').value = '';
+            document.getElementById('filterLocation').value = '';
+            
+            // Set status filter
+            document.getElementById('filterStatus').value = stateId;
+            
+            // Apply the filter through backend
+            await filterObservations();
+            
+            showAlert('success', `Filtrado por: ${stateName}`);
+        } else {
+            // If no specific state found, filter locally by text content
+            console.log(`No state found for ${action}, filtering by text content`);
+            
+            // Clear all filters first
+            await clearFilters();
+            
+            // Filter by text content locally
+            filteredData = observationsData.filter(obs => {
+                const text = (obs.observation || '').toLowerCase() + 
+                           (obs.stateDescription || '').toLowerCase() + 
+                           (obs.textMessageDescription || '').toLowerCase();
+                
+                switch(action) {
+                    case 'chamada':
+                        return text.includes('chamada') || text.includes('contactar') || 
+                               text.includes('telefone') || text.includes('ligação');
+                    case 'sms':
+                        return text.includes('sms') || text.includes('mensagem') || 
+                               text.includes('texto') || text.includes('envio');
+                    case 'faltosos':
+                        return text.includes('faltoso') || text.includes('falta') || 
+                               text.includes('atraso') || text.includes('não compareceu');
+                    case 'visita':
+                        return text.includes('visita') || text.includes('domiciliar') || 
+                               text.includes('casa') || text.includes('domicílio');
+                    default:
+                        return true;
+                }
+            });
+            
+            // Update components
+            updateMetrics();
+            updateActionMetrics();
+            updateRecentObservations();
+            updateActiveFiltersDisplay();
+            
+            // Update charts
+            if (charts.status) charts.status.destroy();
+            if (charts.timeline) charts.timeline.destroy();
+            if (charts.location) charts.location.destroy();
+            if (charts.locationBar) charts.locationBar.destroy();
+            if (charts.funnel) charts.funnel.destroy();
+            loadCharts();
+            
+            showAlert('success', `Filtrado por ${action}: ${filteredData.length} observações`);
+        }
+        
+    } catch (error) {
+        console.error('Error in filterByAction:', error);
+        showAlert('error', 'Error applying action filter');
     }
-    
-    // Atualiza apenas a tabela de recentes (não as métricas)
-    updateRecentObservations();
-    
-    showAlert('info', currentAction ? `Filtrado por ${action}` : 'Filtro de ação removido');
 }
 
 /* ======== CLEAR FILTERS ======== */
@@ -1665,10 +1588,6 @@ async function clearFilters() {
     
     currentFilters = {};
     
-    // Reset action
-    currentAction = null;
-    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-    
     // Reload all data from API (without filters)
     showDashboardLoader(true);
     try {
@@ -1680,22 +1599,14 @@ async function clearFilters() {
         // Apply initial filter if exists
         const initialStateId = findInitialStateId();
         if (initialStateId) {
-            baseFilteredData = observationsData.filter(obs => obs.stateId == initialStateId);
-            if (baseFilteredData.length === 0) {
-                baseFilteredData = observationsData;
-                document.getElementById('filterStatus').value = '';
-                showAlert('info', 'Nenhuma observação com estado "Inicial". Exibindo todos os dados.');
-            } else {
-                currentFilters = { stateId: initialStateId };
-                document.getElementById('filterStatus').value = initialStateId;
-            }
-            console.log(`Reset to 'Inicial' filter. Count: ${baseFilteredData.length}`);
+            filteredData = observationsData.filter(obs => obs.stateId == initialStateId);
+            currentFilters = { stateId: initialStateId };
+            document.getElementById('filterStatus').value = initialStateId;
+            console.log(`Reset to 'Inicial' filter. Count: ${filteredData.length}`);
         } else {
-            baseFilteredData = observationsData;
-            console.log('No initial filter found. Showing all data:', baseFilteredData.length);
+            filteredData = observationsData;
+            console.log('No initial filter found. Showing all data:', filteredData.length);
         }
-        
-        actionFilteredData = [...baseFilteredData];
         
         // Update all components
         updateMetrics();
@@ -1709,9 +1620,9 @@ async function clearFilters() {
         if (charts.location) charts.location.destroy();
         if (charts.locationBar) charts.locationBar.destroy();
         if (charts.funnel) charts.funnel.destroy();
-        loadCharts(baseFilteredData);
+        loadCharts();
         
-        showAlert('info', `Filtros limpos. Mostrando ${baseFilteredData.length} observações`);
+        showAlert('info', `Filtros limpos. Mostrando ${filteredData.length} observações`);
         
     } catch (error) {
         console.error('Error clearing filters:', error);
@@ -1909,28 +1820,15 @@ window.onload = async function() {
         
         // Find and apply initial state filter
         const initialStateId = findInitialStateId();
-        console.log('Initial state ID found:', initialStateId);
-        
         if (initialStateId) {
-            baseFilteredData = observationsData.filter(obs => obs.stateId == initialStateId);
-            if (baseFilteredData.length === 0) {
-                // Se não houver observações com estado Inicial, mostra todos os dados
-                console.log('Nenhuma observação com estado "Inicial". Mostrando todos os dados.');
-                baseFilteredData = observationsData;
-                currentFilters = {};
-                document.getElementById('filterStatus').value = '';
-                showAlert('info', 'Nenhuma observação com estado "Inicial". Exibindo todos os dados.');
-            } else {
-                currentFilters = { stateId: initialStateId };
-                document.getElementById('filterStatus').value = initialStateId;
-                console.log(`Initial filter applied: 'Inicial' (ID: ${initialStateId}), ${baseFilteredData.length} observations`);
-            }
+            filteredData = observationsData.filter(obs => obs.stateId == initialStateId);
+            currentFilters = { stateId: initialStateId };
+            document.getElementById('filterStatus').value = initialStateId;
+            console.log(`Initial filter applied: 'Inicial' (ID: ${initialStateId}), ${filteredData.length} observations`);
         } else {
-            baseFilteredData = observationsData;
+            filteredData = observationsData;
             console.log('No initial state found, showing all data');
         }
-        
-        actionFilteredData = [...baseFilteredData];
         
         // Update dashboard
         updateMetrics();
@@ -1940,9 +1838,9 @@ window.onload = async function() {
         updateLastUpdated();
         
         // Load charts
-        loadCharts(baseFilteredData);
+        loadCharts();
         
-        showAlert('success', `Dashboard carregado com ${baseFilteredData.length} observações`);
+        showAlert('success', `Dashboard carregado com ${filteredData.length} observações`);
         
     } catch (error) {
         console.error('Error during initialization:', error);
@@ -1950,8 +1848,7 @@ window.onload = async function() {
         
         // Fallback: empty data
         observationsData = [];
-        baseFilteredData = [];
-        actionFilteredData = [];
+        filteredData = [];
         updateMetrics();
         updateRecentObservations();
     } finally {

@@ -173,7 +173,8 @@ from routes.NotaEnvioDocumentRoutes import nota_envio_document_bp
 from routes.ItensPendentesRoutes import itens_pendentes_bp
 from routes.ItensSolicitadosRoutes import items_solicitados_bp
 from routes.AgendamentoRoutes import agendamento_bp
-from routes.AiRoutes import ai_bp
+
+
 
 # -------------------------------
 # Registro de Blueprints (MANTIDO)

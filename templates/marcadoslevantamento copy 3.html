@@ -855,7 +855,7 @@ function startImport() {
     performImport(file, stateId, groupTypeId, textmessageId, selectedGroupTypeText);
 }
 
-async function performImport(file, stateId, groupTypeId, grupoPacientes) {
+async function performImport(file, stateId, groupTypeId, textmessageId, grupoPacientes) {
     try {
         showOverlay('Importing Data', 'Starting import process...');
         updateProgress(10, 'Starting import process...');
@@ -909,7 +909,7 @@ async function performImport(file, stateId, groupTypeId, grupoPacientes) {
                 const payload = {
                     stateID: stateId,
                     groupTypeID: groupTypeId,
-                    selectTextMessage: 1, // Nome correto esperado pelo backend
+                    selectTextMessage: textmessageId, // Nome correto esperado pelo backend
                     grupoPacientes: grupoPacientes,
                     observations: mappedData
                 };

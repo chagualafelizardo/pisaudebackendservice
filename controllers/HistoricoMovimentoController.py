@@ -1,9 +1,8 @@
 import logging
 from flask import jsonify, request
-from models import db, HistoricoMovimento, UnidadeSanitaria, Medicamento, Utilizador
+from models import db, HistoricoMovimento, Location, Medicamento, User
 from datetime import datetime
 
-# Configuração básica de logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -12,23 +11,14 @@ class HistoricoMovimentoController:
 
     @staticmethod
     def get_all():
-        """
-        Retorna todos os movimentos históricos.
-        Suporta filtros opcionais via query string:
-        - id_unidade_sanitaria
-        - id_medicamento
-        - data_inicio (formato ISO)
-        - data_fim (formato ISO)
-        - tipo_movimento
-        """
         logger.info("[GET ALL] Request received to fetch all historico movimentos.")
         try:
             query = HistoricoMovimento.query
 
             # Filtros opcionais
-            id_unidade_sanitaria = request.args.get('id_unidade_sanitaria', type=int)
-            if id_unidade_sanitaria:
-                query = query.filter_by(id_unidade_sanitaria=id_unidade_sanitaria)
+            id_location = request.args.get('id_location', type=int)
+            if id_location:
+                query = query.filter_by(id_location=id_location)
 
             id_medicamento = request.args.get('id_medicamento', type=int)
             if id_medicamento:
@@ -60,17 +50,17 @@ class HistoricoMovimentoController:
             for m in movimentos:
                 result.append({
                     'id': m.id,
-                    'id_unidade_sanitaria': m.id_unidade_sanitaria,
-                    'unidade_sanitaria_nome': m.unidade_sanitaria.nome if m.unidade_sanitaria else None,
+                    'id_location': m.id_location,
+                    'location_nome': m.location.name if m.location else None,
                     'id_medicamento': m.id_medicamento,
                     'medicamento_nome': m.medicamento.nome_padronizado if m.medicamento else None,
                     'medicamento_apresentacao': m.medicamento.apresentacao if m.medicamento else None,
                     'tipo_movimento': m.tipo_movimento,
                     'quantidade': m.quantidade,
                     'data_movimento': m.data_movimento.isoformat() if m.data_movimento else None,
-                    'observacao': m.observacao,
+                    'observacoes': m.observacoes,
                     'registado_por': m.registado_por,
-                    'registado_por_nome': m.registado_por_user.nome if m.registado_por_user else None,
+                    'registado_por_nome': m.registado_por_user.fullname if m.registado_por_user else None,
                     'data_validade': m.data_validade.isoformat() if m.data_validade else None,
                     'codigo_lote': m.codigo_lote,
                     'syncStatus': m.syncStatus,
@@ -92,17 +82,17 @@ class HistoricoMovimentoController:
                 return jsonify({'message': 'Movimento histórico não encontrado'}), 404
             result = {
                 'id': m.id,
-                'id_unidade_sanitaria': m.id_unidade_sanitaria,
-                'unidade_sanitaria_nome': m.unidade_sanitaria.nome if m.unidade_sanitaria else None,
+                'id_location': m.id_location,
+                'location_nome': m.location.name if m.location else None,
                 'id_medicamento': m.id_medicamento,
                 'medicamento_nome': m.medicamento.nome_padronizado if m.medicamento else None,
                 'medicamento_apresentacao': m.medicamento.apresentacao if m.medicamento else None,
                 'tipo_movimento': m.tipo_movimento,
                 'quantidade': m.quantidade,
                 'data_movimento': m.data_movimento.isoformat() if m.data_movimento else None,
-                'observacao': m.observacao,
+                'observacoes': m.observacoes,
                 'registado_por': m.registado_por,
-                'registado_por_nome': m.registado_por_user.nome if m.registado_por_user else None,
+                'registado_por_nome': m.registado_por_user.fullname if m.registado_por_user else None,
                 'data_validade': m.data_validade.isoformat() if m.data_validade else None,
                 'codigo_lote': m.codigo_lote,
                 'syncStatus': m.syncStatus,
@@ -121,15 +111,19 @@ class HistoricoMovimentoController:
         try:
             data = request.get_json(force=True)
 
-            # Campos obrigatórios
-            id_unidade_sanitaria = data.get('id_unidade_sanitaria')
-            id_medicamento = data.get('id_medicamento')
-            tipo_movimento = data.get('tipo_movimento')
-            quantidade = data.get('quantidade')
-            registado_por = data.get('registado_por')
+            # Converter e validar campos numéricos
+            try:
+                id_location = int(data.get('id_location'))
+                id_medicamento = int(data.get('id_medicamento'))
+                quantidade = int(data.get('quantidade'))
+                registado_por = int(data.get('registado_por'))
+            except (TypeError, ValueError):
+                return jsonify({'message': 'Campos id_location, id_medicamento, quantidade, registado_por devem ser números inteiros'}), 400
 
-            if not all([id_unidade_sanitaria, id_medicamento, tipo_movimento, quantidade, registado_por]):
-                return jsonify({'message': 'Campos obrigatórios: id_unidade_sanitaria, id_medicamento, tipo_movimento, quantidade, registado_por'}), 400
+            tipo_movimento = data.get('tipo_movimento')
+
+            if not all([id_location, id_medicamento, tipo_movimento, quantidade, registado_por]):
+                return jsonify({'message': 'Campos obrigatórios: id_location, id_medicamento, tipo_movimento, quantidade, registado_por'}), 400
 
             # Validação de tipo_movimento
             tipos_validos = ['Entrada', 'Saída', 'Ajuste']
@@ -141,17 +135,17 @@ class HistoricoMovimentoController:
                 return jsonify({'message': 'A quantidade deve ser maior que zero'}), 400
 
             # Verificar existência das chaves estrangeiras
-            unidade = UnidadeSanitaria.query.get(id_unidade_sanitaria)
-            if not unidade:
+            location = Location.query.get(id_location)
+            if not location:
                 return jsonify({'message': 'Unidade sanitária não encontrada'}), 404
 
             medicamento = Medicamento.query.get(id_medicamento)
             if not medicamento:
                 return jsonify({'message': 'Medicamento não encontrado'}), 404
 
-            user = Utilizador.query.get(registado_por)
+            user = User.query.get(registado_por)
             if not user:
-                return jsonify({'message': 'Utilizador não encontrado'}), 404
+                return jsonify({'message': 'User não encontrado'}), 404
 
             # Processar data_validade se fornecida
             data_validade_date = None
@@ -163,11 +157,11 @@ class HistoricoMovimentoController:
 
             # Criar movimento
             movimento = HistoricoMovimento(
-                id_unidade_sanitaria=id_unidade_sanitaria,
+                id_location=id_location,
                 id_medicamento=id_medicamento,
                 tipo_movimento=tipo_movimento,
                 quantidade=quantidade,
-                observacao=data.get('observacao'),
+                observacoes=data.get('observacoes'),
                 registado_por=registado_por,
                 data_validade=data_validade_date,
                 codigo_lote=data.get('codigo_lote'),
@@ -202,15 +196,21 @@ class HistoricoMovimentoController:
             data = request.get_json(force=True)
 
             # Atualizar campos fornecidos
-            if 'id_unidade_sanitaria' in data:
-                id_unidade_sanitaria = data['id_unidade_sanitaria']
-                unidade = UnidadeSanitaria.query.get(id_unidade_sanitaria)
-                if not unidade:
+            if 'id_location' in data:
+                try:
+                    id_location = int(data['id_location'])
+                except ValueError:
+                    return jsonify({'message': 'id_location deve ser um número inteiro'}), 400
+                location = Location.query.get(id_location)
+                if not location:
                     return jsonify({'message': 'Unidade sanitária não encontrada'}), 404
-                movimento.id_unidade_sanitaria = id_unidade_sanitaria
+                movimento.id_location = id_location
 
             if 'id_medicamento' in data:
-                id_medicamento = data['id_medicamento']
+                try:
+                    id_medicamento = int(data['id_medicamento'])
+                except ValueError:
+                    return jsonify({'message': 'id_medicamento deve ser um número inteiro'}), 400
                 medicamento = Medicamento.query.get(id_medicamento)
                 if not medicamento:
                     return jsonify({'message': 'Medicamento não encontrado'}), 404
@@ -224,19 +224,25 @@ class HistoricoMovimentoController:
                 movimento.tipo_movimento = tipo_movimento
 
             if 'quantidade' in data:
-                quantidade = data['quantidade']
+                try:
+                    quantidade = int(data['quantidade'])
+                except ValueError:
+                    return jsonify({'message': 'quantidade deve ser um número inteiro'}), 400
                 if quantidade <= 0:
                     return jsonify({'message': 'A quantidade deve ser maior que zero'}), 400
                 movimento.quantidade = quantidade
 
-            if 'observacao' in data:
-                movimento.observacao = data['observacao']
+            if 'observacoes' in data:
+                movimento.observacoes = data['observacoes']
 
             if 'registado_por' in data:
-                registado_por = data['registado_por']
-                user = Utilizador.query.get(registado_por)
+                try:
+                    registado_por = int(data['registado_por'])
+                except ValueError:
+                    return jsonify({'message': 'registado_por deve ser um número inteiro'}), 400
+                user = User.query.get(registado_por)
                 if not user:
-                    return jsonify({'message': 'Utilizador não encontrado'}), 404
+                    return jsonify({'message': 'User não encontrado'}), 404
                 movimento.registado_por = registado_por
 
             if 'data_validade' in data:

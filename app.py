@@ -173,6 +173,13 @@ from routes.NotaEnvioDocumentRoutes import nota_envio_document_bp
 from routes.ItensPendentesRoutes import itens_pendentes_bp
 from routes.ItensSolicitadosRoutes import items_solicitados_bp
 from routes.AgendamentoRoutes import agendamento_bp
+from routes.MedicamentoRoutes import medicamento_bp
+from routes.HistoricoMovimentoRoutes import historico_movimento_bp
+from routes.StockSemanalRoutes import stock_semanal_bp
+from routes.StockSemanalLoteRoutes import stock_semanal_lote_bp
+from routes.DashboardMedicamentoRoutes import dashboard_bp
+
+# Route exclusiva para o Bot
 from routes.AiRoutes import ai_bp
 
 # -------------------------------
@@ -190,7 +197,8 @@ blueprints = [
     item_bp, componente_bp, usercomponente_bp, porto_bp, necessidade_bp,
     historico_bp, distribuicao_bp, tipo_item_bp, nota_envio_bp,
     nota_envio_item_bp, nota_envio_document_bp, itens_pendentes_bp,
-    items_solicitados_bp, agendamento_bp, ai_bp
+    items_solicitados_bp, agendamento_bp, medicamento_bp, historico_movimento_bp,
+    stock_semanal_bp, stock_semanal_lote_bp, dashboard_bp, ai_bp
 ]
 
 for bp in blueprints:
@@ -432,32 +440,36 @@ def about():
 # FUNÇÕES AUXILIARES
 # -------------------------------
 def get_user_menus(user_id):
-    """Retorna lista de IDs de menus permitidos para o usuário"""
     user_menus = []
     componentes = UserComponente.query.filter_by(user_id=user_id).all()
     user_component_names = [uc.componente.descricao for uc in componentes if uc.componente]
+    
+    # Log para depuração
+    logger.info(f"Componentes do usuário {user_id}: {user_component_names}")
     
     componente_to_menu = {
         'Formação': 'gestaoFormacaoMenu',
         'Mapeamento de recursos': 'mappingMenu', 
         'Afetação / Alocação': 'gestaoAlocacaoMenu',
         'Itens Traking': 'trackingMenu',
-        'DOD tracking': 'DODtrackingMenu',
+        'DOD Tracking': 'DODtrackingMenu',
         'Alo-Saúde': 'alosaudeMenu',
         'Menu de registos': 'registoMenu',
         'Menu de Recursos Humanos': 'rhMenu',
         'Menus do usuário': 'userMenu',
-        'Menus de localização': 'locationMenu',
+        'Gestão de Localizações': 'locationMenu',
         'Menus de grupos de alo saúde': 'gruposAlosaudeMenus',
         'Módulo Alo-Saúde': 'moduloAloSaude',
-        'Módulo de Agendamento de Consultas':'agendarConsultaMenu',
-        'Módulo de Farmácia': 'farmaciaMenu'
+        'Agendar de consultas':'agendarConsultaMenu',
+        'Gestão de Farmácia': 'farmaciaMenu',
+        'Manus do usuário':'userMenus',
     }
     
     for component_name in user_component_names:
         if component_name in componente_to_menu:
             user_menus.append(componente_to_menu[component_name])
     
+    logger.info(f"Menus gerados para o usuário {user_id}: {user_menus}")
     return user_menus
 
 # -------------------------------

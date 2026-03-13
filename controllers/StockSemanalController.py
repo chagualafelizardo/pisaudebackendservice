@@ -1,9 +1,8 @@
 import logging
 from flask import jsonify, request
-from models import db, StockSemanal, StockSemanalLote, UnidadeSanitaria, Medicamento, Utilizador
+from models import db, StockSemanal, StockSemanalLote, Location, Medicamento, User
 from datetime import datetime
 
-# Configuração básica de logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -17,11 +16,10 @@ class StockSemanalController:
             stocks = StockSemanal.query.all()
             result = []
             for s in stocks:
-                # Serializar o cabeçalho
                 item = {
                     'id': s.id,
-                    'id_unidade_sanitaria': s.id_unidade_sanitaria,
-                    'unidade_sanitaria_nome': s.unidade_sanitaria.nome if s.unidade_sanitaria else None,
+                    'id_location': s.id_location,
+                    'location_nome': s.location.name if s.location else None,
                     'id_medicamento': s.id_medicamento,
                     'medicamento_nome': s.medicamento.nome_padronizado if s.medicamento else None,
                     'medicamento_apresentacao': s.medicamento.apresentacao if s.medicamento else None,
@@ -29,7 +27,7 @@ class StockSemanalController:
                     'ano': s.ano,
                     'data_registo': s.data_registo.isoformat() if s.data_registo else None,
                     'registado_por': s.registado_por,
-                    'registado_por_nome': s.registado_por_user.nome if s.registado_por_user else None,
+                    'registado_por_nome': s.registado_por_user.fullname  if s.registado_por_user else None,
                     'observacoes': s.observacoes,
                     'syncStatus': s.syncStatus,
                     'syncStatusDate': s.syncStatusDate.isoformat() if s.syncStatusDate else None,
@@ -37,7 +35,6 @@ class StockSemanalController:
                     'updateAt': s.updateAt.isoformat() if s.updateAt else None,
                     'lotes': []
                 }
-                # Adicionar os lotes
                 for l in s.lotes:
                     item['lotes'].append({
                         'id': l.id,
@@ -65,8 +62,8 @@ class StockSemanalController:
                 return jsonify({'message': 'Registo de stock semanal não encontrado'}), 404
             result = {
                 'id': s.id,
-                'id_unidade_sanitaria': s.id_unidade_sanitaria,
-                'unidade_sanitaria_nome': s.unidade_sanitaria.nome if s.unidade_sanitaria else None,
+                'id_location': s.id_location,
+                'location_nome': s.location.name if s.location else None,
                 'id_medicamento': s.id_medicamento,
                 'medicamento_nome': s.medicamento.nome_padronizado if s.medicamento else None,
                 'medicamento_apresentacao': s.medicamento.apresentacao if s.medicamento else None,
@@ -105,16 +102,20 @@ class StockSemanalController:
         try:
             data = request.get_json(force=True)
 
-            # Campos obrigatórios do cabeçalho
-            id_unidade_sanitaria = data.get('id_unidade_sanitaria')
-            id_medicamento = data.get('id_medicamento')
-            semana = data.get('semana')
-            ano = data.get('ano')
-            registado_por = data.get('registado_por')
+            # Converter e validar campos numéricos
+            try:
+                id_location = int(data.get('id_location'))
+                id_medicamento = int(data.get('id_medicamento'))
+                semana = int(data.get('semana'))
+                ano = int(data.get('ano'))
+                registado_por = int(data.get('registado_por'))
+            except (TypeError, ValueError):
+                return jsonify({'message': 'Campos id_location, id_medicamento, semana, ano, registado_por devem ser números inteiros'}), 400
+
             lotes = data.get('lotes', [])  # Lista de lotes
 
-            if not all([id_unidade_sanitaria, id_medicamento, semana, ano, registado_por]):
-                return jsonify({'message': 'Campos obrigatórios: id_unidade_sanitaria, id_medicamento, semana, ano, registado_por'}), 400
+            if not all([id_location, id_medicamento, semana, ano, registado_por]):
+                return jsonify({'message': 'Campos obrigatórios: id_location, id_medicamento, semana, ano, registado_por'}), 400
 
             # Validação de semana (1-53)
             if not (1 <= semana <= 53):
@@ -125,7 +126,7 @@ class StockSemanalController:
                 return jsonify({'message': 'Ano inválido'}), 400
 
             # Verificar existência das chaves estrangeiras
-            unidade = UnidadeSanitaria.query.get(id_unidade_sanitaria)
+            unidade = Location.query.get(id_location)
             if not unidade:
                 return jsonify({'message': 'Unidade sanitária não encontrada'}), 404
 
@@ -133,13 +134,13 @@ class StockSemanalController:
             if not medicamento:
                 return jsonify({'message': 'Medicamento não encontrado'}), 404
 
-            user = Utilizador.query.get(registado_por)
+            user = User.query.get(registado_por)
             if not user:
-                return jsonify({'message': 'Utilizador não encontrado'}), 404
+                return jsonify({'message': 'User não encontrado'}), 404
 
             # Verificar duplicidade (unique constraint)
             existing = StockSemanal.query.filter_by(
-                id_unidade_sanitaria=id_unidade_sanitaria,
+                id_location=id_location,
                 id_medicamento=id_medicamento,
                 semana=semana,
                 ano=ano
@@ -149,7 +150,7 @@ class StockSemanalController:
 
             # Criar o cabeçalho
             stock = StockSemanal(
-                id_unidade_sanitaria=id_unidade_sanitaria,
+                id_location=id_location,
                 id_medicamento=id_medicamento,
                 semana=semana,
                 ano=ano,
@@ -180,8 +181,12 @@ class StockSemanalController:
                     return jsonify({'message': 'Cada lote deve conter quantidade e data_validade'}), 400
 
                 # Validar quantidade positiva
-                if quantidade <= 0:
-                    return jsonify({'message': 'A quantidade do lote deve ser maior que zero'}), 400
+                try:
+                    quantidade = int(quantidade)
+                    if quantidade <= 0:
+                        return jsonify({'message': 'A quantidade do lote deve ser maior que zero'}), 400
+                except ValueError:
+                    return jsonify({'message': 'A quantidade do lote deve ser um número inteiro'}), 400
 
                 # Converter data_validade de string para date
                 try:
@@ -226,37 +231,52 @@ class StockSemanalController:
             data = request.get_json(force=True)
 
             # Atualizar campos do cabeçalho (apenas os fornecidos)
-            if 'id_unidade_sanitaria' in data:
-                id_unidade_sanitaria = data['id_unidade_sanitaria']
-                unidade = UnidadeSanitaria.query.get(id_unidade_sanitaria)
+            if 'id_location' in data:
+                try:
+                    id_location = int(data['id_location'])
+                except ValueError:
+                    return jsonify({'message': 'id_location deve ser um número inteiro'}), 400
+                unidade = Location.query.get(id_location)
                 if not unidade:
                     return jsonify({'message': 'Unidade sanitária não encontrada'}), 404
-                stock.id_unidade_sanitaria = id_unidade_sanitaria
+                stock.id_location = id_location
 
             if 'id_medicamento' in data:
-                id_medicamento = data['id_medicamento']
+                try:
+                    id_medicamento = int(data['id_medicamento'])
+                except ValueError:
+                    return jsonify({'message': 'id_medicamento deve ser um número inteiro'}), 400
                 medicamento = Medicamento.query.get(id_medicamento)
                 if not medicamento:
                     return jsonify({'message': 'Medicamento não encontrado'}), 404
                 stock.id_medicamento = id_medicamento
 
             if 'semana' in data:
-                semana = data['semana']
+                try:
+                    semana = int(data['semana'])
+                except ValueError:
+                    return jsonify({'message': 'semana deve ser um número inteiro'}), 400
                 if not (1 <= semana <= 53):
                     return jsonify({'message': 'A semana deve estar entre 1 e 53'}), 400
                 stock.semana = semana
 
             if 'ano' in data:
-                ano = data['ano']
+                try:
+                    ano = int(data['ano'])
+                except ValueError:
+                    return jsonify({'message': 'ano deve ser um número inteiro'}), 400
                 if ano < 2000 or ano > 2100:
                     return jsonify({'message': 'Ano inválido'}), 400
                 stock.ano = ano
 
             if 'registado_por' in data:
-                registado_por = data['registado_por']
-                user = Utilizador.query.get(registado_por)
+                try:
+                    registado_por = int(data['registado_por'])
+                except ValueError:
+                    return jsonify({'message': 'registado_por deve ser um número inteiro'}), 400
+                user = User.query.get(registado_por)
                 if not user:
-                    return jsonify({'message': 'Utilizador não encontrado'}), 404
+                    return jsonify({'message': 'User não encontrado'}), 404
                 stock.registado_por = registado_por
 
             if 'observacoes' in data:
@@ -277,8 +297,7 @@ class StockSemanalController:
                 if not isinstance(lotes, list):
                     return jsonify({'message': 'O campo lotes deve ser uma lista'}), 400
 
-                # Remover lotes antigos (cascade fará isso automaticamente se usarmos delete)
-                # Mas para evitar duplicar, podemos simplesmente apagar e recriar
+                # Remover lotes antigos
                 StockSemanalLote.query.filter_by(id_stock_semanal=stock.id).delete()
 
                 # Adicionar novos lotes
@@ -291,8 +310,12 @@ class StockSemanalController:
                     if quantidade is None or data_validade is None:
                         return jsonify({'message': 'Cada lote deve conter quantidade e data_validade'}), 400
 
-                    if quantidade <= 0:
-                        return jsonify({'message': 'A quantidade do lote deve ser maior que zero'}), 400
+                    try:
+                        quantidade = int(quantidade)
+                        if quantidade <= 0:
+                            return jsonify({'message': 'A quantidade do lote deve ser maior que zero'}), 400
+                    except ValueError:
+                        return jsonify({'message': 'A quantidade do lote deve ser um número inteiro'}), 400
 
                     try:
                         data_validade_date = datetime.fromisoformat(data_validade).date()
@@ -314,10 +337,9 @@ class StockSemanalController:
                             pass
                     db.session.add(lote)
 
-            # Verificar unique constraint após alterações (pode ter sido violado)
-            # Ignorar o próprio registo na verificação
+            # Verificar unique constraint após alterações
             existing = StockSemanal.query.filter(
-                StockSemanal.id_unidade_sanitaria == stock.id_unidade_sanitaria,
+                StockSemanal.id_location == stock.id_location,
                 StockSemanal.id_medicamento == stock.id_medicamento,
                 StockSemanal.semana == stock.semana,
                 StockSemanal.ano == stock.ano,
@@ -343,7 +365,7 @@ class StockSemanalController:
             if not stock:
                 return jsonify({'message': 'Registo de stock semanal não encontrado'}), 404
 
-            db.session.delete(stock)  # A cascade removerá os lotes
+            db.session.delete(stock)
             db.session.commit()
             return jsonify({'message': 'Stock semanal deletado com sucesso'}), 200
         except Exception as e:

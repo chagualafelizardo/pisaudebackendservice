@@ -56,6 +56,10 @@ from .ItemsSolicitados import ItemsSolicitados
 from .Medico import Medico
 from .HorarioMedico import HorarioMedico
 from .Agendamento import Agendamento
+from .HistoricoMovimento import HistoricoMovimento
+from .Medicamento import Medicamento
+from .StockSemanal import StockSemanal
+from .StockSemanalLote import StockSemanalLote
 from .SMS import SMS
 
 __all__ = [
@@ -71,5 +75,5 @@ __all__ = [
     'ItemHistorico','ItemLocationNecessidade', 'Distribuicao','TipoItem','NotaEnvio',
     'NotaEnvioItem', 'NotaEnvioDocument', 'ItemPendente', 'FormacaoItem','Participante',
     'ItemsSolicitados', 'location_resource','Medico','HorarioMedico','Agendamento',
-    'SMS'
+    'HistoricoMovimento','Medicamento','StockSemanal','StockSemanalLote','SMS'
 ]

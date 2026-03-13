@@ -3,6 +3,11 @@
 
 {% block content %}
 
+<meta name="user-location-id" content="{{ locationId }}">
+<meta name="user-location-name" content="{{ locationName }}">
+<meta name="user-id" content="{{ userId }}">
+<meta name="user-name" content="{{ userName }}">
+
 <div class="container-fluid py-4">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -50,7 +55,7 @@
 
                     <!-- Import Settings -->
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="stateDropdown" class="form-label">
                                 <i class="fas fa-tag me-1 text-primary"></i> State
                             </label>
@@ -58,20 +63,12 @@
                                 <option value="">Select State</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label for="grouptypeDropdown" class="form-label">
                                 <i class="fas fa-users me-1 text-primary"></i> Group Type
                             </label>
                             <select id="grouptypeDropdown" class="form-select">
                                 <option value="">Select Group Type</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="textmessageDropdown" class="form-label">
-                                <i class="fas fa-envelope me-1 text-primary"></i> Text Message
-                            </label>
-                            <select id="textmessageDropdown" class="form-select">
-                                <option value="">Select Text Message</option>
                             </select>
                         </div>
                     </div>
@@ -548,7 +545,6 @@ const requiredFields = {
     age: ['age', 'Age', 'idade_actual', 'Idade'],
     contact: ['telefone','Telefone','contact', 'Contact', 'contacto_paciente'],
     occupation: ['occupation', 'Occupation', 'Profissao'],
-    // Adicione outros campos se necessário
 };
 
 // DOM Elements
@@ -572,8 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initializePage() {
     await Promise.all([
         loadDropdown('/api/state', 'stateDropdown', 'Inicial'),
-        loadDropdown('/api/grouptype', 'grouptypeDropdown', 'Marcados para levantamento de ARV'),
-        loadDropdown('/api/textmessage', 'textmessageDropdown', '') // Carrega mensagens de texto
+        loadDropdownForLevantamento('/api/grouptype', 'grouptypeDropdown', 'Marcados para levantamento de ARV')
     ]);
     
     // Update file info when file is selected
@@ -627,7 +622,8 @@ function updateProgress(percent, message = '', stats = '') {
     }
 }
 
-async function loadDropdown(url, selectId, defaultDescription) {
+// Função específica para carregar o dropdown de "Levantamento de ARVs"
+async function loadDropdownForLevantamento(url, selectId, defaultDescription) {
     try {
         const select = document.getElementById(selectId);
         select.innerHTML = `<option value="">Loading...</option>`;
@@ -643,6 +639,7 @@ async function loadDropdown(url, selectId, defaultDescription) {
             const description = item.description || item.name;
             option.textContent = description;
 
+            // Tenta selecionar baseado no defaultDescription, se fornecido
             if (defaultDescription && !selected) {
                 const normalizedDefault = normalizeText(defaultDescription);
                 const normalizedDesc = normalizeText(description);
@@ -653,15 +650,78 @@ async function loadDropdown(url, selectId, defaultDescription) {
                 }
             }
 
+            // Se ainda não selecionou, tenta por palavras-chave
+            if (!selected) {
+                const normalizedDescription = normalizeText(description);
+                const searchTerms = [
+                    'marcados para levantamento',
+                    'levantamento de arv',
+                    'levantamento arv',
+                    'pacientes marcados',
+                    'marcados arv',
+                    'levantamento',
+                    'marcados'
+                ];
+                const matches = searchTerms.some(term => 
+                    normalizedDescription.includes(normalizeText(term))
+                );
+                if (matches) {
+                    option.selected = true;
+                    selected = true;
+                    console.log('Found matching group type:', description);
+                }
+            }
+
             select.appendChild(option);
         });
 
-        // Se não encontrou e é o dropdown de textmessage, seleciona o primeiro por padrão
-        if (!selected && selectId === 'textmessageDropdown' && data.length > 0) {
-            select.options[1].selected = true; // Pula o primeiro que é "Select..."
-            console.log('Selected first text message as default');
+        // Se ainda não selecionou, tenta selecionar o primeiro que contenha alguma palavra-chave
+        if (!selected) {
+            console.log('No exact match found, trying fuzzy match...');
+            const options = Array.from(select.options);
+            options.forEach(option => {
+                if (option.value !== "" && !selected) {
+                    const normalizedOption = normalizeText(option.textContent);
+                    if (normalizedOption.includes('marcados') || 
+                        normalizedOption.includes('levantamento') ||
+                        normalizedOption.includes('arv')) {
+                        option.selected = true;
+                        selected = true;
+                        console.log('Selected by partial match:', option.textContent);
+                    }
+                }
+            });
         }
 
+    } catch (error) {
+        console.error(`Error loading dropdown ${selectId}:`, error);
+        document.getElementById(selectId).innerHTML = `<option value="">Error loading options</option>`;
+    }
+}
+
+// Função genérica para outros dropdowns
+async function loadDropdown(url, selectId, defaultDescription) {
+    try {
+        const select = document.getElementById(selectId);
+        select.innerHTML = `<option value="">Loading...</option>`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        select.innerHTML = `<option value="">Select...</option>`;
+        data.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.id;
+            const description = item.description || item.name;
+            option.textContent = description;
+            
+            // Check if this is the default option
+            if (defaultDescription && normalizeText(description).includes(normalizeText(defaultDescription))) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
     } catch (error) {
         console.error(`Error loading dropdown ${selectId}:`, error);
         document.getElementById(selectId).innerHTML = `<option value="">Error loading options</option>`;
@@ -836,10 +896,9 @@ function startImport() {
     
     const stateId = document.getElementById('stateDropdown').value;
     const groupTypeId = document.getElementById('grouptypeDropdown').value;
-    const textmessageId = document.getElementById('textmessageDropdown').value; // Obtém o valor do dropdown
 
-    if (!stateId || !groupTypeId || !textmessageId) {
-        showAlert('warning', 'Please select State, Group Type, and Text Message before importing.');
+    if (!stateId || !groupTypeId) {
+        showAlert('warning', 'Please select both State and Group Type before importing.');
         return;
     }
     
@@ -852,10 +911,10 @@ function startImport() {
     }
     
     importCancelled = false;
-    performImport(file, stateId, groupTypeId, textmessageId, selectedGroupTypeText);
+    performImport(file, stateId, 1, groupTypeId, 'Marcados para levantamento de ARV');
 }
 
-async function performImport(file, stateId, groupTypeId, grupoPacientes) {
+async function performImport(file, stateId, groupTypeId,textmessageId, grupoPacientes) {
     try {
         showOverlay('Importing Data', 'Starting import process...');
         updateProgress(10, 'Starting import process...');
@@ -909,7 +968,7 @@ async function performImport(file, stateId, groupTypeId, grupoPacientes) {
                 const payload = {
                     stateID: stateId,
                     groupTypeID: groupTypeId,
-                    selectTextMessage: 1, // Nome correto esperado pelo backend
+                    textmessageId:textmessageId,
                     grupoPacientes: grupoPacientes,
                     observations: mappedData
                 };
