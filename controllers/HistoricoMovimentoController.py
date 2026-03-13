@@ -1,6 +1,6 @@
 import logging
 from flask import jsonify, request
-from models import db, HistoricoMovimento, Location, Medicamento, User
+from models import db, HistoricoMovimento, Location, Medicamento, User, StockSemanal, StockSemanalLote
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -107,11 +107,11 @@ class HistoricoMovimentoController:
 
     @staticmethod
     def create():
+        # (já estava implementado, mantido)
         logger.info("[CREATE] Request received to create new historico movimento.")
         try:
             data = request.get_json(force=True)
 
-            # Converter e validar campos numéricos
             try:
                 id_location = int(data.get('id_location'))
                 id_medicamento = int(data.get('id_medicamento'))
@@ -121,20 +121,19 @@ class HistoricoMovimentoController:
                 return jsonify({'message': 'Campos id_location, id_medicamento, quantidade, registado_por devem ser números inteiros'}), 400
 
             tipo_movimento = data.get('tipo_movimento')
+            codigo_lote = data.get('codigo_lote')
+            data_validade = data.get('data_validade')
 
             if not all([id_location, id_medicamento, tipo_movimento, quantidade, registado_por]):
                 return jsonify({'message': 'Campos obrigatórios: id_location, id_medicamento, tipo_movimento, quantidade, registado_por'}), 400
 
-            # Validação de tipo_movimento
             tipos_validos = ['Entrada', 'Saída', 'Ajuste']
             if tipo_movimento not in tipos_validos:
                 return jsonify({'message': f'tipo_movimento inválido. Valores permitidos: {tipos_validos}'}), 400
 
-            # Quantidade positiva
             if quantidade <= 0:
                 return jsonify({'message': 'A quantidade deve ser maior que zero'}), 400
 
-            # Verificar existência das chaves estrangeiras
             location = Location.query.get(id_location)
             if not location:
                 return jsonify({'message': 'Unidade sanitária não encontrada'}), 404
@@ -147,15 +146,57 @@ class HistoricoMovimentoController:
             if not user:
                 return jsonify({'message': 'User não encontrado'}), 404
 
-            # Processar data_validade se fornecida
             data_validade_date = None
-            if data.get('data_validade'):
+            if data_validade:
                 try:
-                    data_validade_date = datetime.fromisoformat(data['data_validade']).date()
+                    data_validade_date = datetime.fromisoformat(data_validade).date()
                 except:
-                    return jsonify({'message': f'Data de validade inválida: {data["data_validade"]}'}), 400
+                    return jsonify({'message': f'Data de validade inválida: {data_validade}'}), 400
 
-            # Criar movimento
+            # Localizar o lote
+            lote = None
+            if codigo_lote and data_validade_date:
+                stock = StockSemanal.query.filter_by(
+                    id_location=id_location,
+                    id_medicamento=id_medicamento
+                ).first()
+                if stock:
+                    lote = StockSemanalLote.query.filter_by(
+                        id_stock_semanal=stock.id,
+                        codigo_lote=codigo_lote,
+                        data_validade=data_validade_date
+                    ).first()
+
+            if not lote:
+                if tipo_movimento == 'Entrada':
+                    stock = StockSemanal.query.filter_by(
+                        id_location=id_location,
+                        id_medicamento=id_medicamento
+                    ).first()
+                    if not stock:
+                        return jsonify({'message': 'Stock semanal não encontrado para esta unidade/medicamento. Crie um registo de stock primeiro.'}), 400
+                    lote = StockSemanalLote(
+                        id_stock_semanal=stock.id,
+                        quantidade=0,
+                        data_validade=data_validade_date,
+                        codigo_lote=codigo_lote,
+                        observacoes='Criado por movimento'
+                    )
+                    db.session.add(lote)
+                    db.session.flush()
+                else:
+                    return jsonify({'message': 'Lote não encontrado para o movimento. Verifique código e data de validade.'}), 404
+
+            if tipo_movimento == 'Entrada':
+                lote.quantidade += quantidade
+            elif tipo_movimento == 'Saída':
+                if lote.quantidade < quantidade:
+                    return jsonify({'message': f'Quantidade insuficiente no lote. Disponível: {lote.quantidade}, solicitado: {quantidade}'}), 400
+                lote.quantidade -= quantidade
+            elif tipo_movimento == 'Ajuste':
+                # Não implementado
+                return jsonify({'message': 'Tipo Ajuste não suportado. Use Entrada ou Saída.'}), 400
+
             movimento = HistoricoMovimento(
                 id_location=id_location,
                 id_medicamento=id_medicamento,
@@ -164,7 +205,7 @@ class HistoricoMovimentoController:
                 observacoes=data.get('observacoes'),
                 registado_por=registado_por,
                 data_validade=data_validade_date,
-                codigo_lote=data.get('codigo_lote'),
+                codigo_lote=codigo_lote,
                 syncStatus=data.get('syncStatus', 'Not Syncronized')
             )
             if data.get('syncStatusDate'):
@@ -175,11 +216,8 @@ class HistoricoMovimentoController:
 
             db.session.add(movimento)
             db.session.commit()
+            return jsonify({'message': 'Movimento histórico criado com sucesso', 'id': movimento.id}), 201
 
-            return jsonify({
-                'message': 'Movimento histórico criado com sucesso',
-                'id': movimento.id
-            }), 201
         except Exception as e:
             db.session.rollback()
             logger.exception("[CREATE] Failed to create historico movimento.")
@@ -195,71 +233,27 @@ class HistoricoMovimentoController:
 
             data = request.get_json(force=True)
 
-            # Atualizar campos fornecidos
-            if 'id_location' in data:
-                try:
-                    id_location = int(data['id_location'])
-                except ValueError:
-                    return jsonify({'message': 'id_location deve ser um número inteiro'}), 400
-                location = Location.query.get(id_location)
-                if not location:
-                    return jsonify({'message': 'Unidade sanitária não encontrada'}), 404
-                movimento.id_location = id_location
-
-            if 'id_medicamento' in data:
-                try:
-                    id_medicamento = int(data['id_medicamento'])
-                except ValueError:
-                    return jsonify({'message': 'id_medicamento deve ser um número inteiro'}), 400
-                medicamento = Medicamento.query.get(id_medicamento)
-                if not medicamento:
-                    return jsonify({'message': 'Medicamento não encontrado'}), 404
-                movimento.id_medicamento = id_medicamento
-
-            if 'tipo_movimento' in data:
-                tipo_movimento = data['tipo_movimento']
-                tipos_validos = ['Entrada', 'Saída', 'Ajuste']
-                if tipo_movimento not in tipos_validos:
-                    return jsonify({'message': f'tipo_movimento inválido. Valores permitidos: {tipos_validos}'}), 400
-                movimento.tipo_movimento = tipo_movimento
-
-            if 'quantidade' in data:
-                try:
-                    quantidade = int(data['quantidade'])
-                except ValueError:
-                    return jsonify({'message': 'quantidade deve ser um número inteiro'}), 400
-                if quantidade <= 0:
-                    return jsonify({'message': 'A quantidade deve ser maior que zero'}), 400
-                movimento.quantidade = quantidade
+            if any(k in data for k in ['tipo_movimento', 'quantidade', 'codigo_lote', 'data_validade', 'id_location', 'id_medicamento']):
+                return jsonify({'message': 'Não é permitido editar campos que alteram o stock. Delete e crie um novo movimento.'}), 400
 
             if 'observacoes' in data:
                 movimento.observacoes = data['observacoes']
-
+            if 'data_movimento' in data:
+                try:
+                    movimento.data_movimento = datetime.fromisoformat(data['data_movimento'])
+                except:
+                    return jsonify({'message': 'data_movimento inválida'}), 400
             if 'registado_por' in data:
                 try:
                     registado_por = int(data['registado_por'])
                 except ValueError:
-                    return jsonify({'message': 'registado_por deve ser um número inteiro'}), 400
+                    return jsonify({'message': 'registado_por deve ser inteiro'}), 400
                 user = User.query.get(registado_por)
                 if not user:
                     return jsonify({'message': 'User não encontrado'}), 404
                 movimento.registado_por = registado_por
-
-            if 'data_validade' in data:
-                if data['data_validade']:
-                    try:
-                        movimento.data_validade = datetime.fromisoformat(data['data_validade']).date()
-                    except:
-                        return jsonify({'message': f'Data de validade inválida: {data["data_validade"]}'}), 400
-                else:
-                    movimento.data_validade = None
-
-            if 'codigo_lote' in data:
-                movimento.codigo_lote = data['codigo_lote']
-
             if 'syncStatus' in data:
                 movimento.syncStatus = data['syncStatus']
-
             if 'syncStatusDate' in data:
                 try:
                     movimento.syncStatusDate = datetime.fromisoformat(data['syncStatusDate'])
@@ -269,6 +263,7 @@ class HistoricoMovimentoController:
             movimento.updateAt = datetime.utcnow()
             db.session.commit()
             return jsonify({'message': 'Movimento histórico atualizado com sucesso', 'id': movimento.id}), 200
+
         except Exception as e:
             db.session.rollback()
             logger.exception(f"[UPDATE] Failed to update historico movimento ID {id}")
@@ -282,9 +277,34 @@ class HistoricoMovimentoController:
             if not movimento:
                 return jsonify({'message': 'Movimento histórico não encontrado'}), 404
 
+            stock = StockSemanal.query.filter_by(
+                id_location=movimento.id_location,
+                id_medicamento=movimento.id_medicamento
+            ).first()
+            if not stock:
+                return jsonify({'message': 'Stock semanal associado não encontrado'}), 404
+
+            lote = StockSemanalLote.query.filter_by(
+                id_stock_semanal=stock.id,
+                codigo_lote=movimento.codigo_lote,
+                data_validade=movimento.data_validade
+            ).first()
+            if not lote:
+                return jsonify({'message': 'Lote associado não encontrado'}), 404
+
+            if movimento.tipo_movimento == 'Entrada':
+                if lote.quantidade < movimento.quantidade:
+                    return jsonify({'message': 'Inconsistência: quantidade do lote menor que a entrada a deletar'}), 400
+                lote.quantidade -= movimento.quantidade
+            elif movimento.tipo_movimento == 'Saída':
+                lote.quantidade += movimento.quantidade
+            elif movimento.tipo_movimento == 'Ajuste':
+                return jsonify({'message': 'Deleção de ajuste não implementada'}), 400
+
             db.session.delete(movimento)
             db.session.commit()
-            return jsonify({'message': 'Movimento histórico deletado com sucesso'}), 200
+            return jsonify({'message': 'Movimento histórico deletado e lote ajustado'}), 200
+
         except Exception as e:
             db.session.rollback()
             logger.exception(f"[DELETE] Failed to delete historico movimento ID {id}")

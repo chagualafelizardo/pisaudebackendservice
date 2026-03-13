@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ _('Gestão de Stocks dos Medicamentos') }}{% endblock %}
+{% block title %}{{ _('Gestão de Medicamentos') }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
@@ -49,23 +49,23 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h2 class="mb-4">{{ _('Gestão de Stocks dos Medicamentos') }}</h2>
+    <h2 class="mb-4">{{ _('Gestão de Stocks dos Medicamentos nas Unidades Sanitárias') }}</h2>
 
     <!-- Abas -->
     <ul class="nav nav-tabs" id="medicamentoTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="stock-semanal-tab" data-bs-toggle="tab" data-bs-target="#stock-semanal" type="button" role="tab">{{ _('Stock Semanal') }}</button>
+            <button class="nav-link active" id="stock-semanal-tab" data-bs-toggle="tab" data-bs-target="#stock-semanal" type="button" role="tab">{{ _('Medicamento em cada unidade sanitária') }}</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="lotes-tab" data-bs-toggle="tab" data-bs-target="#lotes" type="button" role="tab">{{ _('Lotes') }}</button>
+            <button class="nav-link" id="lotes-tab" data-bs-toggle="tab" data-bs-target="#lotes" type="button" role="tab">{{ _('Lotes e stocks de medicamento nas unidades sanitárias') }}</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="historico-tab" data-bs-toggle="tab" data-bs-target="#historico" type="button" role="tab">{{ _('Histórico de Movimentos') }}</button>
+            <button class="nav-link" id="historico-tab" data-bs-toggle="tab" data-bs-target="#historico" type="button" role="tab">{{ _('Histórico de Movimentos em cada unidade sanitária') }}</button>
         </li>
     </ul>
 
     <div class="tab-content p-3 border border-top-0 rounded-bottom bg-white" id="medicamentoTabsContent">
-        <!-- ABA STOCK SEMANAL -->
+        <!-- ABA STOCK SEMANAL (agrupada) -->
         <div class="tab-pane fade show active" id="stock-semanal" role="tabpanel">
             <div class="d-flex justify-content-between mb-3">
                 <h4>{{ _('Registos de Stock Semanal') }}</h4>
@@ -80,12 +80,13 @@
                             <th>ID</th>
                             <th>{{ _('Unidade Sanitária') }}</th>
                             <th>{{ _('Medicamento') }}</th>
+                            <th>{{ _('Apresentação') }}</th>
+                            <th>{{ _('Quantidade Total') }}</th>
                             <th>{{ _('Semana') }}</th>
                             <th>{{ _('Ano') }}</th>
                             <th>{{ _('Data Registo') }}</th>
                             <th>{{ _('Registado Por') }}</th>
                             <th>{{ _('Observações') }}</th>
-                            <th>{{ _('Lotes') }}</th>
                             <th>{{ _('Ações') }}</th>
                         </tr>
                     </thead>
@@ -95,7 +96,7 @@
             </div>
         </div>
 
-        <!-- ABA LOTES (MELHORADA) -->
+        <!-- ABA LOTES (com agrupamento e linha de total) -->
         <div class="tab-pane fade" id="lotes" role="tabpanel">
             <div class="d-flex justify-content-between mb-3">
                 <h4>{{ _('Lotes de Stock') }}</h4>
@@ -124,7 +125,7 @@
             </div>
         </div>
 
-        <!-- ABA HISTÓRICO DE MOVIMENTOS -->
+        <!-- ABA HISTÓRICO DE MOVIMENTOS (com agrupamento, resumo e cores) -->
         <div class="tab-pane fade" id="historico" role="tabpanel">
             <div class="d-flex justify-content-between mb-3">
                 <h4>{{ _('Histórico de Movimentos') }}</h4>
@@ -174,6 +175,7 @@
                             <th>ID</th>
                             <th>{{ _('Unidade') }}</th>
                             <th>{{ _('Medicamento') }}</th>
+                            <th>{{ _('Apresentação') }}</th>
                             <th>{{ _('Tipo') }}</th>
                             <th>{{ _('Quantidade') }}</th>
                             <th>{{ _('Data Movimento') }}</th>
@@ -382,24 +384,36 @@
         carregarUsers();
 
         // DataTables
+
+        // Tabela de Stock Semanal com agrupamento por Unidade + Medicamento + Apresentação
         tabelaStock = $('#tabelaStockSemanal').DataTable({
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-PT.json' },
             columns: [
                 { data: 'id' },
                 { data: 'location_nome' },
                 { data: 'medicamento_nome' },
+                { data: 'apresentacao' },
+                { data: 'quantidade_total' },
                 { data: 'semana' },
                 { data: 'ano' },
                 { data: 'data_registo' },
                 { data: 'registado_por_nome' },
                 { data: 'observacoes' },
-                { data: 'lotes', render: data => data ? data.length : 0 },
                 { data: null, render: (data, type, row) => `
                     <button class="btn btn-sm btn-info" onclick="editarStock(${row.id})"><i class="bi bi-pencil"></i></button>
                     <button class="btn btn-sm btn-danger" onclick="deletarStock(${row.id})"><i class="bi bi-trash"></i></button>
                 ` }
             ],
-            order: [[0, 'desc']]
+            rowGroup: {
+                dataSrc: function(row) {
+                    return row.location_nome + ' | ' + row.medicamento_nome + ' - ' + row.apresentacao;
+                },
+                startRender: function (rows, group) {
+                    let total = rows.data().pluck('quantidade_total').reduce((a, b) => a + b, 0);
+                    return $('<tr class="total-row"/>').append('<td colspan="11"><strong>' + group + '</strong> (Total: ' + total + ')</td>');
+                }
+            },
+            order: [[1, 'asc'], [2, 'asc'], [3, 'asc'], [0, 'desc']] // ordena por unidade, medicamento, apresentação e id decrescente
         });
 
         // Tabela de Lotes com agrupamento por Unidade + Medicamento + Apresentação
@@ -420,26 +434,25 @@
                 ` }
             ],
             rowGroup: {
-                // Agrupa por Unidade + Medicamento + Apresentação
                 dataSrc: function(row) {
                     return row.location_nome + ' | ' + row.medicamento_nome + ' - ' + row.apresentacao;
                 },
                 startRender: function (rows, group) {
-                    // Calcula a soma das quantidades do grupo
                     let total = rows.data().pluck('quantidade').reduce((a, b) => a + b, 0);
-                    // Cria a linha com classe CSS personalizada para destacar
                     return $('<tr class="total-row"/>').append('<td colspan="9"><strong>' + group + '</strong> (Total: ' + total + ')</td>');
                 }
             },
-            order: [[1, 'asc'], [2, 'asc'], [3, 'asc']] // ordena por unidade, medicamento, apresentação
+            order: [[1, 'asc'], [2, 'asc'], [3, 'asc']]
         });
 
+        // Tabela de Histórico com agrupamento, resumo e cores
         tabelaHistorico = $('#tabelaHistorico').DataTable({
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-PT.json' },
             columns: [
                 { data: 'id' },
                 { data: 'location_nome' },
                 { data: 'medicamento_nome' },
+                { data: 'apresentacao' },
                 { data: 'tipo_movimento' },
                 { data: 'quantidade' },
                 { data: 'data_movimento' },
@@ -452,7 +465,46 @@
                     <button class="btn btn-sm btn-danger" onclick="deletarHistorico(${row.id})"><i class="bi bi-trash"></i></button>
                 ` }
             ],
-            order: [[5, 'desc']] // ordenar por data movimento
+            rowGroup: {
+                dataSrc: function(row) {
+                    return row.location_nome + ' | ' + row.medicamento_nome + ' - ' + row.apresentacao;
+                },
+                startRender: function (rows, group) {
+                    // Calcular totais do grupo
+                    let entradas = 0, saidas = 0, ajustes = 0;
+                    rows.data().each(function(row) {
+                        if (row.tipo_movimento === 'Entrada') entradas += row.quantidade;
+                        else if (row.tipo_movimento === 'Saída') saidas += row.quantidade;
+                        else if (row.tipo_movimento === 'Ajuste') ajustes += row.quantidade;
+                    });
+                    // Stock inicial: pode vir do backend ou ser o primeiro movimento (aqui assumimos 0 se não houver)
+                    let stockInicial = 0;
+                    // Se o backend enviar um campo 'stock_inicial', use:
+                    // let stockInicial = rows.data().first()?.stock_inicial || 0;
+                    let stockFinal = stockInicial + entradas - saidas + ajustes;
+
+                    return $('<tr class="total-row"/>').append(`
+                        <td colspan="12">
+                            <strong>${group}</strong> | 
+                            Stock Inicial: <span class="badge bg-secondary">${stockInicial}</span> | 
+                            Entradas: <span class="badge bg-success">${entradas}</span> | 
+                            Saídas: <span class="badge bg-danger">${saidas}</span> | 
+                            Ajustes: <span class="badge bg-warning text-dark">${ajustes}</span> | 
+                            Stock Final: <span class="badge bg-info">${stockFinal}</span>
+                        </td>
+                    `);
+                }
+            },
+            order: [[1, 'asc'], [2, 'asc'], [3, 'asc'], [6, 'desc']],
+            createdRow: function(row, data, dataIndex) {
+                if (data.tipo_movimento === 'Entrada') {
+                    $(row).addClass('table-success');
+                } else if (data.tipo_movimento === 'Saída') {
+                    $(row).addClass('table-danger');
+                } else if (data.tipo_movimento === 'Ajuste') {
+                    $(row).addClass('table-warning');
+                }
+            }
         });
 
         // Carregar dados iniciais
@@ -492,18 +544,62 @@
         });
     }
 
-    // ========== STOCK SEMANAL ==========
+    // ========== STOCK SEMANAL (agora enriquecido e agrupado) ==========
     function carregarStockSemanal() {
-        $.get('/api/stock_semanal', function(data) {
-            tabelaStock.clear().rows.add(data).draw();
+        $.get('/api/stock_semanal', function(stocks) {
+            // Se os dados já vierem completos (com location_nome, medicamento_nome, apresentacao, quantidade_total), usa
+            if (stocks.length > 0 && stocks[0].location_nome !== undefined && stocks[0].apresentacao !== undefined && stocks[0].quantidade_total !== undefined) {
+                tabelaStock.clear().rows.add(stocks).draw();
+                return;
+            }
+
+            // Caso contrário, busca dados complementares
+            $.when(
+                $.get('/api/stock_semanal_lote'),
+                $.get('/api/medicamento'),
+                $.get('/api/location')
+            ).then(function(lotes, medicamentos, locations) {
+                lotes = lotes[0];
+                medicamentos = medicamentos[0];
+                locations = locations[0];
+
+                let medicamentoMap = {};
+                medicamentos.forEach(m => medicamentoMap[m.id] = m);
+
+                let locationMap = {};
+                locations.forEach(l => locationMap[l.id] = l);
+
+                // Para cada stock, calcular quantidade_total somando os lotes correspondentes
+                stocks.forEach(stock => {
+                    stock.location_nome = locationMap[stock.id_location]?.name || 'Desconhecido';
+                    let med = medicamentoMap[stock.id_medicamento];
+                    stock.medicamento_nome = med?.nome_padronizado || 'Desconhecido';
+                    stock.apresentacao = med?.apresentacao || '';
+                    // Calcular total dos lotes
+                    let total = 0;
+                    if (stock.lotes && Array.isArray(stock.lotes)) {
+                        total = stock.lotes.reduce((acc, l) => acc + (l.quantidade || 0), 0);
+                    } else {
+                        // Se stock.lotes não estiver incluso, buscar nos lotes recebidos
+                        let lotesDoStock = lotes.filter(l => l.id_stock_semanal === stock.id);
+                        total = lotesDoStock.reduce((acc, l) => acc + (l.quantidade || 0), 0);
+                    }
+                    stock.quantidade_total = total;
+                });
+
+                tabelaStock.clear().rows.add(stocks).draw();
+            }).fail(function() {
+                alert('Erro ao carregar dados complementares para stock semanal.');
+            });
+        }).fail(function() {
+            alert('Erro ao carregar stock semanal.');
         });
     }
 
     function abrirModalStockSemanal(id) {
         $('#formStockSemanal')[0].reset();
         $('#stockId').val('');
-        $('#lotesContainer').empty(); // limpar linhas de lote
-        // Se for edição, carregar dados
+        $('#lotesContainer').empty();
         if (id) {
             $.get(`/api/stock_semanal/${id}`, function(data) {
                 $('#stockId').val(data.id);
@@ -525,9 +621,8 @@
     }
 
     function adicionarLinhaLote(dados = {}) {
-        const idx = Date.now() + Math.random();
         const linha = `
-            <div class="row lote-row mb-2" data-idx="${idx}">
+            <div class="row lote-row mb-2">
                 <div class="col-md-2">
                     <input type="number" class="form-control lote-quantidade" placeholder="Qtd" value="${dados.quantidade || ''}" required>
                 </div>
@@ -546,7 +641,6 @@
             </div>
         `;
         $('#lotesContainer').append(linha);
-        // Aplica flatpickr no campo de validade da nova linha
         $('#lotesContainer .lote-validade:last').flatpickr({
             dateFormat: "Y-m-d",
             locale: "pt"
@@ -569,7 +663,6 @@
             lotes: []
         };
 
-        // Coletar lotes
         $('.lote-row').each(function() {
             const qtd = $(this).find('.lote-quantidade').val();
             const validade = $(this).find('.lote-validade').val();
@@ -596,10 +689,10 @@
             method: method,
             contentType: 'application/json',
             data: JSON.stringify(dados),
-            success: function(res) {
+            success: function() {
                 $('#modalStockSemanal').modal('hide');
                 carregarStockSemanal();
-                carregarLotes(); // atualizar também a tabela de lotes
+                carregarLotes();
             },
             error: function(xhr) {
                 alert('Erro: ' + (xhr.responseJSON?.message || xhr.responseJSON?.error || 'Erro desconhecido'));
@@ -607,10 +700,7 @@
         });
     }
 
-    function editarStock(id) {
-        abrirModalStockSemanal(id);
-    }
-
+    function editarStock(id) { abrirModalStockSemanal(id); }
     function deletarStock(id) {
         if (confirm('Tem certeza que deseja deletar este registo? Os lotes associados também serão removidos.')) {
             $.ajax({
@@ -627,27 +717,23 @@
         }
     }
 
-    // ========== LOTES (MELHORADO) ==========
+    // ========== LOTES ==========
     function carregarLotes() {
         $.get('/api/stock_semanal_lote', function(lotes) {
-            // Se os dados já vierem completos (com location_nome, medicamento_nome e apresentacao), apenas desenha
             if (lotes.length > 0 && (lotes[0].location_nome !== undefined && lotes[0].apresentacao !== undefined)) {
                 tabelaLotes.clear().rows.add(lotes).draw();
                 return;
             }
 
-            // Caso contrário, busca os dados complementares
             $.when(
                 $.get('/api/stock_semanal'),
                 $.get('/api/medicamento'),
                 $.get('/api/location')
             ).then(function(stocks, medicamentos, locations) {
-                // O resultado do $.when vem como array [data, status, xhr], pegamos o primeiro elemento
                 stocks = stocks[0];
                 medicamentos = medicamentos[0];
                 locations = locations[0];
 
-                // Criar mapas para lookup rápido
                 let stockMap = {};
                 stocks.forEach(s => stockMap[s.id] = s);
 
@@ -657,7 +743,6 @@
                 let locationMap = {};
                 locations.forEach(l => locationMap[l.id] = l);
 
-                // Enriquecer cada lote
                 lotes.forEach(l => {
                     let stock = stockMap[l.id_stock_semanal];
                     if (stock) {
@@ -721,7 +806,7 @@
             success: function() {
                 $('#modalLote').modal('hide');
                 carregarLotes();
-                carregarStockSemanal(); // para atualizar contador de lotes
+                carregarStockSemanal();
             },
             error: function(xhr) {
                 alert('Erro: ' + (xhr.responseJSON?.message || xhr.responseJSON?.error || 'Erro desconhecido'));
@@ -729,10 +814,7 @@
         });
     }
 
-    function editarLote(id) {
-        abrirModalLote(id);
-    }
-
+    function editarLote(id) { abrirModalLote(id); }
     function deletarLote(id) {
         if (confirm('Tem certeza que deseja deletar este lote?')) {
             $.ajax({
@@ -755,8 +837,56 @@
         if (Object.keys(filtros).length) {
             url += '?' + $.param(filtros);
         }
-        $.get(url, function(data) {
-            tabelaHistorico.clear().rows.add(data).draw();
+        $.get(url, function(movimentos) {
+            if (movimentos.length > 0 && movimentos[0].location_nome !== undefined && movimentos[0].apresentacao !== undefined) {
+                tabelaHistorico.clear().rows.add(movimentos).draw();
+                return;
+            }
+
+            $.when(
+                $.get('/api/stock_semanal'),
+                $.get('/api/medicamento'),
+                $.get('/api/location')
+            ).then(function(stocks, medicamentos, locations) {
+                stocks = stocks[0];
+                medicamentos = medicamentos[0];
+                locations = locations[0];
+
+                let stockMap = {};
+                stocks.forEach(s => stockMap[s.id] = s);
+
+                let medicamentoMap = {};
+                medicamentos.forEach(m => medicamentoMap[m.id] = m);
+
+                let locationMap = {};
+                locations.forEach(l => locationMap[l.id] = l);
+
+                movimentos.forEach(m => {
+                    if (m.id_stock_semanal) {
+                        let stock = stockMap[m.id_stock_semanal];
+                        if (stock) {
+                            m.location_nome = locationMap[stock.id_location]?.name || 'Desconhecido';
+                            let med = medicamentoMap[stock.id_medicamento];
+                            m.medicamento_nome = med?.nome_padronizado || 'Desconhecido';
+                            m.apresentacao = med?.apresentacao || '';
+                        } else {
+                            m.location_nome = 'N/A';
+                            m.medicamento_nome = 'N/A';
+                            m.apresentacao = '';
+                        }
+                    } else {
+                        m.location_nome = m.location_nome || 'N/A';
+                        m.medicamento_nome = m.medicamento_nome || 'N/A';
+                        m.apresentacao = m.apresentacao || '';
+                    }
+                });
+
+                tabelaHistorico.clear().rows.add(movimentos).draw();
+            }).fail(function() {
+                alert('Erro ao carregar dados complementares para o histórico.');
+            });
+        }).fail(function() {
+            alert('Erro ao carregar histórico.');
         });
     }
 
@@ -768,7 +898,6 @@
             data_inicio: $('#filtroDataInicio').val(),
             data_fim: $('#filtroDataFim').val()
         };
-        // Remove campos vazios
         Object.keys(filtros).forEach(k => !filtros[k] && delete filtros[k]);
         carregarHistorico(filtros);
     }
@@ -833,10 +962,7 @@
         });
     }
 
-    function editarHistorico(id) {
-        abrirModalHistorico(id);
-    }
-
+    function editarHistorico(id) { abrirModalHistorico(id); }
     function deletarHistorico(id) {
         if (confirm('Tem certeza que deseja deletar este movimento?')) {
             $.ajax({

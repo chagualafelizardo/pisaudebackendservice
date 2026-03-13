@@ -12,7 +12,6 @@ class Medicamento(db.Model):
     forma_farmaceutica = db.Column(db.Enum('Comprimido', 'Suspensão', 'Kit', 'Frasco', name='forma_farmaceutica_enum'), nullable=False)
     unidade_medida = db.Column(db.Enum('Comprimido', 'Frasco', 'Kit', 'ml', name='unidade_medida_enum'), nullable=False)
     apresentacao = db.Column(db.String(50), nullable=False)
-    stock_minimo = db.Column(db.Integer, nullable=False, default=0)
     ativo = db.Column(db.Boolean, nullable=False, default=True)
 
     # Campos de controlo (padrão do exemplo)
@@ -20,6 +19,8 @@ class Medicamento(db.Model):
     syncStatusDate = db.Column(db.DateTime, nullable=True)
     createAt = db.Column(db.DateTime, default=db.func.current_timestamp())
     updateAt = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    locations = db.relationship('MedicamentoLocation', backref='medicamento', lazy='dynamic', cascade='all, delete-orphan')
 
     # Restrição única para (nome_padronizado, apresentacao)
     __table_args__ = (

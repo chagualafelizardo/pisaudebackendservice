@@ -53,6 +53,8 @@ class Location(db.Model):
         lazy='subquery'
     )
 
+    medicamentos = db.relationship('MedicamentoLocation', backref='location', lazy='dynamic', cascade='all, delete-orphan')
+
     createAt = db.Column(db.DateTime, default=db.func.current_timestamp())
     updateAt = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 

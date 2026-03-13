@@ -24,7 +24,6 @@ class MedicamentoController:
                     'forma_farmaceutica': m.forma_farmaceutica,
                     'unidade_medida': m.unidade_medida,
                     'apresentacao': m.apresentacao,
-                    'stock_minimo': m.stock_minimo,
                     'ativo': m.ativo,
                     'syncStatus': m.syncStatus,
                     'syncStatusDate': m.syncStatusDate.isoformat() if m.syncStatusDate else None,
@@ -50,7 +49,6 @@ class MedicamentoController:
                 'forma_farmaceutica': m.forma_farmaceutica,
                 'unidade_medida': m.unidade_medida,
                 'apresentacao': m.apresentacao,
-                'stock_minimo': m.stock_minimo,
                 'ativo': m.ativo,
                 'syncStatus': m.syncStatus,
                 'syncStatusDate': m.syncStatusDate.isoformat() if m.syncStatusDate else None,
@@ -97,7 +95,6 @@ class MedicamentoController:
                 return jsonify({'message': 'Já existe um medicamento com este nome e apresentação.'}), 409
 
             # Campos opcionais com default
-            stock_minimo = data.get('stock_minimo', 0)
             ativo = data.get('ativo', True)
             syncStatus = data.get('syncStatus', 'Not Syncronized')
             syncStatusDate = None
@@ -113,7 +110,6 @@ class MedicamentoController:
                 forma_farmaceutica=forma_farmaceutica,
                 unidade_medida=unidade_medida,
                 apresentacao=apresentacao,
-                stock_minimo=stock_minimo,
                 ativo=ativo,
                 syncStatus=syncStatus,
                 syncStatusDate=syncStatusDate
@@ -146,7 +142,6 @@ class MedicamentoController:
             forma_farmaceutica = data.get('forma_farmaceutica', m.forma_farmaceutica)
             unidade_medida = data.get('unidade_medida', m.unidade_medida)
             apresentacao = data.get('apresentacao', m.apresentacao)
-            stock_minimo = data.get('stock_minimo', m.stock_minimo)
             ativo = data.get('ativo', m.ativo)
             syncStatus = data.get('syncStatus', m.syncStatus)
             syncStatusDate = m.syncStatusDate
@@ -187,7 +182,6 @@ class MedicamentoController:
             m.forma_farmaceutica = forma_farmaceutica
             m.unidade_medida = unidade_medida
             m.apresentacao = apresentacao
-            m.stock_minimo = stock_minimo
             m.ativo = ativo
             m.syncStatus = syncStatus
             m.syncStatusDate = syncStatusDate

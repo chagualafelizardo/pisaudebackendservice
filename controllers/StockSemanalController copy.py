@@ -23,9 +23,11 @@ class StockSemanalController:
                     'id_medicamento': s.id_medicamento,
                     'medicamento_nome': s.medicamento.nome_padronizado if s.medicamento else None,
                     'medicamento_apresentacao': s.medicamento.apresentacao if s.medicamento else None,
+                    'semana': s.semana,
+                    'ano': s.ano,
                     'data_registo': s.data_registo.isoformat() if s.data_registo else None,
                     'registado_por': s.registado_por,
-                    'registado_por_nome': s.registado_por_user.fullname if s.registado_por_user else None,
+                    'registado_por_nome': s.registado_por_user.fullname  if s.registado_por_user else None,
                     'observacoes': s.observacoes,
                     'syncStatus': s.syncStatus,
                     'syncStatusDate': s.syncStatusDate.isoformat() if s.syncStatusDate else None,
@@ -65,9 +67,11 @@ class StockSemanalController:
                 'id_medicamento': s.id_medicamento,
                 'medicamento_nome': s.medicamento.nome_padronizado if s.medicamento else None,
                 'medicamento_apresentacao': s.medicamento.apresentacao if s.medicamento else None,
+                # 'semana': s.semana,
+                # 'ano': s.ano,
                 'data_registo': s.data_registo.isoformat() if s.data_registo else None,
                 'registado_por': s.registado_por,
-                'registado_por_nome': s.registado_por_user.fullname if s.registado_por_user else None,
+                'registado_por_nome': s.registado_por_user.nome if s.registado_por_user else None,
                 'observacoes': s.observacoes,
                 'syncStatus': s.syncStatus,
                 'syncStatusDate': s.syncStatusDate.isoformat() if s.syncStatusDate else None,
@@ -98,18 +102,28 @@ class StockSemanalController:
         try:
             data = request.get_json(force=True)
 
-            # Campos obrigatórios (semana e ano removidos)
+            # Converter e validar campos numéricos
             try:
                 id_location = int(data.get('id_location'))
                 id_medicamento = int(data.get('id_medicamento'))
+                # semana = int(data.get('semana'))
+                # ano = int(data.get('ano'))
                 registado_por = int(data.get('registado_por'))
             except (TypeError, ValueError):
-                return jsonify({'message': 'Campos id_location, id_medicamento, registado_por devem ser números inteiros'}), 400
+                return jsonify({'message': 'Campos id_location, id_medicamento, semana, ano, registado_por devem ser números inteiros'}), 400
 
-            lotes = data.get('lotes', [])
+            lotes = data.get('lotes', [])  # Lista de lotes
 
-            if not all([id_location, id_medicamento, registado_por]):
-                return jsonify({'message': 'Campos obrigatórios: id_location, id_medicamento, registado_por'}), 400
+            if not all([id_location, id_medicamento, semana, ano, registado_por]):
+                return jsonify({'message': 'Campos obrigatórios: id_location, id_medicamento, semana, ano, registado_por'}), 400
+
+            # Validação de semana (1-53)
+            if not (1 <= semana <= 53):
+                return jsonify({'message': 'A semana deve estar entre 1 e 53'}), 400
+
+            # Validação de ano (ex: maior que 2000)
+            if ano < 2000 or ano > 2100:
+                return jsonify({'message': 'Ano inválido'}), 400
 
             # Verificar existência das chaves estrangeiras
             unidade = Location.query.get(id_location)
@@ -124,22 +138,22 @@ class StockSemanalController:
             if not user:
                 return jsonify({'message': 'User não encontrado'}), 404
 
-            # NOTA: A unicidade agora pode ser definida apenas por (id_location, id_medicamento) ou outra combinação.
-            # Se quiser manter alguma regra de duplicidade, ajuste conforme necessidade.
-            # Exemplo: evitar múltiplos registos para a mesma unidade/medicamento? 
-            # Se for o caso, descomente as linhas abaixo:
-            #
-            # existing = StockSemanal.query.filter_by(
-            #     id_location=id_location,
-            #     id_medicamento=id_medicamento
-            # ).first()
-            # if existing:
-            #     return jsonify({'message': 'Já existe um registo de stock para esta unidade e medicamento.'}), 409
+            # Verificar duplicidade (unique constraint)
+            existing = StockSemanal.query.filter_by(
+                id_location=id_location,
+                id_medicamento=id_medicamento,
+                semana=semana,
+                ano=ano
+            ).first()
+            if existing:
+                return jsonify({'message': 'Já existe um registo de stock para esta unidade, medicamento, semana e ano.'}), 409
 
             # Criar o cabeçalho
             stock = StockSemanal(
                 id_location=id_location,
                 id_medicamento=id_medicamento,
+                semana=semana,
+                ano=ano,
                 registado_por=registado_por,
                 observacoes=data.get('observacoes'),
                 syncStatus=data.get('syncStatus', 'Not Syncronized')
@@ -151,9 +165,9 @@ class StockSemanalController:
                     pass
 
             db.session.add(stock)
-            db.session.flush()
+            db.session.flush()  # Para obter o ID do stock antes de adicionar lotes
 
-            # Processar lotes (igual ao original)
+            # Processar lotes
             if not isinstance(lotes, list):
                 return jsonify({'message': 'O campo lotes deve ser uma lista'}), 400
 
@@ -166,6 +180,7 @@ class StockSemanalController:
                 if quantidade is None or data_validade is None:
                     return jsonify({'message': 'Cada lote deve conter quantidade e data_validade'}), 400
 
+                # Validar quantidade positiva
                 try:
                     quantidade = int(quantidade)
                     if quantidade <= 0:
@@ -173,6 +188,7 @@ class StockSemanalController:
                 except ValueError:
                     return jsonify({'message': 'A quantidade do lote deve ser um número inteiro'}), 400
 
+                # Converter data_validade de string para date
                 try:
                     data_validade_date = datetime.fromisoformat(data_validade).date()
                 except:
@@ -214,7 +230,7 @@ class StockSemanalController:
 
             data = request.get_json(force=True)
 
-            # Atualizar campos permitidos (semana e ano removidos)
+            # Atualizar campos do cabeçalho (apenas os fornecidos)
             if 'id_location' in data:
                 try:
                     id_location = int(data['id_location'])
@@ -234,6 +250,24 @@ class StockSemanalController:
                 if not medicamento:
                     return jsonify({'message': 'Medicamento não encontrado'}), 404
                 stock.id_medicamento = id_medicamento
+
+            if 'semana' in data:
+                try:
+                    semana = int(data['semana'])
+                except ValueError:
+                    return jsonify({'message': 'semana deve ser um número inteiro'}), 400
+                if not (1 <= semana <= 53):
+                    return jsonify({'message': 'A semana deve estar entre 1 e 53'}), 400
+                stock.semana = semana
+
+            if 'ano' in data:
+                try:
+                    ano = int(data['ano'])
+                except ValueError:
+                    return jsonify({'message': 'ano deve ser um número inteiro'}), 400
+                if ano < 2000 or ano > 2100:
+                    return jsonify({'message': 'Ano inválido'}), 400
+                stock.ano = ano
 
             if 'registado_por' in data:
                 try:
@@ -257,14 +291,16 @@ class StockSemanalController:
                 except:
                     pass
 
-            # Atualizar lotes (se fornecidos)
+            # Atualizar lotes: se fornecidos, substituir completamente
             if 'lotes' in data:
                 lotes = data['lotes']
                 if not isinstance(lotes, list):
                     return jsonify({'message': 'O campo lotes deve ser uma lista'}), 400
 
+                # Remover lotes antigos
                 StockSemanalLote.query.filter_by(id_stock_semanal=stock.id).delete()
 
+                # Adicionar novos lotes
                 for lote_data in lotes:
                     quantidade = lote_data.get('quantidade')
                     data_validade = lote_data.get('data_validade')
@@ -301,7 +337,16 @@ class StockSemanalController:
                             pass
                     db.session.add(lote)
 
-            # Removida a verificação de duplicidade com semana/ano
+            # Verificar unique constraint após alterações
+            existing = StockSemanal.query.filter(
+                StockSemanal.id_location == stock.id_location,
+                StockSemanal.id_medicamento == stock.id_medicamento,
+                StockSemanal.semana == stock.semana,
+                StockSemanal.ano == stock.ano,
+                StockSemanal.id != stock.id
+            ).first()
+            if existing:
+                return jsonify({'message': 'Já existe outro registo de stock com a mesma unidade, medicamento, semana e ano.'}), 409
 
             stock.updateAt = datetime.utcnow()
             db.session.commit()

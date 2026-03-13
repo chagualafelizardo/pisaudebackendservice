@@ -178,6 +178,7 @@ from routes.HistoricoMovimentoRoutes import historico_movimento_bp
 from routes.StockSemanalRoutes import stock_semanal_bp
 from routes.StockSemanalLoteRoutes import stock_semanal_lote_bp
 from routes.DashboardMedicamentoRoutes import dashboard_bp
+from routes.MedicamentoLocationRoutes import medicamento_location_bp
 
 # Route exclusiva para o Bot
 from routes.AiRoutes import ai_bp
@@ -198,7 +199,8 @@ blueprints = [
     historico_bp, distribuicao_bp, tipo_item_bp, nota_envio_bp,
     nota_envio_item_bp, nota_envio_document_bp, itens_pendentes_bp,
     items_solicitados_bp, agendamento_bp, medicamento_bp, historico_movimento_bp,
-    stock_semanal_bp, stock_semanal_lote_bp, dashboard_bp, ai_bp
+    stock_semanal_bp, stock_semanal_lote_bp, dashboard_bp, medicamento_location_bp,
+    ai_bp
 ]
 
 for bp in blueprints:

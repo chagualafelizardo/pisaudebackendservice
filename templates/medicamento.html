@@ -31,14 +31,13 @@
                         <th>Forma Farmacêutica</th>
                         <th>Unidade Medida</th>
                         <th>Apresentação</th>
-                        <th>Stock Mínimo</th>
                         <th>Ativo</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody id="medicamentosTableBody">
                     <tr>
-                        <td colspan="9" class="text-center text-muted">
+                        <td colspan="8" class="text-center text-muted">
                             <i class="bi bi-hourglass-split"></i> Carregando medicamentos...
                         </td>
                     </tr>
@@ -114,11 +113,6 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Stock Mínimo (default 0)</label>
-                        <input type="number" id="stock_minimo" class="form-control" min="0" value="0">
-                    </div>
-
-                    <div class="col-md-6 mb-3">
                         <label class="form-label">Ativo</label>
                         <select id="ativo" class="form-select">
                             <option value="true">Sim</option>
@@ -178,7 +172,7 @@
             console.error(err);
             document.getElementById('medicamentosTableBody').innerHTML = `
                 <tr>
-                    <td colspan="9" class="text-center text-danger">
+                    <td colspan="8" class="text-center text-danger">
                         <i class="bi bi-exclamation-triangle"></i> Erro ao carregar medicamentos.
                     </td>
                 </tr>
@@ -192,7 +186,7 @@
         if (!allMedicamentos || allMedicamentos.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="text-center text-muted">
+                    <td colspan="8" class="text-center text-muted">
                         Nenhum medicamento cadastrado.
                     </td>
                 </tr>
@@ -203,7 +197,6 @@
         tbody.innerHTML = '';
         allMedicamentos.forEach(med => {
             const ativo = med.ativo ? '<span class="badge bg-success">Sim</span>' : '<span class="badge bg-danger">Não</span>';
-            const stockMinimo = med.stock_minimo !== undefined ? med.stock_minimo : 0;
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${med.id}</td>
@@ -212,11 +205,13 @@
                 <td>${med.forma_farmaceutica}</td>
                 <td>${med.unidade_medida}</td>
                 <td>${med.apresentacao}</td>
-                <td class="text-center">${stockMinimo}</td>
                 <td class="text-center">${ativo}</td>
                 <td>
                     <button class="btn btn-sm btn-warning me-1" onclick="editarMedicamento(${med.id})" title="Editar">
                         <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-info me-1" onclick="gerirStocksMedicamento(${med.id})" title="Configurar stocks por localização">
+                        <i class="bi bi-gear"></i>
                     </button>
                     <button class="btn btn-sm btn-danger" onclick="eliminarMedicamento(${med.id})" title="Apagar">
                         <i class="bi bi-trash"></i>
@@ -237,7 +232,6 @@
         document.getElementById('syncStatusDate').value = '';
         // Definir valores padrão
         document.getElementById('ativo').value = 'true';
-        document.getElementById('stock_minimo').value = 0;
         
         new bootstrap.Modal(document.getElementById('medicamentoModal')).show();
     }
@@ -255,7 +249,6 @@
             document.getElementById('forma_farmaceutica').value = med.forma_farmaceutica || '';
             document.getElementById('unidade_medida').value = med.unidade_medida || '';
             document.getElementById('apresentacao').value = med.apresentacao || '';
-            document.getElementById('stock_minimo').value = med.stock_minimo !== undefined ? med.stock_minimo : 0;
             document.getElementById('ativo').value = med.ativo ? 'true' : 'false';
             document.getElementById('syncStatus').value = med.syncStatus || 'Not Syncronized';
             document.getElementById('syncStatusDate').value = med.syncStatusDate ? med.syncStatusDate.slice(0,16) : '';
@@ -278,7 +271,6 @@
             forma_farmaceutica: document.getElementById('forma_farmaceutica').value,
             unidade_medida: document.getElementById('unidade_medida').value,
             apresentacao: document.getElementById('apresentacao').value.trim(),
-            stock_minimo: parseInt(document.getElementById('stock_minimo').value) || 0,
             ativo: document.getElementById('ativo').value === 'true',
             syncStatus: document.getElementById('syncStatus').value,
             syncStatusDate: document.getElementById('syncStatusDate').value || null
@@ -340,6 +332,137 @@
             const texto = linha.innerText.toLowerCase();
             linha.style.display = texto.includes(term) ? '' : 'none';
         });
+    }
+
+    // ====== GESTÃO DE STOCKS POR LOCALIZAÇÃO ======
+
+    async function gerirStocksMedicamento(medicamentoId) {
+        const medicamento = allMedicamentos.find(m => m.id === medicamentoId);
+        if (!medicamento) {
+            alert('Medicamento não encontrado');
+            return;
+        }
+
+        try {
+            // Carregar lista de localizações
+            const locResponse = await fetch('/api/location');
+            if (!locResponse.ok) throw new Error('Erro ao carregar localizações');
+            const locations = await locResponse.json();
+
+            // Carregar configurações atuais para este medicamento
+            const configResponse = await fetch(`/api/medicamento-location/medicamento/${medicamentoId}`);
+            let configuracoes = [];
+            if (configResponse.ok) {
+                configuracoes = await configResponse.json();
+            } else if (configResponse.status !== 404) {
+                const err = await configResponse.json();
+                throw new Error(err.message || 'Erro ao carregar configurações');
+            }
+
+            const configMap = {};
+            configuracoes.forEach(cfg => {
+                configMap[cfg.location_id] = cfg;
+            });
+
+            // Construir modal
+            const modalHtml = `
+                <div class="modal fade" id="stocksModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Configurar Stocks - ${medicamento.nome_padronizado} (${medicamento.apresentacao})</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Defina os stocks mínimo e máximo para cada unidade sanitária.</p>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Unidade Sanitária</th>
+                                                <th>Stock Mínimo</th>
+                                                <th>Stock Máximo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="stocksTableBody">
+                                            ${locations.map(loc => {
+                                                const cfg = configMap[loc.id] || { stock_minimo: 0, stock_maximo: 0 };
+                                                return `
+                                                    <tr data-location-id="${loc.id}">
+                                                        <td>${loc.name}</td>
+                                                        <td>
+                                                            <input type="number" class="form-control stock-minimo" value="${cfg.stock_minimo}" min="0">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="form-control stock-maximo" value="${cfg.stock_maximo}" min="0">
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" onclick="salvarStocksMedicamento(${medicamentoId})">Salvar</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remover modal antigo se existir
+            const oldModal = document.getElementById('stocksModal');
+            if (oldModal) oldModal.remove();
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('stocksModal'));
+            modal.show();
+
+            document.getElementById('stocksModal').addEventListener('hidden.bs.modal', function () {
+                this.remove();
+            });
+
+        } catch (err) {
+            alert('Erro: ' + err.message);
+        }
+    }
+
+    async function salvarStocksMedicamento(medicamentoId) {
+        const linhas = document.querySelectorAll('#stocksTableBody tr');
+        const dados = [];
+
+        linhas.forEach(linha => {
+            const locationId = linha.dataset.locationId;
+            const stockMinimo = parseInt(linha.querySelector('.stock-minimo').value, 10) || 0;
+            const stockMaximo = parseInt(linha.querySelector('.stock-maximo').value, 10) || 0;
+            if (stockMinimo >= 0 && stockMaximo >= 0) {
+                dados.push({
+                    location_id: locationId,
+                    stock_minimo: stockMinimo,
+                    stock_maximo: stockMaximo
+                });
+            }
+        });
+
+        try {
+            const response = await fetch(`/api/medicamento-location/medicamento/${medicamentoId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Erro ao salvar');
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('stocksModal')).hide();
+            alert('Configurações salvas com sucesso!');
+        } catch (err) {
+            alert('Erro: ' + err.message);
+        }
     }
 </script>
 

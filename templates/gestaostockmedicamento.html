@@ -31,18 +31,34 @@
     }
     /* Estilo para linhas de total */
     .total-row td {
-        background-color: #e2e3e5 !important; /* cinza claro */
+        background-color: #e2e3e5 !important;
         font-weight: bold !important;
         border-top: 2px solid #6c757d;
         border-bottom: 2px solid #6c757d;
         color: #1a1e21;
     }
-    /* Opcional: melhorar contraste das células normais */
+    /* Melhorar contraste das células normais */
     .table-striped>tbody>tr:nth-of-type(odd)>* {
         background-color: #f9f9f9;
     }
     .table-striped>tbody>tr:nth-of-type(even)>* {
         background-color: #ffffff;
+    }
+    /* Estilo para indicar stock abaixo do mínimo */
+    .stock-abaixo {
+        background-color: #f8d7da !important;
+        font-weight: bold;
+    }
+    .stock-acima {
+        background-color: #d4edda !important;
+    }
+
+    .stock-abaixo {
+    background-color: #f8d7da !important;
+        font-weight: bold;
+    }
+    .stock-acima {
+        background-color: #d4edda !important;
     }
 </style>
 {% endblock %}
@@ -81,9 +97,9 @@
                             <th>{{ _('Unidade Sanitária') }}</th>
                             <th>{{ _('Medicamento') }}</th>
                             <th>{{ _('Apresentação') }}</th>
+                            <th>{{ _('Stock Mínimo') }}</th>
+                            <th>{{ _('Stock Máximo') }}</th>
                             <th>{{ _('Quantidade Total') }}</th>
-                            <th>{{ _('Semana') }}</th>
-                            <th>{{ _('Ano') }}</th>
                             <th>{{ _('Data Registo') }}</th>
                             <th>{{ _('Registado Por') }}</th>
                             <th>{{ _('Observações') }}</th>
@@ -112,6 +128,8 @@
                             <th>{{ _('Unidade Sanitária') }}</th>
                             <th>{{ _('Medicamento') }}</th>
                             <th>{{ _('Apresentação') }}</th>
+                            <th>{{ _('Stock Mínimo') }}</th>
+                            <th>{{ _('Stock Máximo') }}</th>
                             <th>{{ _('Quantidade') }}</th>
                             <th>{{ _('Data Validade') }}</th>
                             <th>{{ _('Código Lote') }}</th>
@@ -176,6 +194,8 @@
                             <th>{{ _('Unidade') }}</th>
                             <th>{{ _('Medicamento') }}</th>
                             <th>{{ _('Apresentação') }}</th>
+                            <th>{{ _('Stock Mínimo') }}</th>
+                            <th>{{ _('Stock Máximo') }}</th>
                             <th>{{ _('Tipo') }}</th>
                             <th>{{ _('Quantidade') }}</th>
                             <th>{{ _('Data Movimento') }}</th>
@@ -220,14 +240,6 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label>{{ _('Semana') }} (1-53) *</label>
-                            <input type="number" class="form-control" id="stockSemana" min="1" max="53" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label>{{ _('Ano') }} *</label>
-                            <input type="number" class="form-control" id="stockAno" min="2000" max="2100" required>
-                        </div>
                         <div class="col-md-4 mb-3">
                             <label>{{ _('Registado Por') }} *</label>
                             <select class="form-select" id="stockRegistadoPor" required>
@@ -298,7 +310,7 @@
     </div>
 </div>
 
-<!-- MODAL HISTÓRICO MOVIMENTO -->
+<!-- MODAL HISTÓRICO MOVIMENTO (com campos obrigatórios) -->
 <div class="modal fade" id="modalHistorico" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -348,12 +360,12 @@
                         <textarea class="form-control" id="historicoObservacao" rows="2"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label>{{ _('Código Lote') }}</label>
-                        <input type="text" class="form-control" id="historicoCodigoLote">
+                        <label>{{ _('Código Lote') }} *</label>
+                        <input type="text" class="form-control" id="historicoCodigoLote" required>
                     </div>
                     <div class="mb-3">
-                        <label>{{ _('Data Validade') }}</label>
-                        <input type="text" class="form-control datepicker" id="historicoDataValidade">
+                        <label>{{ _('Data Validade') }} *</label>
+                        <input type="text" class="form-control datepicker" id="historicoDataValidade" required>
                     </div>
                 </form>
             </div>
@@ -376,12 +388,15 @@
 <script>
     // Variáveis globais para DataTables
     let tabelaStock, tabelaLotes, tabelaHistorico;
+    let medicamentoLocationMap = {}; // Mapa para consulta de stock mínimo e máximo por (medicamento_id, location_id)
+    let stockAtualMap = {};          // Mapa para consulta de stock atual (quantidade total) por (medicamento_id, location_id)
 
     // Inicialização
     $(document).ready(function() {
         carregarUnidades();
         carregarMedicamentos();
         carregarUsers();
+        carregarMedicamentoLocation(); // Carrega configurações de stock por localização
 
         // DataTables
 
@@ -393,9 +408,9 @@
                 { data: 'location_nome' },
                 { data: 'medicamento_nome' },
                 { data: 'apresentacao' },
+                { data: 'stock_minimo' },
+                { data: 'stock_maximo' },
                 { data: 'quantidade_total' },
-                { data: 'semana' },
-                { data: 'ano' },
                 { data: 'data_registo' },
                 { data: 'registado_por_nome' },
                 { data: 'observacoes' },
@@ -413,7 +428,25 @@
                     return $('<tr class="total-row"/>').append('<td colspan="11"><strong>' + group + '</strong> (Total: ' + total + ')</td>');
                 }
             },
-            order: [[1, 'asc'], [2, 'asc'], [3, 'asc'], [0, 'desc']] // ordena por unidade, medicamento, apresentação e id decrescente
+            order: [[1, 'asc'], [2, 'asc'], [3, 'asc'], [0, 'desc']], // ordena por unidade, medicamento, apresentação e id decrescente
+            createdRow: function(row, data, dataIndex) {
+                // Aplicar classe de alerta se quantidade_total < stock_minimo ou > stock_maximo
+                if (data.stock_minimo !== undefined && data.stock_maximo !== undefined) {
+                    if (data.quantidade_total < data.stock_minimo) {
+                        $(row).addClass('stock-abaixo');
+                    } else if (data.quantidade_total > data.stock_maximo) {
+                        $(row).addClass('stock-acima');
+                    }
+                }
+
+                if (data.quantidade_total < data.stock_minimo) {
+                    $(row).addClass('stock-abaixo');
+                } else if (data.quantidade_total < data.stock_minimo * 1.2) {
+                    $(row).addClass('stock-quase-abaixo');
+                } else if (data.quantidade_total > data.stock_maximo) {
+                    $(row).addClass('stock-acima');
+                }
+            }
         });
 
         // Tabela de Lotes com agrupamento por Unidade + Medicamento + Apresentação
@@ -424,6 +457,8 @@
                 { data: 'location_nome' },
                 { data: 'medicamento_nome' },
                 { data: 'apresentacao' },
+                { data: 'stock_minimo' },
+                { data: 'stock_maximo' },
                 { data: 'quantidade' },
                 { data: 'data_validade' },
                 { data: 'codigo_lote' },
@@ -439,13 +474,22 @@
                 },
                 startRender: function (rows, group) {
                     let total = rows.data().pluck('quantidade').reduce((a, b) => a + b, 0);
-                    return $('<tr class="total-row"/>').append('<td colspan="9"><strong>' + group + '</strong> (Total: ' + total + ')</td>');
+                    return $('<tr class="total-row"/>').append('<td colspan="11"><strong>' + group + '</strong> (Total: ' + total + ')</td>');
                 }
             },
-            order: [[1, 'asc'], [2, 'asc'], [3, 'asc']]
+            order: [[1, 'asc'], [2, 'asc'], [3, 'asc']],
+            createdRow: function(row, data, dataIndex) {
+                if (data.stock_minimo !== undefined && data.stock_maximo !== undefined) {
+                    if (data.quantidade < data.stock_minimo) {
+                        $(row).addClass('stock-abaixo');
+                    } else if (data.quantidade > data.stock_maximo) {
+                        $(row).addClass('stock-acima');
+                    }
+                }
+            }
         });
 
-        // Tabela de Histórico com agrupamento, resumo e cores
+        // Tabela de Histórico com agrupamento, resumo e cores (apenas botão de deletar)
         tabelaHistorico = $('#tabelaHistorico').DataTable({
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-PT.json' },
             columns: [
@@ -453,6 +497,8 @@
                 { data: 'location_nome' },
                 { data: 'medicamento_nome' },
                 { data: 'apresentacao' },
+                { data: 'stock_minimo' },
+                { data: 'stock_maximo' },
                 { data: 'tipo_movimento' },
                 { data: 'quantidade' },
                 { data: 'data_movimento' },
@@ -461,7 +507,6 @@
                 { data: 'codigo_lote' },
                 { data: 'data_validade' },
                 { data: null, render: (data, type, row) => `
-                    <button class="btn btn-sm btn-info" onclick="editarHistorico(${row.id})"><i class="bi bi-pencil"></i></button>
                     <button class="btn btn-sm btn-danger" onclick="deletarHistorico(${row.id})"><i class="bi bi-trash"></i></button>
                 ` }
             ],
@@ -477,14 +522,15 @@
                         else if (row.tipo_movimento === 'Saída') saidas += row.quantidade;
                         else if (row.tipo_movimento === 'Ajuste') ajustes += row.quantidade;
                     });
-                    // Stock inicial: pode vir do backend ou ser o primeiro movimento (aqui assumimos 0 se não houver)
-                    let stockInicial = 0;
-                    // Se o backend enviar um campo 'stock_inicial', use:
-                    // let stockInicial = rows.data().first()?.stock_inicial || 0;
-                    let stockFinal = stockInicial + entradas - saidas + ajustes;
+                    // Obter a chave do grupo a partir da primeira linha (assumimos que todas têm mesmo medicamento/location)
+                    let primeiraLinha = rows.data()[0];
+                    let key = (primeiraLinha.id_medicamento || '') + '|' + (primeiraLinha.id_location || '');
+                    let stockAtual = stockAtualMap[key] || 0;
+                    let stockInicial = stockAtual - (entradas - saidas + ajustes);
+                    let stockFinal = stockAtual;
 
                     return $('<tr class="total-row"/>').append(`
-                        <td colspan="12">
+                        <td colspan="14">
                             <strong>${group}</strong> | 
                             Stock Inicial: <span class="badge bg-secondary">${stockInicial}</span> | 
                             Entradas: <span class="badge bg-success">${entradas}</span> | 
@@ -495,7 +541,7 @@
                     `);
                 }
             },
-            order: [[1, 'asc'], [2, 'asc'], [3, 'asc'], [6, 'desc']],
+            order: [[1, 'asc'], [2, 'asc'], [3, 'asc'], [8, 'desc']],
             createdRow: function(row, data, dataIndex) {
                 if (data.tipo_movimento === 'Entrada') {
                     $(row).addClass('table-success');
@@ -507,10 +553,11 @@
             }
         });
 
-        // Carregar dados iniciais
-        carregarStockSemanal();
-        carregarLotes();
-        carregarHistorico();
+        // Carregar dados iniciais: primeiro stocks, depois lotes e histórico
+        carregarStockSemanal(function() {
+            carregarLotes();
+            carregarHistorico();
+        });
 
         // Inicializar datepickers
         flatpickr(".datepicker", {
@@ -518,6 +565,31 @@
             locale: "pt"
         });
     });
+
+    // Carregar configurações de stock mínimo/máximo por medicamento e localização
+    function carregarMedicamentoLocation() {
+        $.get('/api/medicamento-location', function(data) {
+            medicamentoLocationMap = {};
+            data.forEach(item => {
+                const key = item.medicamento_id + '|' + item.location_id;
+                medicamentoLocationMap[key] = {
+                    stock_minimo: item.stock_minimo,
+                    stock_maximo: item.stock_maximo
+                };
+            });
+            console.log('Mapa de stocks carregado:', medicamentoLocationMap);
+        }).fail(function(xhr, status, error) {
+            console.error('Erro ao carregar configurações de stock por localização:', error);
+            medicamentoLocationMap = {};
+        });
+    }
+
+    // Função auxiliar para obter stock_minimo e stock_maximo
+    function getStockMinMax(medicamento_id, location_id) {
+        const key = medicamento_id + '|' + location_id;
+        const cfg = medicamentoLocationMap[key];
+        return cfg ? cfg : { stock_minimo: 0, stock_maximo: 0 };
+    }
 
     // Carregar selects
     function carregarUnidades() {
@@ -544,12 +616,29 @@
         });
     }
 
-    // ========== STOCK SEMANAL (agora enriquecido e agrupado) ==========
-    function carregarStockSemanal() {
+    // Atualiza o mapa de stock atual a partir da lista de stocks
+    function atualizarStockAtualMap(stocks) {
+        stockAtualMap = {};
+        stocks.forEach(s => {
+            const key = s.id_medicamento + '|' + s.id_location;
+            stockAtualMap[key] = (stockAtualMap[key] || 0) + (s.quantidade_total || 0);
+        });
+        console.log('Stock atual map atualizado:', stockAtualMap);
+    }
+
+    // ========== STOCK SEMANAL ==========
+    function carregarStockSemanal(callback) {
         $.get('/api/stock_semanal', function(stocks) {
             // Se os dados já vierem completos (com location_nome, medicamento_nome, apresentacao, quantidade_total), usa
             if (stocks.length > 0 && stocks[0].location_nome !== undefined && stocks[0].apresentacao !== undefined && stocks[0].quantidade_total !== undefined) {
+                // Adicionar stock_minimo e stock_maximo
+                stocks = stocks.map(s => {
+                    const cfg = getStockMinMax(s.id_medicamento, s.id_location);
+                    return { ...s, ...cfg };
+                });
                 tabelaStock.clear().rows.add(stocks).draw();
+                atualizarStockAtualMap(stocks);
+                if (callback) callback();
                 return;
             }
 
@@ -569,7 +658,7 @@
                 let locationMap = {};
                 locations.forEach(l => locationMap[l.id] = l);
 
-                // Para cada stock, calcular quantidade_total somando os lotes correspondentes
+                // Para cada stock, calcular quantidade_total e adicionar cfg
                 stocks.forEach(stock => {
                     stock.location_nome = locationMap[stock.id_location]?.name || 'Desconhecido';
                     let med = medicamentoMap[stock.id_medicamento];
@@ -585,17 +674,172 @@
                         total = lotesDoStock.reduce((acc, l) => acc + (l.quantidade || 0), 0);
                     }
                     stock.quantidade_total = total;
+                    // Adicionar stock_minimo e stock_maximo
+                    const cfg = getStockMinMax(stock.id_medicamento, stock.id_location);
+                    stock.stock_minimo = cfg.stock_minimo;
+                    stock.stock_maximo = cfg.stock_maximo;
                 });
 
                 tabelaStock.clear().rows.add(stocks).draw();
+                atualizarStockAtualMap(stocks);
+                if (callback) callback();
             }).fail(function() {
                 alert('Erro ao carregar dados complementares para stock semanal.');
+                if (callback) callback();
             });
         }).fail(function() {
             alert('Erro ao carregar stock semanal.');
+            if (callback) callback();
         });
     }
 
+    // ========== LOTES ==========
+    function carregarLotes() {
+        $.get('/api/stock_semanal_lote', function(lotes) {
+            if (lotes.length > 0 && (lotes[0].location_nome !== undefined && lotes[0].apresentacao !== undefined)) {
+                // Adicionar stock_minimo e stock_maximo
+                lotes = lotes.map(l => {
+                    const cfg = getStockMinMax(l.id_medicamento, l.id_location);
+                    return { ...l, ...cfg };
+                });
+                tabelaLotes.clear().rows.add(lotes).draw();
+                return;
+            }
+
+            $.when(
+                $.get('/api/stock_semanal'),
+                $.get('/api/medicamento'),
+                $.get('/api/location')
+            ).then(function(stocks, medicamentos, locations) {
+                stocks = stocks[0];
+                medicamentos = medicamentos[0];
+                locations = locations[0];
+
+                let stockMap = {};
+                stocks.forEach(s => stockMap[s.id] = s);
+
+                let medicamentoMap = {};
+                medicamentos.forEach(m => medicamentoMap[m.id] = m);
+
+                let locationMap = {};
+                locations.forEach(l => locationMap[l.id] = l);
+
+                lotes.forEach(l => {
+                    let stock = stockMap[l.id_stock_semanal];
+                    if (stock) {
+                        l.location_nome = locationMap[stock.id_location]?.name || 'Desconhecido';
+                        let med = medicamentoMap[stock.id_medicamento];
+                        l.medicamento_nome = med?.nome_padronizado || 'Desconhecido';
+                        l.apresentacao = med?.apresentacao || '';
+                        l.id_medicamento = stock.id_medicamento;
+                        l.id_location = stock.id_location;
+                    } else {
+                        l.location_nome = 'N/A';
+                        l.medicamento_nome = 'N/A';
+                        l.apresentacao = '';
+                        l.id_medicamento = null;
+                        l.id_location = null;
+                    }
+                    // Adicionar cfg
+                    if (l.id_medicamento && l.id_location) {
+                        const cfg = getStockMinMax(l.id_medicamento, l.id_location);
+                        l.stock_minimo = cfg.stock_minimo;
+                        l.stock_maximo = cfg.stock_maximo;
+                    } else {
+                        l.stock_minimo = 0;
+                        l.stock_maximo = 0;
+                    }
+                });
+
+                tabelaLotes.clear().rows.add(lotes).draw();
+            }).fail(function() {
+                alert('Erro ao carregar dados complementares para os lotes.');
+            });
+        }).fail(function() {
+            alert('Erro ao carregar lotes.');
+        });
+    }
+
+    // ========== HISTÓRICO ==========
+    function carregarHistorico(filtros = {}) {
+        let url = '/api/historico_movimento';
+        if (Object.keys(filtros).length) {
+            url += '?' + $.param(filtros);
+        }
+        $.get(url, function(movimentos) {
+            if (movimentos.length > 0 && movimentos[0].location_nome !== undefined && movimentos[0].apresentacao !== undefined) {
+                // Adicionar stock_minimo e stock_maximo
+                movimentos = movimentos.map(m => {
+                    const cfg = getStockMinMax(m.id_medicamento, m.id_location);
+                    return { ...m, ...cfg };
+                });
+                tabelaHistorico.clear().rows.add(movimentos).draw();
+                return;
+            }
+
+            $.when(
+                $.get('/api/stock_semanal'),
+                $.get('/api/medicamento'),
+                $.get('/api/location')
+            ).then(function(stocks, medicamentos, locations) {
+                stocks = stocks[0];
+                medicamentos = medicamentos[0];
+                locations = locations[0];
+
+                let stockMap = {};
+                stocks.forEach(s => stockMap[s.id] = s);
+
+                let medicamentoMap = {};
+                medicamentos.forEach(m => medicamentoMap[m.id] = m);
+
+                let locationMap = {};
+                locations.forEach(l => locationMap[l.id] = l);
+
+                movimentos.forEach(m => {
+                    if (m.id_stock_semanal) {
+                        let stock = stockMap[m.id_stock_semanal];
+                        if (stock) {
+                            m.location_nome = locationMap[stock.id_location]?.name || 'Desconhecido';
+                            let med = medicamentoMap[stock.id_medicamento];
+                            m.medicamento_nome = med?.nome_padronizado || 'Desconhecido';
+                            m.apresentacao = med?.apresentacao || '';
+                            m.id_medicamento = stock.id_medicamento;
+                            m.id_location = stock.id_location;
+                        } else {
+                            m.location_nome = 'N/A';
+                            m.medicamento_nome = 'N/A';
+                            m.apresentacao = '';
+                            m.id_medicamento = null;
+                            m.id_location = null;
+                        }
+                    } else {
+                        m.location_nome = m.location_nome || 'N/A';
+                        m.medicamento_nome = m.medicamento_nome || 'N/A';
+                        m.apresentacao = m.apresentacao || '';
+                        m.id_medicamento = m.id_medicamento || null;
+                        m.id_location = m.id_location || null;
+                    }
+                    // Adicionar cfg
+                    if (m.id_medicamento && m.id_location) {
+                        const cfg = getStockMinMax(m.id_medicamento, m.id_location);
+                        m.stock_minimo = cfg.stock_minimo;
+                        m.stock_maximo = cfg.stock_maximo;
+                    } else {
+                        m.stock_minimo = 0;
+                        m.stock_maximo = 0;
+                    }
+                });
+
+                tabelaHistorico.clear().rows.add(movimentos).draw();
+            }).fail(function() {
+                alert('Erro ao carregar dados complementares para o histórico.');
+            });
+        }).fail(function() {
+            alert('Erro ao carregar histórico.');
+        });
+    }
+
+    // ========== STOCK SEMANAL (continuação) ==========
     function abrirModalStockSemanal(id) {
         $('#formStockSemanal')[0].reset();
         $('#stockId').val('');
@@ -605,8 +849,6 @@
                 $('#stockId').val(data.id);
                 $('#stockUnidade').val(data.id_location);
                 $('#stockMedicamento').val(data.id_medicamento);
-                $('#stockSemana').val(data.semana);
-                $('#stockAno').val(data.ano);
                 $('#stockRegistadoPor').val(data.registado_por);
                 $('#stockObservacoes').val(data.observacoes);
                 if (data.lotes) {
@@ -656,8 +898,6 @@
         const dados = {
             id_location: $('#stockUnidade').val(),
             id_medicamento: $('#stockMedicamento').val(),
-            semana: $('#stockSemana').val(),
-            ano: $('#stockAno').val(),
             registado_por: $('#stockRegistadoPor').val(),
             observacoes: $('#stockObservacoes').val(),
             lotes: []
@@ -691,8 +931,10 @@
             data: JSON.stringify(dados),
             success: function() {
                 $('#modalStockSemanal').modal('hide');
-                carregarStockSemanal();
-                carregarLotes();
+                carregarStockSemanal(function() {
+                    carregarLotes();
+                    carregarHistorico();
+                });
             },
             error: function(xhr) {
                 alert('Erro: ' + (xhr.responseJSON?.message || xhr.responseJSON?.error || 'Erro desconhecido'));
@@ -707,8 +949,10 @@
                 url: `/api/stock_semanal/${id}`,
                 method: 'DELETE',
                 success: function() {
-                    carregarStockSemanal();
-                    carregarLotes();
+                    carregarStockSemanal(function() {
+                        carregarLotes();
+                        carregarHistorico();
+                    });
                 },
                 error: function(xhr) {
                     alert('Erro: ' + (xhr.responseJSON?.error || 'Erro desconhecido'));
@@ -717,55 +961,7 @@
         }
     }
 
-    // ========== LOTES ==========
-    function carregarLotes() {
-        $.get('/api/stock_semanal_lote', function(lotes) {
-            if (lotes.length > 0 && (lotes[0].location_nome !== undefined && lotes[0].apresentacao !== undefined)) {
-                tabelaLotes.clear().rows.add(lotes).draw();
-                return;
-            }
-
-            $.when(
-                $.get('/api/stock_semanal'),
-                $.get('/api/medicamento'),
-                $.get('/api/location')
-            ).then(function(stocks, medicamentos, locations) {
-                stocks = stocks[0];
-                medicamentos = medicamentos[0];
-                locations = locations[0];
-
-                let stockMap = {};
-                stocks.forEach(s => stockMap[s.id] = s);
-
-                let medicamentoMap = {};
-                medicamentos.forEach(m => medicamentoMap[m.id] = m);
-
-                let locationMap = {};
-                locations.forEach(l => locationMap[l.id] = l);
-
-                lotes.forEach(l => {
-                    let stock = stockMap[l.id_stock_semanal];
-                    if (stock) {
-                        l.location_nome = locationMap[stock.id_location]?.name || 'Desconhecido';
-                        let med = medicamentoMap[stock.id_medicamento];
-                        l.medicamento_nome = med?.nome_padronizado || 'Desconhecido';
-                        l.apresentacao = med?.apresentacao || '';
-                    } else {
-                        l.location_nome = 'N/A';
-                        l.medicamento_nome = 'N/A';
-                        l.apresentacao = '';
-                    }
-                });
-
-                tabelaLotes.clear().rows.add(lotes).draw();
-            }).fail(function() {
-                alert('Erro ao carregar dados complementares para os lotes.');
-            });
-        }).fail(function() {
-            alert('Erro ao carregar lotes.');
-        });
-    }
-
+    // ========== LOTES (continuação) ==========
     function abrirModalLote(id) {
         $('#formLote')[0].reset();
         $('#loteId').val('');
@@ -806,7 +1002,9 @@
             success: function() {
                 $('#modalLote').modal('hide');
                 carregarLotes();
-                carregarStockSemanal();
+                carregarStockSemanal(function() {
+                    carregarHistorico();
+                });
             },
             error: function(xhr) {
                 alert('Erro: ' + (xhr.responseJSON?.message || xhr.responseJSON?.error || 'Erro desconhecido'));
@@ -822,7 +1020,9 @@
                 method: 'DELETE',
                 success: function() {
                     carregarLotes();
-                    carregarStockSemanal();
+                    carregarStockSemanal(function() {
+                        carregarHistorico();
+                    });
                 },
                 error: function(xhr) {
                     alert('Erro: ' + (xhr.responseJSON?.error || 'Erro desconhecido'));
@@ -831,65 +1031,7 @@
         }
     }
 
-    // ========== HISTÓRICO ==========
-    function carregarHistorico(filtros = {}) {
-        let url = '/api/historico_movimento';
-        if (Object.keys(filtros).length) {
-            url += '?' + $.param(filtros);
-        }
-        $.get(url, function(movimentos) {
-            if (movimentos.length > 0 && movimentos[0].location_nome !== undefined && movimentos[0].apresentacao !== undefined) {
-                tabelaHistorico.clear().rows.add(movimentos).draw();
-                return;
-            }
-
-            $.when(
-                $.get('/api/stock_semanal'),
-                $.get('/api/medicamento'),
-                $.get('/api/location')
-            ).then(function(stocks, medicamentos, locations) {
-                stocks = stocks[0];
-                medicamentos = medicamentos[0];
-                locations = locations[0];
-
-                let stockMap = {};
-                stocks.forEach(s => stockMap[s.id] = s);
-
-                let medicamentoMap = {};
-                medicamentos.forEach(m => medicamentoMap[m.id] = m);
-
-                let locationMap = {};
-                locations.forEach(l => locationMap[l.id] = l);
-
-                movimentos.forEach(m => {
-                    if (m.id_stock_semanal) {
-                        let stock = stockMap[m.id_stock_semanal];
-                        if (stock) {
-                            m.location_nome = locationMap[stock.id_location]?.name || 'Desconhecido';
-                            let med = medicamentoMap[stock.id_medicamento];
-                            m.medicamento_nome = med?.nome_padronizado || 'Desconhecido';
-                            m.apresentacao = med?.apresentacao || '';
-                        } else {
-                            m.location_nome = 'N/A';
-                            m.medicamento_nome = 'N/A';
-                            m.apresentacao = '';
-                        }
-                    } else {
-                        m.location_nome = m.location_nome || 'N/A';
-                        m.medicamento_nome = m.medicamento_nome || 'N/A';
-                        m.apresentacao = m.apresentacao || '';
-                    }
-                });
-
-                tabelaHistorico.clear().rows.add(movimentos).draw();
-            }).fail(function() {
-                alert('Erro ao carregar dados complementares para o histórico.');
-            });
-        }).fail(function() {
-            alert('Erro ao carregar histórico.');
-        });
-    }
-
+    // ========== HISTÓRICO (continuação) ==========
     function aplicarFiltrosHistorico() {
         const filtros = {
             id_location: $('#filtroUnidade').val(),
@@ -954,7 +1096,10 @@
             data: JSON.stringify(dados),
             success: function() {
                 $('#modalHistorico').modal('hide');
-                carregarHistorico();
+                // Recarregar stock semanal primeiro, depois histórico
+                carregarStockSemanal(function() {
+                    carregarHistorico();
+                });
             },
             error: function(xhr) {
                 alert('Erro: ' + (xhr.responseJSON?.message || xhr.responseJSON?.error || 'Erro desconhecido'));
@@ -962,14 +1107,16 @@
         });
     }
 
-    function editarHistorico(id) { abrirModalHistorico(id); }
     function deletarHistorico(id) {
         if (confirm('Tem certeza que deseja deletar este movimento?')) {
             $.ajax({
                 url: `/api/historico_movimento/${id}`,
                 method: 'DELETE',
                 success: function() {
-                    carregarHistorico();
+                    // Recarregar stock semanal primeiro, depois histórico
+                    carregarStockSemanal(function() {
+                        carregarHistorico();
+                    });
                 },
                 error: function(xhr) {
                     alert('Erro: ' + (xhr.responseJSON?.error || 'Erro desconhecido'));
@@ -977,5 +1124,8 @@
             });
         }
     }
+
+    function editarHistorico(id) { abrirModalHistorico(id); }
+    
 </script>
 {% endblock %}
