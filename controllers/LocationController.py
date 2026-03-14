@@ -1,6 +1,7 @@
+import re
 import logging
 import base64
-
+import json
 from flask import jsonify, request
 from models import db, Location, Resource, location_resource
 from datetime import datetime
@@ -47,7 +48,36 @@ def decode_file(value):
 
     # Se não for nenhum formato conhecido
     return None
-  
+
+def extract_base64_from_data_url(data_url):
+    """Extrai a parte Base64 de uma data URL (ex: data:image/png;base64,xxxx)"""
+    if not data_url:
+        return None
+    match = re.match(r'^data:[^;]+;base64,(.+)', data_url)
+    if match:
+        return match.group(1)
+    return data_url  # se não for data URL, assume que já é Base64 puro
+
+def extract_mime_and_base64(data_url):
+    """Extrai o tipo MIME e a parte Base64 de uma data URL."""
+    if not data_url:
+        return None, None
+    match = re.match(r'^data:([^;]+);base64,(.+)', data_url)
+    if match:
+        return match.group(1), match.group(2)
+    return None, None
+
+def create_data_url(mime_type, base64_data):
+    """Cria uma data URL a partir do tipo MIME e dados Base64"""
+    return f"data:{mime_type};base64,{base64_data}"
+
+def binary_to_data_url(data, mime_type):
+    """Converte bytes em data URL completa."""
+    if not data:
+        return None
+    base64_str = base64.b64encode(data).decode('utf-8')
+    return f"data:{mime_type};base64,{base64_str}"
+
 class LocationController:
     @staticmethod
     def get_all():
@@ -63,21 +93,37 @@ class LocationController:
                 return value
 
             def serialize_resource(link):
+                # Imagem principal
+                imagem_principal_data = None
+                if link.imagem_principal:
+                    mime = getattr(link, 'imagem_principal_mime', 'image/jpeg')
+                    imagem_principal_data = binary_to_data_url(link.imagem_principal, mime)
+
+                # Imagens adicionais (já é string JSON)
+                imagens_data = link.imagens
+
+                # PDF
+                anexospdf_data = None
+                if link.anexospdf:
+                    anexospdf_data = binary_to_data_url(link.anexospdf, 'application/pdf')
+
                 return {
                     'id': link.id,
                     'resource_id': link.resource_id,
-                    'name': getattr(link, 'name', None),
-                    'description': getattr(link, 'description', None),
-                    'recebidopor': getattr(link, 'recebidopor', None),
-                    'imagem_principal': encode_if_bytes(getattr(link, 'imagem_principal', None)),
-                    'imagens': encode_if_bytes(getattr(link, 'imagens', None)),
-                    'anexospdf': encode_if_bytes(getattr(link, 'anexospdf', None)),
-                    'datarecepcao': link.datarecepcao.isoformat() if getattr(link, "datarecepcao", None) else None,
-                    'quantity': getattr(link, 'quantity', None),
-                    'status': getattr(link, 'status', None),
-                    'condition': getattr(link, 'condition', None),
-                    'createAt': link.createAt.isoformat() if getattr(link, "createAt", None) else None,
-                    'updateAt': link.updateAt.isoformat() if getattr(link, "updateAt", None) else None
+                    'name': link.name,
+                    'description': link.description,
+                    'recebidopor': link.recebidopor,
+                    'asset_code': link.asset_code,
+                    'budget_to_location': link.budget_to_location,
+                    'imagem_principal': imagem_principal_data,
+                    'imagens': imagens_data,
+                    'anexospdf': anexospdf_data,
+                    'datarecepcao': link.datarecepcao.isoformat() if link.datarecepcao else None,
+                    'quantity': link.quantity,
+                    'status': link.status,
+                    'condition': link.condition,
+                    'createAt': link.createAt.isoformat() if link.createAt else None,
+                    'updateAt': link.updateAt.isoformat() if link.updateAt else None,
                 }
 
             for loc in locations:
@@ -114,27 +160,38 @@ class LocationController:
             if not loc:
                 return jsonify({'message': 'Location not found'}), 404
 
-            def encode_if_bytes(value):
-                if isinstance(value, bytes):
-                    return base64.b64encode(value).decode("utf-8")
-                return value
-
             def serialize_resource(link):
+                # Imagem principal
+                imagem_principal_data = None
+                if link.imagem_principal:
+                    mime = getattr(link, 'imagem_principal_mime', 'image/jpeg')
+                    imagem_principal_data = binary_to_data_url(link.imagem_principal, mime)
+
+                # Imagens adicionais
+                imagens_data = link.imagens
+
+                # PDF
+                anexospdf_data = None
+                if link.anexospdf:
+                    anexospdf_data = binary_to_data_url(link.anexospdf, 'application/pdf')
+
                 return {
                     'id': link.id,
                     'resource_id': link.resource_id,
-                    'name': getattr(link, 'name', None),
-                    'description': getattr(link, 'description', None),
-                    'recebidopor': getattr(link, 'recebidopor', None),
-                    'imagem_principal': encode_if_bytes(getattr(link, 'imagem_principal', None)),
-                    'imagens': encode_if_bytes(getattr(link, 'imagens', None)),
-                    'anexospdf': encode_if_bytes(getattr(link, 'anexospdf', None)),
-                    'datarecepcao': link.datarecepcao.isoformat() if getattr(link, "datarecepcao", None) else None,
-                    'quantity': getattr(link, 'quantity', None),
-                    'status': getattr(link, 'status', None),
-                    'condition': getattr(link, 'condition', None),
-                    'createAt': link.createAt.isoformat() if getattr(link, "createAt", None) else None,
-                    'updateAt': link.updateAt.isoformat() if getattr(link, "updateAt", None) else None
+                    'name': link.name,
+                    'description': link.description,
+                    'recebidopor': link.recebidopor,
+                    'asset_code': link.asset_code,
+                    'budget_to_location': link.budget_to_location,
+                    'imagem_principal': imagem_principal_data,
+                    'imagens': imagens_data,
+                    'anexospdf': anexospdf_data,
+                    'datarecepcao': link.datarecepcao.isoformat() if link.datarecepcao else None,
+                    'quantity': link.quantity,
+                    'status': link.status,
+                    'condition': link.condition,
+                    'createAt': link.createAt.isoformat() if link.createAt else None,
+                    'updateAt': link.updateAt.isoformat() if link.updateAt else None,
                 }
 
             stmt = select(location_resource).where(location_resource.c.location_id == loc.id)
@@ -193,25 +250,43 @@ class LocationController:
 
             # Inserir recursos
             for resource_data in resources:
-                # imagem_principal = decode_if_base64(resource_data.get('imagem_principal'))
-                imagem_principal = decode_file(resource_data.get('imagem_principal'))
-                imagem_principal = decode_file(resource_data.get('imagem_principal'))
-                imagens = decode_if_base64(resource_data.get('imagens'))
-                anexospdf = decode_if_base64(resource_data.get('anexospdf'))
+                # Processar imagem principal
+                imagem_principal_data = resource_data.get('imagem_principal')
+                imagem_principal_bytes = None
+                imagem_principal_mime = None
+                if imagem_principal_data:
+                    mime, b64 = extract_mime_and_base64(imagem_principal_data)
+                    if b64:
+                        imagem_principal_bytes = base64.b64decode(b64)
+                        imagem_principal_mime = mime
+
+                # Processar imagens adicionais (já é JSON string)
+                imagens_json = resource_data.get('imagens')  # ex: '["data:image/png;base64,..."]'
+
+                # Processar PDF
+                anexospdf_data = resource_data.get('anexospdf')
+                anexospdf_bytes = None
+                if anexospdf_data:
+                    _, b64 = extract_mime_and_base64(anexospdf_data)
+                    if b64:
+                        anexospdf_bytes = base64.b64decode(b64)
 
                 db.session.execute(
                     location_resource.insert().values(
                         location_id=new_location.id,
                         resource_id=resource_data.get('resource_id'),
                         quantity=resource_data.get('quantity', 0),
-                        status=resource_data.get('status', 0),
-                        condition=resource_data.get('condition', 0),
+                        status=resource_data.get('status', 'Available'),
+                        condition=resource_data.get('condition', 'Good'),
                         name=resource_data.get('name', ''),
                         description=resource_data.get('description'),
                         recebidopor=resource_data.get('recebidopor'),
-                        imagem_principal=imagem_principal,
-                        imagens=imagens,
-                        anexospdf=anexospdf,
+                        asset_code=resource_data.get('asset_code'),               # NOVO
+                        budget_to_location=resource_data.get('budget_to_location'), # NOVO
+                        imagem_principal=imagem_principal_bytes,
+                        imagem_principal_mime=imagem_principal_mime,
+                        imagens=imagens_json,
+                        anexospdf=anexospdf_bytes,
                         datarecepcao=resource_data.get('datarecepcao')
                     )
                 )
@@ -264,24 +339,43 @@ class LocationController:
 
             # Inserir novamente com os dados atualizados
             for resource_data in resources:
-                # imagem_principal = decode_if_base64(resource_data.get('imagem_principal'))
-                imagem_principal = decode_file(resource_data.get('imagem_principal'))
-                imagens = decode_if_base64(resource_data.get('imagens'))
-                anexospdf = decode_if_base64(resource_data.get('anexospdf'))
+                # Processar imagem principal
+                imagem_principal_data = resource_data.get('imagem_principal')
+                imagem_principal_bytes = None
+                imagem_principal_mime = None
+                if imagem_principal_data:
+                    mime, b64 = extract_mime_and_base64(imagem_principal_data)
+                    if b64:
+                        imagem_principal_bytes = base64.b64decode(b64)
+                        imagem_principal_mime = mime
+
+                # Processar imagens adicionais (já é JSON string)
+                imagens_json = resource_data.get('imagens')
+
+                # Processar PDF
+                anexospdf_data = resource_data.get('anexospdf')
+                anexospdf_bytes = None
+                if anexospdf_data:
+                    _, b64 = extract_mime_and_base64(anexospdf_data)
+                    if b64:
+                        anexospdf_bytes = base64.b64decode(b64)
 
                 db.session.execute(
                     location_resource.insert().values(
                         location_id=loc.id,
                         resource_id=resource_data.get('resource_id'),
                         quantity=resource_data.get('quantity', 0),
-                        status=resource_data.get('status', 0),
-                        condition=resource_data.get('condition', 0),
+                        status=resource_data.get('status', 'Available'),
+                        condition=resource_data.get('condition', 'Good'),
                         name=resource_data.get('name', ''),
                         description=resource_data.get('description'),
                         recebidopor=resource_data.get('recebidopor'),
-                        imagem_principal=imagem_principal,
-                        imagens=imagens,
-                        anexospdf=anexospdf,
+                        asset_code=resource_data.get('asset_code'),
+                        budget_to_location=resource_data.get('budget_to_location'),
+                        imagem_principal=imagem_principal_bytes,
+                        imagem_principal_mime=imagem_principal_mime,
+                        imagens=imagens_json,
+                        anexospdf=anexospdf_bytes,
                         datarecepcao=resource_data.get('datarecepcao')
                     )
                 )
@@ -355,6 +449,8 @@ class LocationController:
                 name=data.get('name', existing.name),
                 description=data.get('description', existing.description),
                 recebidopor=data.get('recebidopor', existing.recebidopor),
+                asset_code=data.get('asset_code', existing.asset_code),               # NOVO
+                budget_to_location=data.get('budget_to_location', existing.budget_to_location), # NOVO
                 imagem_principal=data.get('imagem_principal', existing.imagem_principal),
                 imagens=data.get('imagens', existing.imagens),
                 anexospdf=data.get('anexospdf', existing.anexospdf),

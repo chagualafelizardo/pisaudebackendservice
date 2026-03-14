@@ -186,66 +186,112 @@
         </div>
     </div>
 
-    <!-- Histórico de Movimentação -->
-<div class="card mt-4">
+    
+    <!-- Filtros do histórico -->
     <div class="card-header bg-white">
-        <div class="row align-items-center">
-            <div class="col">
-                <h5 class="mb-0"><i class="fas fa-history me-2"></i> Equipment Movement History</h5>
-                <small class="text-muted">Track equipment transfers between facilities, warehouses, and provinces</small>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="movementSearch" class="form-label">Search</label>
+                <input type="text" id="movementSearch" class="form-control" placeholder="Equipment, responsible...">
             </div>
-            <div class="col-auto">
-                <button class="btn btn-outline-primary" onclick="refreshMovementHistory()">
-                    <i class="fas fa-redo me-1"></i> Refresh
-                </button>
+            <div class="col-md-2">
+                <label for="movementTypeFilter" class="form-label">Movement Type</label>
+                <select id="movementTypeFilter" class="form-select">
+                    <option value="">All</option>
+                    <option value="transfer">Transfer</option>
+                    <option value="to_warehouse">To Warehouse</option>
+                    <option value="from_warehouse">From Warehouse</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="repair">Repair</option>
+                    <option value="replacement">Replacement</option>
+                    <option value="distribution">Distribution</option>
+                    <option value="collection">Collection</option>
+                </select>
             </div>
-        </div>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date/Time</th>
-                        <th>Equipment</th>
-                        <th>Quantity</th>
-                        <th>From</th>
-                        <th>To</th>
-                        <th>Movement Type</th>
-                        <th>Status</th>
-                        <th>Responsible</th>
-                        <th>Document</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="movementTableBody">
-                    <tr>
-                        <td colspan="10" class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2 mb-0">Loading movement history...</p>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <!-- Paginação do histórico -->
-        <div class="d-flex justify-content-between align-items-center p-3 border-top">
-            <div class="text-muted" id="movementPaginationInfo">Showing 0 movements</div>
-            <div class="btn-group" role="group">
-                <button class="btn btn-outline-primary btn-sm" onclick="changeMovementPage(-1)" disabled id="movementPrevBtn">
-                    <i class="fas fa-chevron-left"></i> Previous
-                </button>
-                <button class="btn btn-outline-primary btn-sm" onclick="changeMovementPage(1)" disabled id="movementNextBtn">
-                    Next <i class="fas fa-chevron-right"></i>
-                </button>
+            <div class="col-md-2">
+                <label for="movementStatusFilter" class="form-label">Status</label>
+                <select id="movementStatusFilter" class="form-select">
+                    <option value="">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_transit">In Transit</option>
+                    <option value="delivered">Delivered</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="movementDateFrom" class="form-label">From Date</label>
+                <input type="date" id="movementDateFrom" class="form-control">
+            </div>
+            <div class="col-md-2">
+                <label for="movementDateTo" class="form-label">To Date</label>
+                <input type="date" id="movementDateTo" class="form-control">
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button class="btn btn-outline-secondary" onclick="clearMovementFilters()">Clear</button>
             </div>
         </div>
     </div>
-</div>
 
+    <!-- Histórico de Movimentação -->
+    <div class="card mt-4">
+        <div class="card-header bg-white">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0"><i class="fas fa-history me-2"></i> Equipment Movement History</h5>
+                    <small class="text-muted">Track equipment transfers between facilities, warehouses, and provinces</small>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-outline-primary" onclick="refreshMovementHistory()">
+                        <i class="fas fa-redo me-1"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Equipment</th>
+                            <th>Quantity</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Movement Type</th>
+                            <th>Status</th>
+                            <th>Responsible</th>
+                            <th>Document</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movementTableBody">
+                        <tr>
+                            <td colspan="10" class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 mb-0">Loading movement history...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginação do histórico -->
+            <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                <div class="text-muted" id="movementPaginationInfo">Showing 0 movements</div>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="changeMovementPage(-1)" disabled id="movementPrevBtn">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="changeMovementPage(1)" disabled id="movementNextBtn">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal de Formulário -->
@@ -1317,6 +1363,18 @@ function addResourceRow(resourceData = {}) {
                            value="${resourceData.datarecepcao || ''}">
                 </div>
 
+                <!-- Asset Code -->
+                <div class="col-md-3">
+                    <label class="form-label">Asset Code</label>
+                    <input type="text" class="form-control asset-code-input" value="${resourceData.asset_code || ''}" placeholder="e.g., EQ-12345">
+                </div>
+
+                <!-- Budget Location -->
+                <div class="col-md-3">
+                    <label class="form-label">Budget Location</label>
+                    <input type="text" class="form-control budget-to-location-input" value="${resourceData.budget_to_location || ''}" placeholder="e.g., Province A">
+                </div>
+
                 <!-- Description -->
                 <div class="col-12">
                     <label class="form-label">Description / Notes</label>
@@ -1639,7 +1697,10 @@ function collectResourceData() {
             condition: card.querySelector('.condition-input')?.value || 'Good',
             imagem_principal: card.querySelector('.imagem-principal-data')?.value || null,
             imagens: card.querySelector('.imagens-data')?.value || null,
-            anexospdf: card.querySelector('.anexospdf-data')?.value || null
+            anexospdf: card.querySelector('.anexospdf-data')?.value || null,
+            // NOVOS CAMPOS
+            asset_code: card.querySelector('.asset-code-input')?.value?.trim() || null,
+            budget_to_location: card.querySelector('.budget-to-location-input')?.value?.trim() || null
         };
 
         // Remove empty fields
@@ -1770,42 +1831,36 @@ function viewFacilityResources(locationId, locationName) {
                     
                     let filesSection = '';
                     
-                    // Função auxiliar para criar HTML de imagem com prefixo correto
-                    const createImageHtml = (base64Data, alt = 'Image', cssClass = 'img-thumbnail', style = 'max-width: 200px; cursor: pointer;') => {
-                        if (!base64Data) return '';
-                        // Verificar se já tem o prefixo
-                        let src = base64Data;
-                        if (!src.startsWith('data:image/')) {
-                            // Tentar detectar o tipo (simplificado, assume JPEG)
-                            src = 'data:image/jpeg;base64,' + src;
-                        }
-                        // Escapar aspas simples para o onclick
-                        const escapedSrc = src.replace(/'/g, "\\'");
-                        return `<img src="${src}" class="${cssClass}" style="${style}" 
-                                     onclick="viewImage('${escapedSrc}')"
-                                     onerror="this.src='https://via.placeholder.com/200x150?text=Image+Error'">`;
-                    };
-                    
-                    // Imagem principal
+                    // Imagem principal (data URL completa)
                     if (resource.imagem_principal) {
                         filesSection += `
                             <div class="mb-3">
                                 <strong>Main Image:</strong>
                                 <div class="mt-2">
-                                    ${createImageHtml(resource.imagem_principal)}
+                                    <img src="${resource.imagem_principal}" 
+                                         class="img-thumbnail" 
+                                         style="max-width: 200px; cursor: pointer;"
+                                         onclick="viewImage('${resource.imagem_principal}')"
+                                         onerror="this.src='https://via.placeholder.com/200x150?text=Image+Error'">
                                 </div>
                             </div>
                         `;
                     }
                     
-                    // Imagens adicionais
+                    // Imagens adicionais (array de data URLs)
                     if (resource.imagens) {
                         try {
                             const additionalImages = JSON.parse(resource.imagens);
                             if (Array.isArray(additionalImages) && additionalImages.length > 0) {
                                 let imagesHtml = '';
                                 additionalImages.forEach(img => {
-                                    imagesHtml += createImageHtml(img, 'Additional Image', 'img-thumbnail', 'width: 80px; height: 80px; object-fit: cover; cursor: pointer;');
+                                    imagesHtml += `
+                                        <img src="${img}" 
+                                             class="img-thumbnail" 
+                                             style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;"
+                                             onclick="viewImage('${img}')"
+                                             onerror="this.src='https://via.placeholder.com/80x80?text=Error'">
+                                    `;
                                 });
                                 filesSection += `
                                     <div class="mb-3">
@@ -1818,26 +1873,11 @@ function viewFacilityResources(locationId, locationName) {
                             }
                         } catch (e) {
                             console.error('Error parsing images:', e);
-                            if (resource.imagens) {
-                                filesSection += `
-                                    <div class="mb-3">
-                                        <strong>Image:</strong>
-                                        <div class="mt-2">
-                                            ${createImageHtml(resource.imagens)}
-                                        </div>
-                                    </div>
-                                `;
-                            }
                         }
                     }
                     
-                    // PDF Document
+                    // PDF Document (data URL completa)
                     if (resource.anexospdf) {
-                        // Se o dado já for uma data URL, usa como está; senão, adiciona o prefixo
-                        let pdfData = resource.anexospdf;
-                        if (!pdfData.startsWith('data:application/pdf')) {
-                            pdfData = 'data:application/pdf;base64,' + pdfData;
-                        }
                         filesSection += `
                             <div class="mb-3">
                                 <strong>Signed Document:</strong>
@@ -1847,7 +1887,10 @@ function viewFacilityResources(locationId, locationName) {
                                         <div>
                                             <div class="fw-bold">Document.pdf</div>
                                             <div class="btn-group btn-group-sm mt-1">
-                                                <a href="${pdfData}" download="document_${resource.id}.pdf" class="btn btn-outline-success">
+                                                <a href="${resource.anexospdf}" target="_blank" class="btn btn-outline-success">
+                                                    <i class="fas fa-eye me-1"></i> View
+                                                </a>
+                                                <a href="${resource.anexospdf}" download="document_${resource.id}.pdf" class="btn btn-outline-primary">
                                                     <i class="fas fa-download me-1"></i> Download
                                                 </a>
                                             </div>
@@ -1877,6 +1920,8 @@ function viewFacilityResources(locationId, locationName) {
                                         ${resource.condition || 'Good'}
                                     </span>
                                 </p>
+                                ${resource.asset_code ? `<p><strong>Asset Code:</strong> ${resource.asset_code}</p>` : ''}
+                                ${resource.budget_to_location ? `<p><strong>Budget Location:</strong> ${resource.budget_to_location}</p>` : ''}${resource.buget_to_location ? `<p><strong>Budget Location:</strong> ${resource.buget_to_location}</p>` : ''}
                                 ${resource.description ? `<p><strong>Description:</strong> ${resource.description}</p>` : ''}
                                 ${resource.recebidopor ? `<p><strong>Received by:</strong> ${resource.recebidopor}</p>` : ''}
                                 ${resource.datarecepcao ? `<p><strong>Reception Date:</strong> ${resource.datarecepcao}</p>` : ''}

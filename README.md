@@ -66,3 +66,10 @@ with app.app_context():
         db.session.add(lr)
     
     db.session.commit()
+
+# Como actualizar os dados no github.com
+git status
+git add .
+git commit -m "Atualização do ficheiro 17-02-2026"
+git push origin main
+git pull origin main
