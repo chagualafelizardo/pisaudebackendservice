@@ -113,10 +113,10 @@
         </div>
     </div>
 
-    <!-- Cards de totais -->
-    <div class="row g-4 mb-4" id="cardsTotais">
-        <!-- (cards iguais aos anteriores) -->
-        <div class="col-md-3 col-sm-6">
+    <!-- Cards de totais (5 cards lado a lado) -->
+    <div class="row row-cols-1 row-cols-md-5 g-4 mb-4" id="cardsTotais">
+        <!-- Medicamentos -->
+        <div class="col">
             <div class="card card-dashboard bg-primary text-white" title="{{ _('Total de medicamentos cadastrados') }}">
                 <div class="card-body position-relative">
                     <i class="bi bi-capsule card-icon"></i>
@@ -125,25 +125,8 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card card-dashboard bg-success text-white" title="{{ _('Total de unidades sanitárias') }}">
-                <div class="card-body position-relative">
-                    <i class="bi bi-geo-alt card-icon"></i>
-                    <div class="card-value" id="totalUnidades">0</div>
-                    <div class="card-label">{{ _('Unidades Sanitárias') }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
-            <div class="card card-dashboard bg-info text-white" title="{{ _('Total de registos de stock semanal') }}">
-                <div class="card-body position-relative">
-                    <i class="bi bi-box-seam card-icon"></i>
-                    <div class="card-value" id="totalStocks">0</div>
-                    <div class="card-label">{{ _('Registos de Stock') }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6">
+        <!-- Lotes -->
+        <div class="col">
             <div class="card card-dashboard bg-warning text-white" title="{{ _('Total de lotes') }}">
                 <div class="card-body position-relative">
                     <i class="bi bi-tags card-icon"></i>
@@ -152,7 +135,8 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
+        <!-- Movimentos -->
+        <div class="col">
             <div class="card card-dashboard bg-secondary text-white" title="{{ _('Total de movimentos históricos') }}">
                 <div class="card-body position-relative">
                     <i class="bi bi-arrow-left-right card-icon"></i>
@@ -161,7 +145,8 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
+        <!-- Lotes Vencidos -->
+        <div class="col">
             <div class="card card-dashboard bg-danger text-white" title="{{ _('Lotes com data de validade vencida') }}">
                 <div class="card-body position-relative">
                     <i class="bi bi-exclamation-triangle card-icon"></i>
@@ -170,7 +155,8 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3 col-sm-6">
+        <!-- Próximos a vencer (30d) -->
+        <div class="col">
             <div class="card card-dashboard" style="background-color:#fd7e14; color:white;" title="{{ _('Lotes a vencer nos próximos 30 dias') }}">
                 <div class="card-body position-relative">
                     <i class="bi bi-clock-history card-icon"></i>
@@ -285,10 +271,8 @@
             url += '?' + $.param(params);
         }
         $.get(url, function(data) {
-            // Atualizar valores dos cards
+            // Atualizar apenas os cards mantidos
             $('#totalMedicamentos').text(data.totais.medicamentos);
-            $('#totalUnidades').text(data.totais.unidades);
-            $('#totalStocks').text(data.totais.stocks);
             $('#totalLotes').text(data.totais.lotes);
             $('#totalMovimentos').text(data.totais.movimentos);
             $('#lotesVencidos').text(data.totais.lotes_vencidos);
