@@ -234,7 +234,7 @@ function filtrarTabela(query) {
            <span>${d.person?.fullname || '-'}</span>
           </div>
         </td>
-        <td>${d.anexo_nome ? `<a href="/despacho/${d.id}/anexo" target="_blank" class="btn btn-sm btn-outline-primary">📎 ${d.anexo_nome}</a>` : ''}</td>
+        <td>${d.anexo_nome ? `<a href="${apiUrl}/${d.id}/anexo" target="_blank" class="btn btn-sm btn-outline-primary">📎 ${d.anexo_nome}</a>` : ''}</td>
         <td>
           <button class="btn btn-sm btn-warning" onclick="editDespacho(${d.id})">Editar</button>
           <button class="btn btn-sm btn-danger" onclick="deleteDespacho(${d.id})">Apagar</button>

@@ -37,3 +37,7 @@ def update_location_resource(location_id, resource_id):
 @location_bp.route('/location/<int:location_id>/resource/<int:resource_id>', methods=['DELETE'])
 def delete_location_resource(location_id, resource_id):
     return LocationController.delete_resource(location_id, resource_id)
+
+@location_bp.route('/location/upload-excel/', methods=['POST'])
+def upload_excel():
+    return LocationController.upload_excel()

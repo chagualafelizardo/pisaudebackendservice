@@ -3,6 +3,7 @@ from flask import jsonify, request
 from models import db, StockSemanalLote, StockSemanal
 from datetime import datetime
 
+# Configuração básica de logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -11,10 +12,15 @@ class StockSemanalLoteController:
 
     @staticmethod
     def get_all():
+        """
+        Retorna todos os lotes de stock semanal.
+        Suporta filtro opcional por id_stock_semanal via query string.
+        """
         logger.info("[GET ALL] Request received to fetch all stock semanal lotes.")
         try:
             query = StockSemanalLote.query
 
+            # Filtro opcional por stock_semanal
             id_stock_semanal = request.args.get('id_stock_semanal', type=int)
             if id_stock_semanal:
                 query = query.filter_by(id_stock_semanal=id_stock_semanal)
@@ -77,30 +83,20 @@ class StockSemanalLoteController:
             if not all([id_stock_semanal, quantidade, data_validade]):
                 return jsonify({'message': 'Campos obrigatórios: id_stock_semanal, quantidade, data_validade'}), 400
 
-            # --- Conversão e validação dos tipos ---
-            try:
-                id_stock_semanal = int(id_stock_semanal)
-            except (ValueError, TypeError):
-                return jsonify({'message': 'id_stock_semanal deve ser um número inteiro.'}), 400
-
-            try:
-                quantidade = int(quantidade)
-            except (ValueError, TypeError):
-                return jsonify({'message': 'quantidade deve ser um número inteiro.'}), 400
-
-            if quantidade <= 0:
-                return jsonify({'message': 'A quantidade deve ser maior que zero'}), 400
-
             # Validar stock_semanal existente
             stock = StockSemanal.query.get(id_stock_semanal)
             if not stock:
                 return jsonify({'message': 'Registo de stock semanal não encontrado'}), 404
 
+            # Validar quantidade positiva
+            if quantidade <= 0:
+                return jsonify({'message': 'A quantidade deve ser maior que zero'}), 400
+
             # Converter data_validade
             try:
                 data_validade_date = datetime.fromisoformat(data_validade).date()
             except Exception:
-                return jsonify({'message': f'Data de validade inválida: {data_validade}. Use formato YYYY-MM-DD'}), 400
+                return jsonify({'message': f'Data de validade inválida: {data_validade}'}), 400
 
             # Criar o lote
             lote = StockSemanalLote(
@@ -142,20 +138,13 @@ class StockSemanalLoteController:
             # Atualizar campos fornecidos
             if 'id_stock_semanal' in data:
                 id_stock_semanal = data['id_stock_semanal']
-                try:
-                    id_stock_semanal = int(id_stock_semanal)
-                except (ValueError, TypeError):
-                    return jsonify({'message': 'id_stock_semanal deve ser um número inteiro.'}), 400
                 stock = StockSemanal.query.get(id_stock_semanal)
                 if not stock:
                     return jsonify({'message': 'Registo de stock semanal não encontrado'}), 404
                 lote.id_stock_semanal = id_stock_semanal
 
             if 'quantidade' in data:
-                try:
-                    quantidade = int(data['quantidade'])
-                except (ValueError, TypeError):
-                    return jsonify({'message': 'quantidade deve ser um número inteiro.'}), 400
+                quantidade = data['quantidade']
                 if quantidade <= 0:
                     return jsonify({'message': 'A quantidade deve ser maior que zero'}), 400
                 lote.quantidade = quantidade

@@ -136,11 +136,6 @@
                     <small class="text-muted" id="resultsInfo">Showing all facilities</small>
                 </div>
                 <div class="col-auto">
-                    <button class="btn btn-success btn-lg" onclick="openExcelUploadModal()">
-                        <i class="fas fa-file-excel me-2"></i> Upload Assets (Excel)
-                    </button>
-                </div>
-                <div class="col-auto">
                     <button class="btn btn-outline-primary" onclick="loadLocations()">
                         <i class="fas fa-redo me-1"></i> Refresh
                     </button>
@@ -682,35 +677,6 @@
   </div>
 </div>
 
-<!-- Modal de Upload -->
-<div class="modal fade" id="excelUploadModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title">
-          <i class="fas fa-file-excel me-2"></i> Upload Asset Data (Excel)
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <form id="excelUploadForm" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label for="excelFile" class="form-label">Select Excel File (.xlsx)</label>
-            <input type="file" class="form-control" id="excelFile" accept=".xlsx" required>
-            <small class="text-muted">The file must contain the expected columns: Asset Number, Serial Number, Status, Item Number, Description, Site, Location, Owner, Comments, Purchase Date, Purchase Cost, Condition, Inventory Date, Vendor, Donor, Project (Award Name), PO#, Observation.</small>
-          </div>
-          <div class="d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-success" id="uploadBtn">
-              <i class="fas fa-upload me-1"></i> Upload
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
 <style>
 .resource-card {
     border: 1px solid #dee2e6;
@@ -927,53 +893,6 @@ function clearAllFilters() {
     currentFilters = { name: '', responsavel: '' };
     applyFilters();
 }
-
-function openExcelUploadModal() {
-    const modal = new bootstrap.Modal(document.getElementById('excelUploadModal'));
-    modal.show();
-}
-
-document.getElementById('excelUploadForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const fileInput = document.getElementById('excelFile');
-    const file = fileInput.files[0];
-    if (!file) {
-        showAlert('warning', 'Please select an Excel file.');
-        return;
-    }
-
-    const formData = new FormData();
-    formData.append('excel_file', file);
-
-    const uploadBtn = document.getElementById('uploadBtn');
-    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Uploading...';
-    uploadBtn.disabled = true;
-
-    try {
-        const response = await fetch('/api/location/upload-excel/', {
-            method: 'POST',
-            body: formData
-        });
-        const result = await response.json();
-       if (response.ok) {
-            if (result.errors && result.errors.length > 0) {
-                showAlert('warning', `Upload completed with warnings: ${result.created} created, ${result.skipped} skipped.\nErrors: ${result.errors.join(', ')}`);
-            } else {
-                showAlert('success', `Upload completed: ${result.created} assets created.`);
-            }
-            loadLocations();
-        }
-    } catch (error) {
-        showAlert('error', 'Network error: ' + error.message);
-    } finally {
-        uploadBtn.innerHTML = '<i class="fas fa-upload me-1"></i> Upload';
-        uploadBtn.disabled = false;
-        // Fechar modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('excelUploadModal'));
-        modal.hide();
-        fileInput.value = '';
-    }
-});
 
 function applyFilters() {
     currentPage = 1;
@@ -1454,62 +1373,6 @@ function addResourceRow(resourceData = {}) {
                 <div class="col-md-3">
                     <label class="form-label">Budget Location</label>
                     <input type="text" class="form-control budget-to-location-input" value="${resourceData.budget_to_location || ''}" placeholder="e.g., Province A">
-                </div>
-
-                <!-- NOVOS CAMPOS -->
-                <div class="col-md-3">
-                    <label class="form-label">Serial Number</label>
-                    <input type="text" class="form-control serial-number-input" value="${resourceData.serial_number || ''}" placeholder="Serial Number">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Item Number</label>
-                    <input type="text" class="form-control item-number-input" value="${resourceData.item_number || ''}" placeholder="Item Number">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Owner</label>
-                    <input type="text" class="form-control owner-input" value="${resourceData.owner || ''}" placeholder="Owner">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Purchase Date</label>
-                    <input type="date" class="form-control purchase-date-input" value="${resourceData.purchase_date || ''}">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Purchase Cost</label>
-                    <input type="number" step="0.01" class="form-control purchase-cost-input" value="${resourceData.purchase_cost || ''}" placeholder="Cost">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Inventory Date</label>
-                    <input type="date" class="form-control inventory-date-input" value="${resourceData.inventory_date || ''}">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Vendor</label>
-                    <input type="text" class="form-control vendor-input" value="${resourceData.vendor || ''}" placeholder="Vendor">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Project</label>
-                    <input type="text" class="form-control project-input" value="${resourceData.project || ''}" placeholder="Project (Award Name)">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">PO #</label>
-                    <input type="text" class="form-control po-number-input" value="${resourceData.po_number || ''}" placeholder="PO Number">
-                </div>
-
-                <div class="col-md-3">
-                    <label class="form-label">Comments</label>
-                    <input type="text" class="form-control comments-input" value="${resourceData.comments || ''}" placeholder="Comments">
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Observation</label>
-                    <textarea class="form-control observation-input" rows="2" placeholder="Additional observations">${resourceData.observation || ''}</textarea>
                 </div>
 
                 <!-- Description -->

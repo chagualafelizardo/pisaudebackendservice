@@ -2,7 +2,7 @@ from . import db
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-# Tabela associativa Person <-> Patent
+# Tabelas associativas existentes
 person_patent = db.Table(
     'person_patent',
     db.Column('person_id', db.Integer, db.ForeignKey('person.id'), primary_key=True),
@@ -15,6 +15,25 @@ person_transferencia = db.Table(
     db.Column('transferencia_id', db.Integer, db.ForeignKey('transferencia.id'), primary_key=True)
 )
 
+# ----------------- MODELO DE DOCUMENTO (renomeado para PersonDocument) -----------------
+class PersonDocument(db.Model):
+    __tablename__ = 'person_document'   # pode manter 'document' ou mudar para 'person_document'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    person_id = db.Column(db.Integer, db.ForeignKey('person.id'), nullable=False)
+    doc_type = db.Column(db.String(50), nullable=False)          # BI, NUIT, NIM, CERTIFICATE, OTHER
+    doc_name = db.Column(db.String(255), nullable=False)         # nome original do ficheiro
+    file_data = db.Column(db.LargeBinary, nullable=True)         # conteúdo do ficheiro (binário)
+    description = db.Column(db.Text, nullable=True)              # descrição opcional
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relacionamento com Person (um-para-muitos)
+    person = relationship('Person', back_populates='documents')
+
+    def __repr__(self):
+        return f'<PersonDocument {self.doc_name}>'
+
+# ----------------- CLASSE PERSON ATUALIZADA -----------------
 class Person(db.Model):
     __tablename__ = 'person'
 
@@ -30,16 +49,19 @@ class Person(db.Model):
     forma_prestacao_servico_id = db.Column(db.Integer, db.ForeignKey('formaprestacaoservico.id'), nullable=True)
     forma_prestacao_servico = relationship('FormaPrestacaoServico', backref='persons')
 
-    # Relacionamento com Patents
+    # Relacionamento com Patents (muitos-para-muitos)
     patents = relationship('Patent', secondary=person_patent, back_populates='persons')
 
-    # Relacionamento com transferencias
+    # Relacionamento com Transferencias (muitos-para-muitos)
     transferencias = relationship('Transferencia', secondary=person_transferencia, back_populates='persons')
 
-    # Imagem do person
+    # CORREÇÃO: agora referencia 'PersonDocument' em vez de 'Document'
+    documents = relationship('PersonDocument', back_populates='person', cascade='all, delete-orphan')
+
+    # Imagem do person (binário)
     image = db.Column(db.LargeBinary, nullable=True)
 
-    # Campos de sincronização como string
+    # Campos de sincronização
     syncStatus = db.Column(db.String(50), nullable=False, default='Not Syncronized')
     syncStatusDate = db.Column(db.DateTime, nullable=True)
 

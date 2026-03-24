@@ -22,3 +22,7 @@ def update_despacho(id):
 @despacho_bp.route('/despacho/<int:id>', methods=['DELETE'])
 def delete_despacho(id):
     return DespachoController.delete(id)
+
+@despacho_bp.route('/despacho/<int:id>/anexo', methods=['GET'])
+def download_anexo(id):
+    return DespachoController.download_anexo(id)

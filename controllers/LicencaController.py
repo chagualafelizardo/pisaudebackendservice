@@ -298,26 +298,23 @@ class LicencaController:
     @staticmethod
     def download_anexo(id):
         try:
-            logger.info(f"📥 [DOWNLOAD ANEXO LICENÇA] Solicitado anexo da licença: {id}")
-            
             licenca = Licenca.query.get(id)
             if not licenca:
-                logger.warning(f"⚠️ [DOWNLOAD ANEXO LICENÇA] Licença não encontrada: {id}")
                 return jsonify({'error': 'Licença não encontrada'}), 404
 
             if not licenca.anexo_dados:
-                logger.warning(f"⚠️ [DOWNLOAD ANEXO LICENÇA] Anexo não encontrado para licença: {id}")
                 return jsonify({'error': 'Anexo não encontrado'}), 404
 
-            logger.info(f"✅ [DOWNLOAD ANEXO LICENÇA] Enviando anexo: {licenca.anexo_nome}")
-            
+            # Garantir que o nome do arquivo seja seguro para download
+            nome_arquivo = licenca.anexo_nome or 'anexo'
+            mimetype = licenca.anexo_tipo or 'application/octet-stream'
+
             return send_file(
                 BytesIO(licenca.anexo_dados),
                 as_attachment=True,
-                download_name=licenca.anexo_nome,
-                mimetype=licenca.anexo_tipo or 'application/octet-stream'
+                download_name=nome_arquivo,
+                mimetype=mimetype
             )
-            
         except Exception as e:
-            logger.exception(f"💥 [DOWNLOAD ANEXO LICENÇA] ERRO ao baixar anexo {id}: {str(e)}")
-            return jsonify({'error': 'Erro interno do servidor ao baixar anexo'}), 500
+            logger.exception(f"Erro ao baixar anexo {id}: {str(e)}")
+            return jsonify({'error': 'Erro interno ao baixar anexo'}), 500

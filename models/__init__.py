@@ -19,7 +19,7 @@ from .Resource import Resource
 from .ResourceType import ResourceType
 from .FormaPrestacaoServico import FormaPrestacaoServico
 from .Patent import Patent
-from .Person import Person
+from .Person import Person, PersonDocument
 from .Ramo import Ramo, SyncStatusEnum
 from .Subunidade import Subunidade
 from .Especialidade import Especialidade
@@ -77,5 +77,5 @@ __all__ = [
     'NotaEnvioItem', 'NotaEnvioDocument', 'ItemPendente', 'FormacaoItem','Participante',
     'ItemsSolicitados', 'location_resource','Medico','HorarioMedico','Agendamento',
     'HistoricoMovimento','Medicamento','StockSemanal','StockSemanalLote',
-    'MedicamentoLocation','SMS'
+    'MedicamentoLocation','PersonDocument', 'SMS'
 ]

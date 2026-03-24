@@ -44,7 +44,7 @@
     .table-striped>tbody>tr:nth-of-type(even)>* {
         background-color: #ffffff;
     }
-    /* Estilos para stock */
+    /* Estilo para indicar stock abaixo do mínimo */
     .stock-abaixo {
         background-color: #f8d7da !important;
         font-weight: bold;
@@ -52,8 +52,13 @@
     .stock-acima {
         background-color: #d4edda !important;
     }
-    .stock-normal {
-        background-color: #e1f5fe !important;
+
+    .stock-abaixo {
+    background-color: #f8d7da !important;
+        font-weight: bold;
+    }
+    .stock-acima {
+        background-color: #d4edda !important;
     }
 </style>
 {% endblock %}
@@ -115,21 +120,10 @@
                     <i class="bi bi-plus-circle"></i> {{ _('Novo Lote') }}
                 </button>
             </div>
-            <!-- Filtro por código de lote -->
-            <div class="row mb-3">
-                <div class="col-md-3">
-                    <label>{{ _('Código do Lote') }}</label>
-                    <input type="text" class="form-control" id="filtroCodigoLote" placeholder="Pesquisar lote...">
-                </div>
-                <div class="col-md-3 align-self-end">
-                    <button class="btn btn-secondary" onclick="aplicarFiltroLote()">{{ _('Filtrar') }}</button>
-                    <button class="btn btn-outline-secondary" onclick="limparFiltroLote()">{{ _('Limpar') }}</button>
-                </div>
-            </div>
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="tabelaLotes">
                     <thead>
-                        …
+                        <tr>
                             <th>ID</th>
                             <th>{{ _('Unidade Sanitária') }}</th>
                             <th>{{ _('Medicamento') }}</th>
@@ -195,7 +189,7 @@
             <div class="table-responsive">
                 <table class="table table-striped table-hover" id="tabelaHistorico">
                     <thead>
-                         …
+                        <tr>
                             <th>ID</th>
                             <th>{{ _('Unidade') }}</th>
                             <th>{{ _('Medicamento') }}</th>
@@ -275,7 +269,7 @@
     </div>
 </div>
 
-<!-- MODAL LOTE (isolado) - MODIFICADO -->
+<!-- MODAL LOTE (isolado) -->
 <div class="modal fade" id="modalLote" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -421,11 +415,8 @@
                 { data: 'registado_por_nome' },
                 { data: 'observacoes' },
                 { data: null, render: (data, type, row) => `
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-info" onclick="editarStock(${row.id})" title="Editar"><i class="bi bi-pencil"></i></button>
-                        <button class="btn btn-success" onclick="adicionarLoteParaStock(${row.id}, '${row.medicamento_nome.replace(/'/g, "\\'")}', '${row.location_nome.replace(/'/g, "\\'")}')" title="Adicionar Lote"><i class="bi bi-plus-circle"></i></button>
-                        <button class="btn btn-danger" onclick="deletarStock(${row.id})" title="Excluir"><i class="bi bi-trash"></i></button>
-                    </div>
+                    <button class="btn btn-sm btn-info" onclick="editarStock(${row.id})"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-sm btn-danger" onclick="deletarStock(${row.id})"><i class="bi bi-trash"></i></button>
                 ` }
             ],
             rowGroup: {
@@ -439,21 +430,26 @@
             },
             order: [[1, 'asc'], [2, 'asc'], [3, 'asc'], [0, 'desc']], // ordena por unidade, medicamento, apresentação e id decrescente
             createdRow: function(row, data, dataIndex) {
-                // Aplica cor conforme stock_total em relação aos limites
+                // Aplicar classe de alerta se quantidade_total < stock_minimo ou > stock_maximo
                 if (data.stock_minimo !== undefined && data.stock_maximo !== undefined) {
                     if (data.quantidade_total < data.stock_minimo) {
                         $(row).addClass('stock-abaixo');
                     } else if (data.quantidade_total > data.stock_maximo) {
                         $(row).addClass('stock-acima');
-                    } else {
-                        $(row).addClass('stock-normal');
                     }
+                }
+
+                if (data.quantidade_total < data.stock_minimo) {
+                    $(row).addClass('stock-abaixo');
+                } else if (data.quantidade_total < data.stock_minimo * 1.2) {
+                    $(row).addClass('stock-quase-abaixo');
+                } else if (data.quantidade_total > data.stock_maximo) {
+                    $(row).addClass('stock-acima');
                 }
             }
         });
 
         // Tabela de Lotes com agrupamento por Unidade + Medicamento + Apresentação
-        // e ordenação por código de lote dentro do grupo
         tabelaLotes = $('#tabelaLotes').DataTable({
             language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/pt-PT.json' },
             columns: [
@@ -481,15 +477,13 @@
                     return $('<tr class="total-row"/>').append('<td colspan="11"><strong>' + group + '</strong> (Total: ' + total + ')</td>');
                 }
             },
-            order: [[1, 'asc'], [2, 'asc'], [3, 'asc'], [8, 'asc']], // ordena por unidade, medicamento, apresentação e código do lote
+            order: [[1, 'asc'], [2, 'asc'], [3, 'asc']],
             createdRow: function(row, data, dataIndex) {
                 if (data.stock_minimo !== undefined && data.stock_maximo !== undefined) {
                     if (data.quantidade < data.stock_minimo) {
                         $(row).addClass('stock-abaixo');
                     } else if (data.quantidade > data.stock_maximo) {
                         $(row).addClass('stock-acima');
-                    } else {
-                        $(row).addClass('stock-normal');
                     }
                 }
             }
@@ -571,15 +565,6 @@
             locale: "pt"
         });
     });
-
-    function aplicarFiltroLote() {
-        const codigo = $('#filtroCodigoLote').val().trim();
-        tabelaLotes.column(8).search(codigo).draw(); // coluna 8 = código lote
-    }
-    function limparFiltroLote() {
-        $('#filtroCodigoLote').val('');
-        tabelaLotes.column(8).search('').draw();
-    }
 
     // Carregar configurações de stock mínimo/máximo por medicamento e localização
     function carregarMedicamentoLocation() {
@@ -977,21 +962,11 @@
     }
 
     // ========== LOTES (continuação) ==========
-    // Nova função para abrir modal de lote com stock pré‑selecionado
-    function adicionarLoteParaStock(stockId, medicamentoNome, unidadeNome) {
-        abrirModalLote(null, stockId, medicamentoNome, unidadeNome);
-    }
-
-    // Função modificada para aceitar loteId (edição) ou stockId (novo lote)
-    function abrirModalLote(loteId = null, stockId = null, medicamentoNome = '', unidadeNome = '') {
+    function abrirModalLote(id) {
         $('#formLote')[0].reset();
         $('#loteId').val('');
-        $('#loteIdStock').prop('disabled', false);
-        $('#loteIdStock').val('');
-
-        if (loteId) {
-            // Modo edição: carrega os dados do lote
-            $.get(`/api/stock_semanal_lote/${loteId}`, function(data) {
+        if (id) {
+            $.get(`/api/stock_semanal_lote/${id}`, function(data) {
                 $('#loteId').val(data.id);
                 $('#loteIdStock').val(data.id_stock_semanal);
                 $('#loteQuantidade').val(data.quantidade);
@@ -999,20 +974,11 @@
                 $('#loteCodigo').val(data.codigo_lote);
                 $('#loteObservacoes').val(data.observacoes);
                 $('#modalLoteTitle').text('Editar Lote');
-                $('#loteIdStock').prop('disabled', false); // pode permitir alterar se necessário
-                new bootstrap.Modal(document.getElementById('modalLote')).show();
             });
-        } else if (stockId) {
-            // Modo novo lote associado a um stock
-            $('#loteIdStock').val(stockId);
-            $('#loteIdStock').prop('disabled', true); // impede alteração
-            $('#modalLoteTitle').text(`Adicionar Lote para ${medicamentoNome} - ${unidadeNome}`);
-            new bootstrap.Modal(document.getElementById('modalLote')).show();
         } else {
-            // Modo novo lote sem stock pré‑definido (usuário digita o ID)
             $('#modalLoteTitle').text('Novo Lote');
-            new bootstrap.Modal(document.getElementById('modalLote')).show();
         }
+        new bootstrap.Modal(document.getElementById('modalLote')).show();
     }
 
     function salvarLote() {
@@ -1035,7 +1001,6 @@
             data: JSON.stringify(dados),
             success: function() {
                 $('#modalLote').modal('hide');
-                // Recarregar tabelas
                 carregarLotes();
                 carregarStockSemanal(function() {
                     carregarHistorico();

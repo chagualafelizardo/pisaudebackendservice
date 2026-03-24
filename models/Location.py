@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import LargeBinary, Text
+from sqlalchemy import LargeBinary, Text, Float, ForeignKey, Date, String, Integer, Column
 from . import db
 
 # Tabela associativa para Location <-> Resource com campos extras
@@ -7,6 +7,8 @@ location_resource = db.Table('location_resource',
     db.Column('id', db.Integer, primary_key=True, autoincrement=True),
     db.Column('location_id', db.Integer, db.ForeignKey('location.id'), nullable=False),
     db.Column('resource_id', db.Integer, db.ForeignKey('resource.id'), nullable=False),
+    
+    # Campos já existentes
     db.Column('quantity', db.Integer, nullable=False, default=0),
     db.Column('status', db.String(50), nullable=False, default='Available'),
     db.Column('condition', db.String(50), nullable=True, default='Good'),
@@ -14,21 +16,28 @@ location_resource = db.Table('location_resource',
     db.Column('description', db.String(1000), nullable=True),
     db.Column('recebidopor', db.String(100), nullable=True),
     
-    # NOVOS CAMPOS
+    # Campos anteriores (Asset Code, Budget, Imagens)
     db.Column('asset_code', db.String(100), nullable=True),
     db.Column('budget_to_location', db.String(100), nullable=True),
-    
-    # Imagem principal: binário + tipo MIME
     db.Column('imagem_principal', LargeBinary, nullable=True),
     db.Column('imagem_principal_mime', db.String(50), nullable=True),
-    
-    # Imagens adicionais: armazenar JSON (array de data URLs)
     db.Column('imagens', db.Text, nullable=True),
-    
-    # PDF: binário (sempre application/pdf)
     db.Column('anexospdf', LargeBinary, nullable=True),
-    
     db.Column('datarecepcao', db.Date, nullable=True),
+    
+    # NOVOS CAMPOS SOLICITADOS
+    db.Column('serial_number', db.String(100), nullable=True),          # Serial Number
+    db.Column('item_number', db.String(100), nullable=True),           # Item Number
+    db.Column('owner', db.String(100), nullable=True),                 # Owner
+    db.Column('comments', db.Text, nullable=True),                     # Comments
+    db.Column('purchase_date', db.Date, nullable=True),                # Purchase Date
+    db.Column('purchase_cost', db.Numeric(10,2), nullable=True),      # Purchase Cost (valor decimal)
+    db.Column('inventory_date', db.Date, nullable=True),               # Inventory Date
+    db.Column('vendor', db.String(200), nullable=True),                # Vendor
+    db.Column('project', db.String(200), nullable=True),               # Project (Award Name)
+    db.Column('po_number', db.String(100), nullable=True),             # PO#
+    db.Column('observation', db.Text, nullable=True),                  # Observação adicional
+    
     db.Column('createAt', db.DateTime, default=datetime.utcnow),
     db.Column('updateAt', db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 )

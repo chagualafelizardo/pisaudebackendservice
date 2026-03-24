@@ -1,3 +1,4 @@
+# models/Formacao.py
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -11,8 +12,8 @@ class Formacao(db.Model):
     inicio = db.Column(db.DateTime, nullable=False)
     duracao = db.Column(db.String(50), nullable=False)
     anoacademico = db.Column(db.String(50), nullable=False)
-    despachoautorizacao = db.Column(db.String(200), nullable=False)
-    
+    despachoautorizacao = db.Column(db.String(200), nullable=False)  # texto do despacho autorizador
+
     # Relacionamento com Person
     person_id = db.Column(db.Integer, ForeignKey('person.id'), nullable=False)
     person = relationship('Person', backref='formacoes')
@@ -21,9 +22,17 @@ class Formacao(db.Model):
     pais_id = db.Column(db.Integer, ForeignKey('pais.id'), nullable=False)
     pais = relationship('Pais', backref='formacoes')
 
-    # Relacionamento com TipoLicenca
+    # Relacionamento com TipoLicenca (categoria da licença associada à formação)
     tipo_licenca_id = db.Column(db.Integer, ForeignKey('tipolicenca.id'), nullable=False)
     tipo_licenca = relationship('TipoLicenca', backref='formacoes')
+
+    # Novo relacionamento com Licenca (a licença específica associada à formação)
+    licenca_id = db.Column(db.Integer, ForeignKey('licenca.id'), nullable=True)
+    licenca = relationship('Licenca', backref='formacoes')
+
+    # Novo relacionamento com Despacho (o despacho específico associado à formação)
+    despacho_id = db.Column(db.Integer, ForeignKey('despacho.id'), nullable=True)
+    despacho = relationship('Despacho', backref='formacoes')
 
     # SyncStatus como String simples
     syncStatus = db.Column(db.String(50), nullable=False, default='Not Syncronized')

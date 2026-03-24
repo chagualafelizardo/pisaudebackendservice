@@ -22,3 +22,7 @@ def update_licenca(id):
 @licenca_bp.route('/licenca/<int:id>', methods=['DELETE'])
 def delete_licenca(id):
     return LicencaController.delete(id)
+
+@licenca_bp.route('/licenca/<int:id>/anexo', methods=['GET'])
+def download_anexo_licenca(id):
+    return LicencaController.download_anexo(id)

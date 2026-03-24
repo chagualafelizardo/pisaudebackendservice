@@ -26,6 +26,9 @@
     background-color: #f0f0f0;
     cursor: pointer;
 }
+#documentsList .list-group-item {
+    word-break: break-word;
+}
 </style>
 
 <!-- Botão de download Excel -->
@@ -51,7 +54,7 @@
 <!-- Tabela de Persons -->
 <table class="table table-bordered" id="personsTable">
     <thead>
-        <tr>
+         <tr>
             <th>ID</th>
             <th>Image</th>
             <th>Full Name</th>
@@ -63,14 +66,14 @@
             <th>Incorporation Date</th>
             <th>Service Form</th>
             <th>Actions</th>
-        </tr>
+         </tr>
     </thead>
     <tbody id="personsTableBody"></tbody>
 </table>
 
 <!-- Modal de Formulário -->
 <div class="modal fade" id="personModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <form id="personForm" class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Add/Edit Person</h5>
@@ -98,7 +101,8 @@
         <!-- Tabs -->
         <ul class="nav nav-tabs mb-3" id="personTab" role="tablist">
           <li class="nav-item"><button class="nav-link active" type="button" data-bs-toggle="tab" data-bs-target="#personalTab">Personal</button></li>
-          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" type="button" data-bs-target="#professionalTab">Professional</button></li>
+          <li class="nav-item"><button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#professionalTab">Professional</button></li>
+          <li class="nav-item"><button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#documentsTab">Documents</button></li>
         </ul>
 
         <div class="tab-content">
@@ -157,6 +161,25 @@
               <input type="datetime-local" id="personSyncStatusDate" class="form-control" required>
             </div>
           </div>
+
+          <!-- Tab Documents -->
+          <div class="tab-pane fade" id="documentsTab">
+            <div class="mb-3">
+              <label class="form-label">Upload Multiple Documents</label>
+              <div class="mb-2">
+                <input type="file" id="docFile" class="form-control" accept=".pdf,.jpg,.jpeg,.png" multiple>
+              </div>
+              <div id="fileListContainer" class="mb-2" style="display: none;">
+                <h6>Selected files:</h6>
+                <ul id="selectedFilesList" class="list-group mb-2"></ul>
+                <button type="button" class="btn btn-primary" onclick="uploadAllDocuments()">Upload All</button>
+              </div>
+              <div id="uploadError" class="text-danger mt-1" style="display:none;"></div>
+            </div>
+            <div id="documentsList" class="list-group">
+              <!-- Lista de documentos será carregada via JS -->
+            </div>
+          </div>
         </div>
       </div>
 
@@ -171,6 +194,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 let allPersons = [];
+let currentPersonId = null;   // guarda o ID da pessoa sendo editada (para documentos)
 const apiUrl = '/api/person';
 const serviceFormApiUrl = '/api/serviceform';
 const patentApiUrl = '/api/patent';
@@ -255,15 +279,34 @@ document.getElementById('personImage').addEventListener('change', function(){
 
 // -------------------- Open Modal for New Person --------------------
 function openPersonModal(){
+    currentPersonId = null;
     document.getElementById('personForm').reset();
     document.getElementById('personId').value = '';
     const imgPreview = document.getElementById('personImagePreview');
     imgPreview.src = '';
     imgPreview.style.display = 'none';
     document.getElementById('placeholderText').style.display='block';
+    // Limpar lista de documentos
+    clearDocumentsUI();
+    // Limpar seleção de arquivos
+    const docFile = document.getElementById('docFile');
+    if (docFile) docFile.value = '';
+    hideFileList();
     loadServiceFormsOptions();
     loadPatentsOptions();
     new bootstrap.Modal(document.getElementById('personModal')).show();
+}
+
+function clearDocumentsUI() {
+    const docsContainer = document.getElementById('documentsList');
+    if (docsContainer) docsContainer.innerHTML = '';
+}
+
+function hideFileList() {
+    const container = document.getElementById('fileListContainer');
+    if (container) container.style.display = 'none';
+    const list = document.getElementById('selectedFilesList');
+    if (list) list.innerHTML = '';
 }
 
 // -------------------- Load Options --------------------
@@ -289,6 +332,7 @@ async function loadPatentsOptions() {
 
 // -------------------- Edit Person --------------------
 function editPerson(p){
+    currentPersonId = p.id;
     document.getElementById('personId').value=p.id;
     document.getElementById('personFullname').value=p.fullname;
     document.getElementById('personNIM').value=p.nim||'';
@@ -303,6 +347,12 @@ function editPerson(p){
     const imgPreview=document.getElementById('personImagePreview');
     if(p.image){ imgPreview.src=`data:image/*;base64,${p.image}`; imgPreview.style.display='block'; document.getElementById('placeholderText').style.display='none'; }
     else{ imgPreview.style.display='none'; document.getElementById('placeholderText').style.display='block'; }
+    // Carregar documentos associados a esta pessoa
+    loadDocuments(p.id);
+    // Limpar lista de arquivos selecionados
+    const docFile = document.getElementById('docFile');
+    if (docFile) docFile.value = '';
+    hideFileList();
     new bootstrap.Modal(document.getElementById('personModal')).show();
 }
 
@@ -353,7 +403,142 @@ async function deletePerson(id){
     }catch(err){ alert(err.message||'Error deleting person'); }
 }
 
-/* -------------------- FUNÇÃO DE DOWNLOAD EXCEL -------------------- */
+// -------------------- FUNÇÕES DE DOCUMENTOS --------------------
+
+// Carregar documentos de uma pessoa
+async function loadDocuments(personId) {
+    const container = document.getElementById('documentsList');
+    if (!container) return;
+    container.innerHTML = '<div class="text-center text-muted">Loading...</div>';
+    try {
+        const res = await fetch(`${apiUrl}/${personId}/documents`);
+        if (!res.ok) throw await res.json();
+        const docs = await res.json();
+        if (!docs.length) {
+            container.innerHTML = '<div class="text-muted">No documents attached.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        docs.forEach(d => {
+            const div = document.createElement('div');
+            div.className = 'list-group-item d-flex justify-content-between align-items-center';
+            div.innerHTML = `
+                <div>
+                    <strong>${d.doc_type}</strong> - ${d.doc_name}<br>
+                    <small class="text-muted">Uploaded: ${new Date(d.uploaded_at).toLocaleString()}</small>
+                    ${d.description ? `<br><small>${d.description}</small>` : ''}
+                </div>
+                <div>
+                    <a href="${apiUrl}/documents/${d.id}/file" class="btn btn-sm btn-outline-primary me-1" target="_blank">Download</a>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteDocument(${d.id})">Delete</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    } catch (err) {
+        container.innerHTML = `<div class="text-danger">Error loading documents: ${err.error || err}</div>`;
+    }
+}
+
+// Função para mostrar os arquivos selecionados e permitir configurar tipo/descrição
+function showSelectedFiles() {
+    const fileInput = document.getElementById('docFile');
+    const files = fileInput.files;
+    const listContainer = document.getElementById('selectedFilesList');
+    const containerDiv = document.getElementById('fileListContainer');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+    if (files.length === 0) {
+        containerDiv.style.display = 'none';
+        return;
+    }
+    containerDiv.style.display = 'block';
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div><strong>${file.name}</strong> (${(file.size / 1024).toFixed(2)} KB)</div>
+                <div>
+                    <select class="form-select form-select-sm doc-type-select" data-filename="${file.name}" style="width: auto; display: inline-block; margin-right: 5px;">
+                        <option value="BI">BI</option>
+                        <option value="NUIT">NUIT</option>
+                        <option value="NIM">NIM</option>
+                        <option value="CERTIFICATE">Certificate</option>
+                        <option value="OTHER" selected>Other</option>
+                    </select>
+                    <input type="text" class="form-control form-control-sm doc-desc-input" data-filename="${file.name}" placeholder="Description (optional)" style="width: 200px; display: inline-block;">
+                </div>
+            </div>
+        `;
+        listContainer.appendChild(li);
+    }
+}
+
+// Anexar evento ao input file para mostrar lista
+document.getElementById('docFile').addEventListener('change', showSelectedFiles);
+
+// Upload de todos os documentos selecionados
+async function uploadAllDocuments() {
+    const personId = currentPersonId;
+    if (!personId) {
+        alert('Please save the person first');
+        return;
+    }
+
+    const fileInput = document.getElementById('docFile');
+    const files = fileInput.files;
+    if (files.length === 0) {
+        alert('No files selected.');
+        return;
+    }
+
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        formData.append('files', file);
+        // Obter tipo e descrição para este arquivo
+        const typeSelect = document.querySelector(`.doc-type-select[data-filename="${file.name}"]`);
+        const descInput = document.querySelector(`.doc-desc-input[data-filename="${file.name}"]`);
+        const docType = typeSelect ? typeSelect.value : 'OTHER';
+        const description = descInput ? descInput.value : '';
+        formData.append(`doc_type_${file.name}`, docType);
+        if (description) formData.append(`description_${file.name}`, description);
+    }
+
+    document.getElementById('uploadError').style.display = 'none';
+    try {
+        const res = await fetch(`${apiUrl}/${personId}/documents`, {
+            method: 'POST',
+            body: formData
+        });
+        if (!res.ok) throw await res.json();
+        // Limpar input e lista
+        fileInput.value = '';
+        hideFileList();
+        await loadDocuments(personId);
+    } catch (err) {
+        document.getElementById('uploadError').style.display = 'block';
+        document.getElementById('uploadError').innerText = err.error || 'Upload failed';
+    }
+}
+
+// Eliminar documento
+async function deleteDocument(docId) {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    try {
+        const res = await fetch(`${apiUrl}/documents/${docId}`, { method: 'DELETE' });
+        if (!res.ok) throw await res.json();
+        if (currentPersonId) await loadDocuments(currentPersonId);
+    } catch (err) {
+        alert('Error deleting document: ' + (err.error || err));
+    }
+}
+
+// -------------------- FUNÇÃO DE DOWNLOAD EXCEL --------------------
 function downloadPersonsExcel() {
     const table = document.getElementById("personsTable");
     const wb = XLSX.utils.table_to_book(table, { sheet: "Persons" });
@@ -369,6 +554,13 @@ window.onload=()=>{
         document.getElementById('personImagePreview').src='';
         document.getElementById('personImagePreview').style.display='none';
         document.getElementById('placeholderText').style.display='block';
+        // Limpar lista de documentos e currentPersonId
+        clearDocumentsUI();
+        currentPersonId = null;
+        // Limpar campo de upload de documento
+        const docFile = document.getElementById('docFile');
+        if (docFile) docFile.value = '';
+        hideFileList();
     });
 };
 </script>
