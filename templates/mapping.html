@@ -1,110 +1,367 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}PI-SAÚDE / Resources Mapping{% endblock %}
+{% block title %}PI-SAÚDE / Mapeamento de Recursos{% endblock %}
 
 {% block content %}
-<!-- {% include 'navbar.html' %} -->
-
-<h2>Resources And Resources Mapping</h2>
-
 <div class="container-fluid mt-3">
     <div class="row">
-        <div class="col-md-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <strong>Map of Locations and Resources</strong>
-                    <div class="btn-group" role="group" aria-label="Map Type Toggle">
-                        <input type="radio" class="btn-check" name="mapType" id="map-terrain" autocomplete="off" checked>
-                        <label class="btn btn-light btn-sm" for="map-terrain" onclick="setMapType('terrain')">Map View</label>
+        <!-- Painel lateral melhorado -->
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <strong>📊 Resumo & Filtros</strong>
+                </div>
+                <div class="card-body">
+                    <div id="resources-summary">
+                        <p class="text-muted">Carregando...</p>
+                    </div>
+                    <hr>
+                    <label class="form-label">🔍 Filtrar por nome</label>
+                    <input type="text" id="search-location" class="form-control mb-2" placeholder="Ex: Hospital Central">
+                    
+                    <label class="form-label mt-2">🏥 Filtrar por tipo de recurso</label>
+                    <select id="filter-resource-type" class="form-select form-select-sm mb-2">
+                        <option value="">Todos os recursos</option>
+                        <!-- será preenchido dinamicamente -->
+                    </select>
 
-                        <input type="radio" class="btn-check" name="mapType" id="map-satellite" autocomplete="off">
-                        <label class="btn btn-light btn-sm" for="map-satellite" onclick="setMapType('satellite')">Satellite View</label>
+                    <button id="reset-filters" class="btn btn-outline-secondary btn-sm w-100 mt-2">Limpar filtros</button>
+                    <hr>
+                    <button id="user-location-btn" class="btn btn-success btn-sm w-100">📍 Minha localização</button>
+                    
+                    <!-- Legenda das cores dos marcadores -->
+                    <hr>
+                    <div class="small">
+                        <strong>🎨 Nível de recursos (local):</strong><br>
+                        <img src="https://maps.google.com/mapfiles/ms/icons/green-dot.png" width="16"> 0–10 itens<br>
+                        <img src="https://maps.google.com/mapfiles/ms/icons/yellow-dot.png" width="16"> 11–50 itens<br>
+                        <img src="https://maps.google.com/mapfiles/ms/icons/red-dot.png" width="16"> > 50 itens
                     </div>
                 </div>
-                <div class="card-body" style="height: 80vh;">
-                    <div id="mapResources" style="height: 100%; width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Mapa -->
+        <div class="col-md-9 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <strong>🗺️ Unidades e Recursos</strong>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <input type="radio" class="btn-check" name="mapType" id="map-terrain" autocomplete="off" checked>
+                        <label class="btn btn-light" for="map-terrain" onclick="setMapType('terrain')">Mapa</label>
+                        <input type="radio" class="btn-check" name="mapType" id="map-satellite" autocomplete="off">
+                        <label class="btn btn-light" for="map-satellite" onclick="setMapType('satellite')">Satélite</label>
+                    </div>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="mapResources" style="height: 70vh; width: 100%;"></div>
+                    <div id="loading-overlay" class="position-absolute top-50 start-50 translate-middle bg-white p-3 rounded shadow d-none">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <span class="ms-2">Carregando locais...</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
 <script>
+// ==================== CONFIG ====================
 const apiUrl = '/api/location';
-let map;
-let markers = [];
+let map, clusterer;
+let allLocations = [];
+let currentFilters = { name: '', resourceType: '' };
 
+// ==================== UTILITÁRIOS ====================
+function sumResources(loc) {
+    if (!loc.resources?.length) return 0;
+    return loc.resources.reduce((sum, r) => sum + (parseInt(r.quantity) || 0), 0);
+}
+
+function getMarkerColor(total) {
+    if (total <= 10) return 'https://maps.google.com/mapfiles/ms/icons/green-dot.png';
+    if (total <= 50) return 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png';
+    return 'https://maps.google.com/mapfiles/ms/icons/red-dot.png';
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+}
+
+// ==================== INFO WINDOW MELHORADO (ORGANIZAÇÃO DOS DADOS) ====================
+function buildRichInfoWindow(loc) {
+    const total = sumResources(loc);
+    let resourcesHtml = '';
+    
+    if (loc.resources && loc.resources.length) {
+        // Ordena recursos por quantidade (maior primeiro)
+        const sorted = [...loc.resources].sort((a,b) => (parseInt(b.quantity)||0) - (parseInt(a.quantity)||0));
+        
+        resourcesHtml = '<div class="row g-2 mt-1">';
+        sorted.forEach(r => {
+            const qty = parseInt(r.quantity) || 0;
+            const percent = total > 0 ? Math.round((qty / total) * 100) : 0;
+            resourcesHtml += `
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><strong>${escapeHtml(r.name)}</strong></span>
+                        <span class="badge bg-primary rounded-pill">${qty} unid.</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: ${percent}%;" aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">${percent}% do total local</small>
+                </div>
+            `;
+        });
+        resourcesHtml += '</div>';
+    } else {
+        resourcesHtml = '<p class="text-muted mt-2 mb-0">📭 Nenhum recurso registrado</p>';
+    }
+
+    // Nível de criticidade textual
+    let levelText = '', levelColor = '';
+    if (total <= 10) { levelText = '🔴 Crítico'; levelColor = 'danger'; }
+    else if (total <= 50) { levelText = '🟡 Atenção'; levelColor = 'warning'; }
+    else { levelText = '🟢 Adequado'; levelColor = 'success'; }
+
+    return `
+        <div style="min-width: 320px; max-width: 400px;">
+            <div class="d-flex justify-content-between align-items-start">
+                <h6 class="mb-1"><strong>🏥 ${escapeHtml(loc.name)}</strong></h6>
+                <span class="badge bg-${levelColor}">${levelText}</span>
+            </div>
+            <p class="small text-secondary mt-1 mb-2">${escapeHtml(loc.description) || 'Sem descrição'}</p>
+            
+            <div class="row mb-2 small">
+                <div class="col-6">
+                    <span class="text-muted">📌 Coordenadas:</span><br>
+                    ${loc.latitude}, ${loc.longitude}
+                </div>
+                <div class="col-6">
+                    <span class="text-muted">📦 Total recursos:</span><br>
+                    <strong>${total} itens</strong>
+                </div>
+            </div>
+
+            <div class="mt-2">
+                <strong>🧰 Recursos disponíveis:</strong>
+                ${resourcesHtml}
+            </div>
+            
+            <hr class="my-2">
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-sm btn-outline-primary center-loc-btn" data-lat="${loc.latitude}" data-lng="${loc.longitude}" data-name="${escapeHtml(loc.name)}">
+                    🎯 Centralizar neste local
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// ==================== ATUALIZA PAINEL LATERAL E FILTROS ====================
+function updateFiltersDropdown(locations) {
+    const resourceSet = new Set();
+    locations.forEach(loc => {
+        loc.resources?.forEach(r => resourceSet.add(r.name));
+    });
+    const select = document.getElementById('filter-resource-type');
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">Todos os recursos</option>';
+    Array.from(resourceSet).sort().forEach(name => {
+        select.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+    });
+    select.value = currentVal; // mantém seleção anterior se possível
+}
+
+function updateSummaryPanel(locations) {
+    let totalItems = 0;
+    const resourceCount = new Map();
+    
+    locations.forEach(loc => {
+        if (loc.resources) {
+            loc.resources.forEach(r => {
+                const qty = parseInt(r.quantity) || 0;
+                totalItems += qty;
+                resourceCount.set(r.name, (resourceCount.get(r.name) || 0) + qty);
+            });
+        }
+    });
+
+    const sortedResources = Array.from(resourceCount.entries()).sort((a,b) => b[1] - a[1]);
+    let html = `<p><strong>📍 Locais exibidos:</strong> ${locations.length}</p>`;
+    html += `<p><strong>📦 Total geral:</strong> ${totalItems} unidades</p>`;
+    html += `<hr><strong>📋 Top recursos:</strong><ul class="small mt-1">`;
+    sortedResources.slice(0, 5).forEach(([name, qty]) => {
+        html += `<li><span class="badge bg-info text-dark">${escapeHtml(name)}</span> ${qty} unid.</li>`;
+    });
+    if (sortedResources.length > 5) html += `<li class="text-muted">+${sortedResources.length-5} outros...</li>`;
+    html += `</ul>`;
+    document.getElementById('resources-summary').innerHTML = html;
+}
+
+// ==================== FILTRO COMBINADO (NOME + TIPO DE RECURSO) ====================
+function filterLocations() {
+    let filtered = [...allLocations];
+    if (currentFilters.name) {
+        const nameLower = currentFilters.name.toLowerCase();
+        filtered = filtered.filter(loc => loc.name?.toLowerCase().includes(nameLower));
+    }
+    if (currentFilters.resourceType) {
+        filtered = filtered.filter(loc => 
+            loc.resources?.some(r => r.name === currentFilters.resourceType)
+        );
+    }
+    return filtered;
+}
+
+// ==================== CARREGA E RENDERIZA MARCADORES ====================
+async function loadAndDisplayMarkers() {
+    try {
+        document.getElementById('loading-overlay').classList.remove('d-none');
+        
+        if (allLocations.length === 0) {
+            const res = await fetch(apiUrl);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            allLocations = await res.json();
+            updateFiltersDropdown(allLocations);
+        }
+
+        const filtered = filterLocations();
+        
+        // Limpa marcadores
+        if (clusterer) clusterer.clearMarkers();
+        if (window.markersArray) window.markersArray.forEach(m => m.setMap(null));
+        
+        const newMarkers = [];
+        const markerList = [];
+
+        filtered.forEach(loc => {
+            if (!loc.latitude || !loc.longitude) return;
+            const total = sumResources(loc);
+            const marker = new google.maps.Marker({
+                position: { lat: parseFloat(loc.latitude), lng: parseFloat(loc.longitude) },
+                map,
+                title: `${loc.name} (${total} recursos)`,
+                icon: { url: getMarkerColor(total) }
+            });
+
+            // Info window com conteúdo melhorado
+            const infoWindow = new google.maps.InfoWindow({
+                content: buildRichInfoWindow(loc)
+            });
+
+            marker.addListener('click', () => {
+                infoWindow.open(map, marker);
+                // Pequeno delay para adicionar evento ao botão "centralizar" que é criado dinamicamente
+                setTimeout(() => {
+                    const btn = document.querySelector('.center-loc-btn');
+                    if (btn) {
+                        btn.addEventListener('click', (e) => {
+                            const lat = parseFloat(btn.dataset.lat);
+                            const lng = parseFloat(btn.dataset.lng);
+                            const name = btn.dataset.name;
+                            map.setCenter({ lat, lng });
+                            map.setZoom(16);
+                            infoWindow.close();
+                            // Opcional: mostrar um toast
+                        });
+                    }
+                }, 100);
+            });
+
+            newMarkers.push(marker);
+            markerList.push(marker);
+        });
+
+        window.markersArray = markerList;
+        
+        if (clusterer) {
+            clusterer.addMarkers(newMarkers);
+        } else {
+            clusterer = new MarkerClusterer(map, newMarkers, {
+                imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m',
+                gridSize: 60,
+                maxZoom: 15
+            });
+        }
+
+        updateSummaryPanel(filtered);
+    } catch (err) {
+        console.error(err);
+        alert('Erro ao carregar dados. Verifique o backend.');
+    } finally {
+        document.getElementById('loading-overlay').classList.add('d-none');
+    }
+}
+
+// ==================== EVENTOS DE FILTRO ====================
+function setupEventListeners() {
+    const nameInput = document.getElementById('search-location');
+    const resourceSelect = document.getElementById('filter-resource-type');
+    const resetBtn = document.getElementById('reset-filters');
+
+    nameInput.addEventListener('input', (e) => {
+        currentFilters.name = e.target.value;
+        loadAndDisplayMarkers();
+    });
+    resourceSelect.addEventListener('change', (e) => {
+        currentFilters.resourceType = e.target.value;
+        loadAndDisplayMarkers();
+    });
+    resetBtn.addEventListener('click', () => {
+        currentFilters = { name: '', resourceType: '' };
+        nameInput.value = '';
+        resourceSelect.value = '';
+        loadAndDisplayMarkers();
+    });
+}
+
+// ==================== INICIALIZAÇÃO DO MAPA ====================
 function initMap() {
     map = new google.maps.Map(document.getElementById("mapResources"), {
         zoom: 6,
         center: { lat: -25.9636, lng: 32.5805 },
-        mapTypeId: 'terrain'
+        mapTypeId: 'terrain',
+        gestureHandling: 'greedy'
     });
+    
+    loadAndDisplayMarkers();
+    setupEventListeners();
 
-    loadLocations();
+    document.getElementById('user-location-btn').addEventListener('click', () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    map.setCenter(userPos);
+                    map.setZoom(14);
+                    new google.maps.Marker({
+                        position: userPos,
+                        map,
+                        title: "Você está aqui",
+                        icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                    });
+                },
+                () => alert("Permissão de localização negada ou erro.")
+            );
+        } else {
+            alert("Geolocalização não suportada.");
+        }
+    });
 }
 
 function setMapType(type) {
-    if (map) {
-        map.setMapTypeId(type);
-    }
+    if (map) map.setMapTypeId(type);
 }
 
-async function loadLocations() {
-    try {
-        const res = await fetch(apiUrl);
-        const locations = await res.json();
-
-        locations.forEach(loc => {
-            if (loc.latitude && loc.longitude) {
-                const position = {
-                    lat: parseFloat(loc.latitude),
-                    lng: parseFloat(loc.longitude)
-                };
-
-                const resourceList = loc.resources && loc.resources.length
-                    ? loc.resources.map(r => `${r.name} (${r.quantity})`).join('<br>')
-                    : 'No resources available';
-
-                const contentString = `
-                    <div style="min-width: 250px;">
-                        <h6><strong>${loc.name}</strong></h6>
-                        <p>${loc.description || ''}</p>
-                        <table class="table table-sm table-bordered mb-0">
-                            <tr><th>Latitude</th><td>${loc.latitude}</td></tr>
-                            <tr><th>Longitude</th><td>${loc.longitude}</td></tr>
-                            <tr><th>Resources</th><td>${resourceList}</td></tr>
-                        </table>
-                    </div>
-                `;
-
-                const marker = new google.maps.Marker({
-                    position,
-                    map,
-                    title: loc.name,
-                    icon: { url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png" }
-                });
-
-                const infoWindow = new google.maps.InfoWindow({ content: contentString });
-
-                marker.addListener('click', () => {
-                    infoWindow.open(map, marker);
-                });
-
-                markers.push(marker);
-            }
-        });
-    } catch (err) {
-        console.error('Error loading locations:', err);
-        alert('Failed to load locations.');
-    }
-}
-
-window.onload = initMap;
+window.initMap = initMap;
 </script>
 
-<script async
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDw8qHIN9go7Do3aouyR9343opJ33ZdDb0&libraries=places">
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDw8qHIN9go7Do3aouyR9343opJ33ZdDb0&libraries=places&callback=initMap">
 </script>
-
 {% endblock %}
